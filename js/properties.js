@@ -18,7 +18,7 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
       created_at: new Date().toISOString()
     });
     localStorage.setItem('tuhh_cleaner_turnovers', JSON.stringify(logs));
-    
+
     // Also increment monthly flat count for cleaner
     if (cleanerEmpId) {
       const cur = Number(localStorage.getItem('tuhh_cleaner_flats_' + cleanerEmpId + '_' + monthStr)) || 0;
@@ -36,6 +36,51 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
  */
 
 // ============ PROPERTIES (ROOMS) ============
+// Global state for Units & Pricing filter
+window._unitsActiveFilter = window._unitsActiveFilter || 'all';
+window._unitsSearchQuery = window._unitsSearchQuery || '';
+
+window.setUnitsFilter = function(filter) {
+  window._unitsActiveFilter = filter;
+  document.querySelectorAll('.units-filter-btn').forEach(btn => {
+    const isAct = btn.getAttribute('data-filter') === filter;
+    btn.style.background = isAct ? '#0F172A' : '#F8FAFC';
+    btn.style.color = isAct ? '#fff' : '#475569';
+  });
+  window.filterUnitsList(window._unitsSearchQuery);
+};
+
+window.filterUnitsList = function(query) {
+  window._unitsSearchQuery = (query || '').toLowerCase().trim();
+  const q = window._unitsSearchQuery;
+  const cards = document.querySelectorAll('.unit-prop-card');
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const searchTxt = card.getAttribute('data-search') || '';
+    const status = card.getAttribute('data-status') || '';
+
+    let matchesFilter = true;
+    if (window._unitsActiveFilter === 'active' && status !== 'active') matchesFilter = false;
+    if (window._unitsActiveFilter === 'off' && status !== 'off') matchesFilter = false;
+
+    let matchesSearch = true;
+    if (q && !searchTxt.includes(q)) matchesSearch = false;
+
+    if (matchesFilter && matchesSearch) {
+      card.style.display = 'flex';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const emptyEl = document.getElementById('unitsEmptyState');
+  if (emptyEl) {
+    emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+};
+
 async function renderManageRooms() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
@@ -50,56 +95,293 @@ async function renderManageRooms() {
   (emps || []).forEach(e => { empMap[e.emp_id] = e; });
   const isO = ['owner','admin','moderator','developer'].includes(SESSION.role);
 
+  const activeCount = (rooms || []).filter(r => r.bookable !== false && r.mode !== 'Off').length;
+  const offCount = (rooms || []).length - activeCount;
+
   renderShell(`
-    <div class="card">
-      <h1>🏠 Properties</h1>
-      <div class="sub">${(rooms || []).length} properties</div>
-      ${isO ? `
-        <button onclick="renderAddRoom()">➕ Add Property</button>
-        <button onclick="window.AIRBNB_IMPORTER.openModal()" class="secondary" style="margin-left:8px;background:#FF385C;color:#fff;border-color:#FF385C;font-weight:700;">📥 Import from Airbnb (Footage &amp; Data)</button>
-        <button onclick="renderQuickMapManager()" class="secondary" style="margin-left:8px;background:#2563EB;color:#fff;border-color:#2563EB;">🧭 Manage Map Pins</button>
-        <button onclick="navigate('showcase-admin')" class="secondary" style="margin-left:8px;background:#0F766E;color:#fff;border-color:#0F766E;">🌐 Website Showcase &amp; Media CMS</button>
-      ` : ''}
+    <style>
+      .units-header-card {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+      }
+      .units-action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 6px;
+        width: 100%;
+        max-width: 620px;
+      }
+      .units-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 14px;
+        margin-bottom: 30px;
+      }
+      .unit-prop-card {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 6px rgba(15,23,42,0.04);
+      }
+      .unit-prop-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+      }
+      .unit-media-row {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        background: #FAFAFA;
+        border-bottom: 1px solid #F1F5F9;
+      }
+      .unit-thumb-wrapper {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        flex-shrink: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #E2E8F0;
+      }
+      .unit-thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .unit-badge-unit {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        background: rgba(15,23,42,0.85);
+        backdrop-filter: blur(4px);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+      }
+      .unit-info-body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .unit-details-grid {
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-size: 12px;
+        background: #fff;
+        flex: 1;
+      }
+      .unit-meta-item {
+        background: #F8FAFC;
+        border: 1px solid #F1F5F9;
+        border-radius: 8px;
+        padding: 8px;
+      }
+      .unit-actions-row {
+        display: flex;
+        gap: 6px;
+        padding: 10px 12px;
+        border-top: 1px solid #F1F5F9;
+        background: #FAFBFD;
+        align-items: center;
+      }
+      @media (max-width: 640px) {
+        .units-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .units-action-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+        .unit-details-grid {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+      }
+    </style>
+
+    <div class="units-header-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <h1 style="margin:0;font-size:clamp(19px, 4.5vw, 24px);font-weight:800;color:#0F172A;letter-spacing:-0.5px;">🏢 Units &amp; Pricing</h1>
+            <span style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700;">
+              ${(rooms || []).length} Total Units
+            </span>
+          </div>
+          <p style="margin:4px 0 0 0;font-size:12.5px;color:#64748B;">
+            Master inventory, live nightly rates, caretaker contacts, key codes &amp; map pins
+          </p>
+        </div>
+
+        ${isO ? `
+          <div class="units-action-grid">
+            <button onclick="renderAddRoom()" style="background:#2563EB;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.3);">
+              <span>➕</span> Add Unit
+            </button>
+            <button onclick="window.AIRBNB_IMPORTER.openModal()" style="background:#FF385C;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(255,56,92,0.3);">
+              <span>📥</span> Airbnb Import
+            </button>
+            <button onclick="renderQuickMapManager()" style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span>🧭</span> Map Pins
+            </button>
+            <button onclick="navigate('showcase-admin')" style="background:#0F766E;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span>🌐</span> Website CMS
+            </button>
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Real-time Filter & Search -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #F1F5F9;padding-top:12px;">
+        <div style="flex:1;min-width:200px;position:relative;">
+          <input type="text" id="unitsSearchInput" placeholder="🔍 Search unit (e.g. 101, Tehzeeb, Arman, Gomti)..." oninput="filterUnitsList(this.value)" style="width:100%;padding:8px 12px 8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;outline:none;" />
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button onclick="setUnitsFilter('all')" class="units-filter-btn" data-filter="all" style="padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid #CBD5E1;background:#0F172A;color:#fff;">
+            All (${(rooms || []).length})
+          </button>
+          <button onclick="setUnitsFilter('active')" class="units-filter-btn" data-filter="active" style="padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid #CBD5E1;background:#F8FAFC;color:#475569;">
+            🟢 Active (${activeCount})
+          </button>
+          <button onclick="setUnitsFilter('off')" class="units-filter-btn" data-filter="off" style="padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid #CBD5E1;background:#F8FAFC;color:#475569;">
+            🔴 Off (${offCount})
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th>ID</th><th>Property</th><th>Nickname</th><th>Unit</th><th>Rate / Night</th>
-          <th>Contacts</th><th>Lock</th><th>Map Pin</th><th>Status</th>
-          ${isO ? '<th>Actions</th>' : ''}
-        </tr></thead>
-        <tbody>${(rooms || []).map(r => {
-          const mgr = empMap[r.checkin_manager_emp_id];
-          const care = empMap[r.caretaker_emp_id];
-          const mgrName = mgr?.name || r.checkin_manager || '-';
-          const mgrPhone = mgr?.phone || '';
-          const careName = care?.name || r.caretaker_name || '-';
-          const carePhone = care?.phone || r.caretaker_phone || '';
-          return `<tr>
-            <td><strong>${r.room_id}</strong></td>
-            <td style="max-width:200px;font-size:12px;">${r.property_name || '-'}</td>
-            <td>${propLabel(r) || '-'}</td>
-            <td>${r.unit_no || '-'}</td>
-            <td><strong style="color:#059669;font-size:13px;">₹${Number(r.rent_per_night || 0).toLocaleString('en-IN')}</strong><br><small style="color:var(--muted);">/night</small></td>
-            <td style="font-size:12px;">
-              <strong>Caretaker:</strong> ${careName}
-              ${carePhone ? `<br><small>📞 ${carePhone}</small>` : ''}
-              <br><strong>Manager:</strong> ${mgrName}
-              ${mgrPhone ? `<br><small>📞 ${mgrPhone}</small>` : ''}
-            </td>
-            <td>
-              <span class="badge ${r.lock_type === 'Smart' ? 'blue' : 'yellow'}">${r.lock_type || 'Physical'}</span>
-              ${r.key_number ? `<br><small>🔑 ${r.key_number}</small>` : ''}
-            </td>
-            <td>${r.map_link ? `<a href="${r.map_link}" target="_blank" style="text-decoration:none;font-weight:700;color:#2563EB;display:inline-flex;align-items:center;gap:4px;">📍 View Pin</a>` : `<span style="color:#DC2626;font-size:11px;font-weight:700;cursor:pointer;background:#FEE2E2;padding:2px 6px;border-radius:4px;" onclick="renderQuickMapManager()">⚠️ Missing Pin</span>`}</td>
-            <td><span class="badge ${r.bookable ? 'green' : 'red'}">${r.mode || 'On'}</span></td>
-            ${isO ? `<td class="table-actions">
-              <button class="btn-sm" onclick="editRoom('${r.room_id}')">✏️</button>
-              ${window.canDelete && window.canDelete() ? `<button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')">🗑️</button>` : ''}
-            </td>` : ''}
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
+
+    <!-- Units Cards Grid -->
+    <div id="unitsGridContainer" class="units-grid">
+      ${(rooms || []).map(r => {
+        const mgr = empMap[r.checkin_manager_emp_id];
+        const care = empMap[r.caretaker_emp_id];
+        const mgrName = mgr?.name || r.checkin_manager || '-';
+        const mgrPhone = mgr?.phone || '';
+        const careName = care?.name || r.caretaker_name || '-';
+        const carePhone = care?.phone || r.caretaker_phone || '';
+
+        const scProp = (window.ShowcaseData && window.ShowcaseData.getProperty ? window.ShowcaseData.getProperty(r.room_id) : null) ||
+                       (window.ShowcaseData && window.ShowcaseData.BASELINE ? window.ShowcaseData.BASELINE[r.room_id] : null);
+        const coverImg = scProp?.cover_image || r.cover_image || 'assets/logo-emblem.png';
+        const displayName = r.nickname || scProp?.name || r.property_name || r.room_id;
+        const areaName = scProp?.area_name || r.building_name || r.address || '';
+        const isBookable = r.bookable !== false && r.mode !== 'Off';
+        const statusType = isBookable ? 'active' : 'off';
+
+        const searchKeywords = [
+          r.room_id, r.unit_no, r.nickname, r.property_name, displayName, areaName,
+          careName, carePhone, mgrName, mgrPhone, r.building_name, r.address
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        return `
+          <div class="unit-prop-card" data-search="${escapeHtml(searchKeywords)}" data-status="${statusType}">
+            <div class="unit-media-row">
+              <div class="unit-thumb-wrapper">
+                <img src="${coverImg}" alt="${escapeHtml(displayName)}" class="unit-thumb-img" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+                <span class="unit-badge-unit">${r.unit_no || r.room_id}</span>
+              </div>
+              <div class="unit-info-body">
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                    <div style="font-size:14.5px;font-weight:800;color:#0F172A;line-height:1.25;">
+                      ${escapeHtml(displayName)}
+                    </div>
+                    <span style="background:${isBookable ? '#ECFDF5' : '#FEF2F2'};color:${isBookable ? '#065F46' : '#991B1B'};border:1px solid ${isBookable ? '#A7F3D0' : '#FECACA'};font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;white-space:nowrap;">
+                      ${isBookable ? '🟢 Active' : '🔴 Off'}
+                    </span>
+                  </div>
+                  <div style="font-size:11.5px;color:#64748B;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${escapeHtml(areaName || r.unit_type || 'Luxury Unit')}
+                  </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px;">
+                  <div>
+                    <span style="font-size:17px;font-weight:800;color:#059669;">₹${Number(r.rent_per_night || 0).toLocaleString('en-IN')}</span>
+                    <span style="font-size:11px;font-weight:600;color:#64748B;">/ night</span>
+                  </div>
+                  <span style="font-size:11px;color:#475569;background:#F1F5F9;padding:2px 6px;border-radius:4px;font-weight:600;">
+                    ${r.lock_type === 'Smart' ? '🔐 Smart' : (r.key_number ? '🔑 ' + r.key_number : 'Physical')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Details micro grid -->
+            <div class="unit-details-grid">
+              <div class="unit-meta-item">
+                <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🧑‍🔧 Caretaker</div>
+                <div style="font-weight:700;color:#1E293B;font-size:12px;margin-top:1px;">${escapeHtml(careName)}</div>
+                ${carePhone ? `<a href="tel:${carePhone}" style="color:#2563EB;font-weight:700;text-decoration:none;font-size:11px;display:inline-block;margin-top:2px;">📞 ${carePhone}</a>` : '<div style="color:#94A3B8;font-size:10.5px;">No phone</div>'}
+              </div>
+
+              <div class="unit-meta-item">
+                <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">👔 Manager</div>
+                <div style="font-weight:700;color:#1E293B;font-size:12px;margin-top:1px;">${escapeHtml(mgrName)}</div>
+                ${mgrPhone ? `<a href="tel:${mgrPhone}" style="color:#2563EB;font-weight:700;text-decoration:none;font-size:11px;display:inline-block;margin-top:2px;">📞 ${mgrPhone}</a>` : '<div style="color:#94A3B8;font-size:10.5px;">No phone</div>'}
+              </div>
+
+              <div class="unit-meta-item" style="grid-column: span 2; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:11.5px;color:#334155;">
+                  <strong>Floor:</strong> ${r.floor || '-'} &bull; <strong>Max:</strong> ${r.max_guests ? r.max_guests + ' Guests' : '-'}
+                </div>
+                <div>
+                  ${r.map_link ? `
+                    <a href="${r.map_link}" target="_blank" style="text-decoration:none;font-weight:700;color:#2563EB;font-size:11.5px;display:inline-flex;align-items:center;gap:3px;">
+                      📍 Map Pin ↗
+                    </a>
+                  ` : `
+                    <span style="color:#DC2626;font-size:10.5px;font-weight:700;cursor:pointer;background:#FEE2E2;padding:2px 6px;border-radius:4px;" onclick="renderQuickMapManager()">
+                      ⚠️ Missing Pin
+                    </span>
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            ${isO ? `
+              <div class="unit-actions-row">
+                <button class="btn-sm" onclick="editRoom('${r.room_id}')" style="flex:1;background:#F8FAFC;border:1px solid #CBD5E1;color:#1E293B;font-weight:700;font-size:11.5px;padding:6px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;">
+                  ✏️ Edit Unit &amp; Rates
+                </button>
+                ${scProp?.slug ? `
+                  <a href="property.html?id=${scProp.slug}" target="_blank" class="btn-sm" style="background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;font-weight:700;font-size:11.5px;padding:6px 10px;border-radius:6px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                    👁️ Preview
+                  </a>
+                ` : ''}
+                ${window.canDelete && window.canDelete() ? `
+                  <button class="btn-sm danger" onclick="deleteRoom('${r.room_id}','${r.unit_no}')" style="padding:6px 8px;border-radius:6px;font-size:11px;cursor:pointer;">
+                    🗑️
+                  </button>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div id="unitsEmptyState" style="display:none;text-align:center;padding:40px 20px;background:#fff;border-radius:14px;border:1px dashed #CBD5E1;margin-bottom:30px;">
+      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="font-size:15px;font-weight:700;color:#0F172A;">No matching property found</div>
+      <div style="font-size:12.5px;color:#64748B;margin-top:4px;">Try searching with a different unit number, caretaker or location.</div>
     </div>
   `, 'rooms');
 }
@@ -1207,7 +1489,7 @@ window.showEditFlatStatusModal = async function(id) {
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <div style="font-size:18px;font-weight:800;color:var(--dark);margin-bottom:2px;">✏️ Flat Status</div>
       <div class="sub" style="margin-bottom:14px;">${propLabel(f.rooms) || id} · Unit ${f.rooms?.unit_no || id}</div>
-      
+
       <div class="form-grid">
         <div class="form-group"><label>Occupancy Status</label>
           <select id="modalFlatStatus">
@@ -1794,25 +2076,25 @@ window.renderQuickMapManager = async function() {
                 <div style="font-size:11px;color:#64748B;">${r.room_id} (${r.unit_no || '-'})</div>
               </div>
               <div style="flex:1;">
-                <input 
-                  id="map_input_${r.room_id}" 
-                  value="${r.map_link || ''}" 
-                  placeholder="Paste Google Maps link (e.g. https://maps.app.goo.gl/...)" 
-                  style="width:100%;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;" 
+                <input
+                  id="map_input_${r.room_id}"
+                  value="${r.map_link || ''}"
+                  placeholder="Paste Google Maps link (e.g. https://maps.app.goo.gl/...)"
+                  style="width:100%;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:6px;box-sizing:border-box;"
                 />
               </div>
               <div style="display:flex;gap:6px;flex-shrink:0;">
-                <button 
-                  class="btn-sm" 
-                  onclick="testRoomMap('${r.room_id}')" 
+                <button
+                  class="btn-sm"
+                  onclick="testRoomMap('${r.room_id}')"
                   title="Test link in Google Maps"
                   style="background:#0F172A;color:#fff;font-size:11px;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;"
                 >
                   🧭 Test
                 </button>
-                <button 
-                  class="btn-sm" 
-                  onclick="saveSingleRoomMap('${r.room_id}')" 
+                <button
+                  class="btn-sm"
+                  onclick="saveSingleRoomMap('${r.room_id}')"
                   title="Save this link"
                   style="background:#16A34A;color:#fff;font-size:11px;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;"
                 >
