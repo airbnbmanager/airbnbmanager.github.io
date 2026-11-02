@@ -1562,7 +1562,7 @@ function renderShell(content, activePage = 'dashboard') {
     }
   }
 
-  const footerHtml = (typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer'))) ? '' : `
+  const footerHtml = (activePage === 'bookings' || activePage === 'reports' || activePage === 'calendar' || (typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer')))) ? '' : `
     <footer class="app-official-system-footer">
       <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
       <div class="footer-meta">

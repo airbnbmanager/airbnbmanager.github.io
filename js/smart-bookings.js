@@ -608,28 +608,6 @@ async function renderSmartManageBookings(forceRefresh = false) {
           </div>
         ` : window._sbkState.viewMode === 'table' ? renderBookingTableHtml(filtered, paidMap, canM, today) : window._sbkState.viewMode === 'cards' ? renderBookingCardsHtml(filtered, paidMap, canM, today) : renderAirbnbReservationsHtml(filtered, paidMap, canM, today)}
       </div>
-
-      <!-- Airbnb-Style Floating Operations Banner (Matches bottom banner in screenshot) -->
-      <div class="airbnb-notice-card" onclick="renderAddBooking()" style="cursor:pointer;">
-        <div class="airbnb-notice-icon">✏️</div>
-        <div class="airbnb-notice-content">
-          <div class="airbnb-notice-title" style="color:#222222;font-size:14px;font-weight:700;">Host Operations Hub</div>
-          <div class="airbnb-notice-desc" style="color:#717171;font-size:12.5px;font-weight:500;">17 Luxury Homestays &bull; iCal Channel Sync &amp; WhatsApp Active</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          ${canM ? `
-            <button class="btn-sm" onclick="event.stopPropagation();if(window.openInvestorBookingBroadcastModal)window.openInvestorBookingBroadcastModal();else if(window.renderWhatsAppHub)window.renderWhatsAppHub();" style="background:#0F172A;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;" title="Send date-wise booking updates to all property investors for any date range (from 1 Sep to today or custom)">
-              📢 Broadcast to Investors
-            </button>
-            <button class="btn-sm" onclick="event.stopPropagation();window.renderMultiPropertyBooking()" style="background:#4F46E5;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;" title="Book multiple homestays in one go for groups, family or wedding stays">
-              🏢 + Multi-Property
-            </button>
-            <button class="btn-sm" onclick="event.stopPropagation();window.switchBookingWizardMode('single');renderAddBooking()" style="background:#222222;color:#fff;border-radius:20px;font-weight:700;padding:6px 14px;border:none;font-size:12px;cursor:pointer;">
-              + New Single
-            </button>
-          ` : ''}
-        </div>
-      </div>
     </div>
   `;
 
