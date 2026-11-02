@@ -288,7 +288,7 @@ async function renderReports() {
           <div class="hh-cal-toolbar-right">
             <!-- View Mode Switcher -->
             <div class="hh-cal-toggle-group">
-              <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
+              <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('timeline')" title="TUHH Multi-Property Gantt Timeline">
                 <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
               </button>
               <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('grid')" title="Classic Month Grid View">
@@ -565,7 +565,7 @@ async function renderReports() {
       <!-- Row 2: View Switcher & Property Filter (Duplicate New Booking button removed) -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="hh-cal-toggle-group" style="margin:0;">
-          <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="Homeyhuts Multi-Property Gantt Timeline">
+          <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="TUHH Multi-Property Gantt Timeline">
             <i class="ti ti-layout-kanban"></i> <span>Unified Timeline</span>
           </button>
           <button type="button" class="hh-cal-toggle-btn active" onclick="setCalViewMode('grid')" title="Classic Month Grid View">

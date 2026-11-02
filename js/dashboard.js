@@ -691,6 +691,7 @@ async function renderDashboard() {
     link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
     link.click();
   };
+  window.downloadTuhhAnalyticsExcel = window.downloadHomeyhutsExcel;
 
 
   const monthBookings = monthCheckinBookings.length;
@@ -2023,6 +2024,7 @@ window.renderExecutiveDashboard = async function() {
       link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
       link.click();
     };
+    window.downloadTuhhAnalyticsExcel = window.downloadHomeyhutsExcel;
 
     renderShell(`
       <div style="max-width:1440px;margin:0 auto;padding:6px 4px 30px;">
@@ -2035,9 +2037,9 @@ window.renderExecutiveDashboard = async function() {
               <span class="hh-mac-dot yellow"></span>
               <span class="hh-mac-dot green"></span>
             </div>
-            <div class="hh-mac-title">
-              <span style="font-size:16px;">🏠</span>
-              <span>Homeyhuts · Analytics</span>
+            <div class="hh-mac-title" style="display:flex;align-items:center;gap:7px;">
+              <img src="assets/logo-emblem.png?v=393" alt="TUHH" style="width:17px;height:17px;border-radius:4px;object-fit:cover;" onerror="this.outerHTML='🏠'" />
+              <span>The Unique Haven Homes · Analytics</span>
             </div>
             <div class="hh-mac-live-badge">
               <span class="hh-mac-live-dot"></span> Live data
@@ -2064,7 +2066,7 @@ window.renderExecutiveDashboard = async function() {
                 </div>
 
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <button type="button" class="hh-analytics-btn-excel" onclick="downloadHomeyhutsExcel()" title="Export Analytics to Excel CSV">
+                  <button type="button" class="hh-analytics-btn-excel" onclick="downloadTuhhAnalyticsExcel()" title="Export Analytics to Excel CSV">
                     <span>⬇</span> <span>Excel</span>
                   </button>
                   <button type="button" class="dash-pill-btn" onclick="renderExecutiveDashboard()" title="Refresh live data" style="padding:6px 12px;font-size:12px;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:999px;cursor:pointer;">
