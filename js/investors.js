@@ -839,33 +839,15 @@ async function renderInvestorReport(investorId, roomId, month) {
   const totalPages = 1 + ledgerPageBlocks.length + 1; // Cover + Ledger Pages + Signatures/Expenses Page
   const finalPageNo = totalPages;
 
-  function renderSubPageHeader(pageNo, totalPages) {
-    return `
-      <div class="inv-sub-header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #CBD5E1;padding-bottom:8px;margin-bottom:14px;font-size:9.5px;color:#64748B;">
-        <div style="display:flex;align-items:center;gap:7px;">
-          <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH" style="width:18px;height:18px;border-radius:4px;vertical-align:middle;" />
-          <strong style="color:#0F172A;letter-spacing:0.4px;">THE UNIQUE HAVEN HOMES PVT. LTD.</strong>
-          <span style="color:#94A3B8;">&bull;</span>
-          <span>CIN: U55101UP2026PTC244637</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <strong style="color:#0F172A;">${escapeHtml(room?.nickname || room?.property_name || roomId)}</strong>
-          <span style="color:#CBD5E1;">&bull;</span>
-          <span style="font-weight:700;color:#0F172A;">${monthYear.toUpperCase()}</span>
-          <span style="color:#CBD5E1;">&bull;</span>
-          <span style="background:#0F172A;color:#FFFFFF;font-weight:700;padding:2px 7px;border-radius:10px;font-size:9px;">
-            PAGE ${pageNo} OF ${totalPages}
-          </span>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderRunningFooter(pageNo, totalPages, label) {
+  function renderRunningFooter(pageNo, totalPages) {
     return `
       <div class="inv-page-footer">
-        <div>THE UNIQUE HAVEN HOMES PVT. LTD. · CIN: U55101UP2026PTC244637</div>
-        <div style="font-weight:700;">Page ${pageNo} of ${totalPages} · ${label}</div>
+        <div style="font-size:9px;color:#64748B;">
+          <strong style="color:#0F172A;">The Unique Haven Homes</strong> &bull; ${escapeHtml(room?.nickname || room?.property_name || roomId)} &bull; ${monthYear.toUpperCase()}
+        </div>
+        <div style="font-size:9.5px;font-weight:700;color:#0F172A;">
+          Page ${pageNo} of ${totalPages}
+        </div>
       </div>
     `;
   }
@@ -934,14 +916,14 @@ async function renderInvestorReport(investorId, roomId, month) {
           </div>
 
           <!-- Property & Investor Profile (Compact 2-Column Grid) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:11px;line-height:1.45;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.45;">
             <div>
               <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Investor / Asset Owner</div>
-              <div style="font-weight:800;font-size:12.5px;color:#0F172A;margin-top:2px;">${inv?.name || '-'}</div>
+              <div style="font-weight:800;font-size:13px;color:#0F172A;margin-top:2px;">${inv?.name || '-'}</div>
               <div style="color:#64748B;margin-top:3px;"><strong style="color:#334155;">Property:</strong> ${room?.nickname || room?.property_name || '-'}</div>
               <div style="color:#64748B;"><strong style="color:#334155;">Location:</strong> ${room?.address || 'Lucknow, Uttar Pradesh'}</div>
             </div>
-            <div style="border-left:1px solid #E2E8F0;padding-left:12px;">
+            <div style="border-left:1px solid #E2E8F0;padding-left:14px;">
               <div style="color:#64748B;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Audit & Settlement Details</div>
               <div style="margin-top:2px;"><strong style="color:#334155;">Reporting Period:</strong> ${monthYear}</div>
               <div><strong style="color:#334155;">Statement Date:</strong> ${today}</div>
@@ -950,55 +932,55 @@ async function renderInvestorReport(investorId, roomId, month) {
           </div>
 
           <!-- Section 1.1: Executive Summary -->
-          <div style="margin-bottom:10px;">
-            <div style="font-size:11.5px;font-weight:800;padding:5px 9px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11.5px;font-weight:800;padding:6px 10px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
               <span>📋</span> 1. Executive Performance Summary
             </div>
-            <p style="font-size:10.5px;line-height:1.45;text-align:justify;margin:5px 0 0 0;color:#334155;">
+            <p style="font-size:10.5px;line-height:1.45;text-align:justify;margin:6px 0 0 0;color:#334155;">
               This audited monthly statement certifies the operational and financial performance of <strong>${room?.nickname || room?.property_name}</strong> for <strong>${monthYear}</strong> under the professional hospitality management of <strong>The Unique Haven Homes Private Limited</strong>. All bookings across Online Travel Agencies (Airbnb) and Direct Offline Concierge reservations have been reconciled and night-prorated.
             </p>
-            <p style="font-size:10.5px;line-height:1.45;text-align:justify;margin:3px 0 0 0;color:#334155;">
+            <p style="font-size:10.5px;line-height:1.45;text-align:justify;margin:4px 0 0 0;color:#334155;">
               Operational disbursements including electricity, high-speed Wi-Fi, property caretaking, laundry, supplies, and facility maintenance have been deducted. The Net Operating Profit has been apportioned according to the governing <strong>${INVESTOR_POOL_PCT}% Investor Pool &amp; ${COMPANY_PCT}% Operator Share</strong> contractual agreement.
             </p>
           </div>
 
           <!-- Section 1.2: Key Financial Metrics Table -->
-          <div style="margin-bottom:10px;">
-            <div style="font-size:11.5px;font-weight:800;padding:5px 9px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11.5px;font-weight:800;padding:6px 10px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
               <span>💰</span> Key Financial Metrics (Audited)
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin-top:3px;">
+            <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin-top:4px;">
               <tbody>
                 <tr>
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;color:#334155;"><strong>Gross Booking Revenue (${totalNights} Nights)</strong></td>
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;text-align:right;font-weight:800;color:#0F172A;">₹${totalRev.toLocaleString('en-IN')}</td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;color:#334155;"><strong>Gross Booking Revenue (${totalNights} Nights)</strong></td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;text-align:right;font-weight:800;color:#0F172A;">₹${totalRev.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;color:#334155;"><strong>Itemized Operating Expenses (Electricity, Wi-Fi, Caretaker, Maintenance)</strong></td>
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;text-align:right;font-weight:800;color:#DC2626;">− ₹${totalExp.toLocaleString('en-IN')}</td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;color:#334155;"><strong>Itemized Operating Expenses (Electricity, Wi-Fi, Caretaker, Maintenance)</strong></td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;text-align:right;font-weight:800;color:#DC2626;">− ₹${totalExp.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style="background:#ECFDF5;">
-                  <td style="padding:6px 9px;border:1px solid #A7F3D0;font-weight:800;color:#065F46;">Net Operating Profit</td>
-                  <td style="padding:6px 9px;border:1px solid #A7F3D0;text-align:right;font-weight:900;color:#059669;font-size:12.5px;">₹${profit.toLocaleString('en-IN')}</td>
+                  <td style="padding:6px 10px;border:1px solid #A7F3D0;font-weight:800;color:#065F46;">Net Operating Profit</td>
+                  <td style="padding:6px 10px;border:1px solid #A7F3D0;text-align:right;font-weight:900;color:#059669;font-size:12.5px;">₹${profit.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style="background:#F8FAFC;">
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;font-weight:600;color:#475569;">TUHH Operator Fee (${COMPANY_PCT}%)</td>
-                  <td style="padding:5px 9px;border:1px solid #E2E8F0;text-align:right;color:#0F172A;font-weight:800;">₹${companyAmount.toLocaleString('en-IN')}</td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;font-weight:600;color:#475569;">TUHH Operator Fee (${COMPANY_PCT}%)</td>
+                  <td style="padding:6px 10px;border:1px solid #E2E8F0;text-align:right;color:#0F172A;font-weight:800;">₹${companyAmount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr style="background:#EEF2FF;">
-                  <td style="padding:6px 9px;border:1.5px solid #4F46E5;font-weight:800;color:#312E81;">
+                  <td style="padding:6px 10px;border:1.5px solid #4F46E5;font-weight:800;color:#312E81;">
                     Total Investor Pool ${isMultiPerson ? `(${inv?.name || ''})` : `(${INVESTOR_POOL_PCT}%)`}
                   </td>
-                  <td style="padding:6px 9px;border:1.5px solid #4F46E5;text-align:right;color:#4338CA;font-weight:900;font-size:13px;">
+                  <td style="padding:6px 10px;border:1.5px solid #4F46E5;text-align:right;color:#4338CA;font-weight:900;font-size:13px;">
                     ₹${investorPool.toLocaleString('en-IN')}
                   </td>
                 </tr>
                 ${isMultiPerson ? investorNames.map(n => `
                   <tr style="background:#F8FAFC;">
-                    <td style="padding:4px 9px;border:1px solid #E2E8F0;padding-left:20px;color:#475569;font-size:10px;">
+                    <td style="padding:5px 10px;border:1px solid #E2E8F0;padding-left:20px;color:#475569;font-size:10px;">
                       ↳ <strong>${n}</strong> Share (${(100/personCount).toFixed(2)}% of pool)
                     </td>
-                    <td style="padding:4px 9px;border:1px solid #E2E8F0;text-align:right;color:#4F46E5;font-weight:700;">
+                    <td style="padding:5px 10px;border:1px solid #E2E8F0;text-align:right;color:#4F46E5;font-weight:700;">
                       ₹${perPersonAmount.toLocaleString('en-IN')}
                     </td>
                   </tr>
@@ -1008,58 +990,58 @@ async function renderInvestorReport(investorId, roomId, month) {
           </div>
 
           <!-- Section 1.3: Profit Distribution Table -->
-          <div style="margin-bottom:10px;">
-            <div style="font-size:11.5px;font-weight:800;padding:5px 9px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11.5px;font-weight:800;padding:6px 10px;background:#0F172A;color:#fff;border-radius:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;">
               <span>🎯</span> Profit Distribution Schedule (${monthYear})
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:3px;">
+            <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px;">
               <thead>
                 <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
-                  <th style="padding:4px 7px;border:1px solid #E2E8F0;text-align:left;color:#475569;">Beneficiary Stakeholder</th>
-                  <th style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;color:#475569;">Allocation</th>
-                  <th style="padding:4px 7px;border:1px solid #E2E8F0;text-align:right;color:#475569;">Payable Amount</th>
-                  <th style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;color:#475569;">Audit Status</th>
+                  <th style="padding:5px 8px;border:1px solid #E2E8F0;text-align:left;color:#475569;">Beneficiary Stakeholder</th>
+                  <th style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#475569;">Allocation</th>
+                  <th style="padding:5px 8px;border:1px solid #E2E8F0;text-align:right;color:#475569;">Payable Amount</th>
+                  <th style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#475569;">Audit Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style="padding:4px 7px;border:1px solid #E2E8F0;font-weight:600;">The Unique Haven Homes Pvt. Ltd. (Operator)</td>
-                  <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;">${COMPANY_PCT}%</td>
-                  <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:right;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
-                  <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;color:#059669;font-weight:700;">Verified</td>
+                  <td style="padding:5px 8px;border:1px solid #E2E8F0;font-weight:600;">The Unique Haven Homes Pvt. Ltd. (Operator)</td>
+                  <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;">${COMPANY_PCT}%</td>
+                  <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:right;font-weight:700;">₹${companyAmount.toLocaleString('en-IN')}</td>
+                  <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#059669;font-weight:700;">Verified</td>
                 </tr>
                 <tr style="background:#EEF2FF;">
-                  <td style="padding:5px 7px;border:1.5px solid #4F46E5;font-weight:800;color:#312E81;">Investor Pool — ${inv?.name || '-'}</td>
-                  <td style="padding:5px 7px;border:1.5px solid #4F46E5;text-align:center;font-weight:800;color:#312E81;">${INVESTOR_POOL_PCT}%</td>
-                  <td style="padding:5px 7px;border:1.5px solid #4F46E5;text-align:right;color:#4338CA;font-weight:900;font-size:11.5px;">₹${investorPool.toLocaleString('en-IN')}</td>
-                  <td style="padding:5px 7px;border:1.5px solid #4F46E5;text-align:center;color:#4338CA;font-weight:800;">Approved</td>
+                  <td style="padding:6px 8px;border:1.5px solid #4F46E5;font-weight:800;color:#312E81;">Investor Pool — ${inv?.name || '-'}</td>
+                  <td style="padding:6px 8px;border:1.5px solid #4F46E5;text-align:center;font-weight:800;color:#312E81;">${INVESTOR_POOL_PCT}%</td>
+                  <td style="padding:6px 8px;border:1.5px solid #4F46E5;text-align:right;color:#4338CA;font-weight:900;font-size:11.5px;">₹${investorPool.toLocaleString('en-IN')}</td>
+                  <td style="padding:6px 8px;border:1.5px solid #4F46E5;text-align:center;color:#4338CA;font-weight:800;">Approved</td>
                 </tr>
                 ${isMultiPerson ? investorNames.map(n => `
                   <tr style="background:#F8FAFC;">
-                    <td style="padding:4px 7px;border:1px solid #E2E8F0;padding-left:18px;color:#475569;">↳ ${n}</td>
-                    <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;color:#475569;">${(100/personCount).toFixed(2)}% of pool</td>
-                    <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:right;color:#4F46E5;font-weight:700;">₹${perPersonAmount.toLocaleString('en-IN')}</td>
-                    <td style="padding:4px 7px;border:1px solid #E2E8F0;text-align:center;color:#059669;font-weight:600;">Disbursable</td>
+                    <td style="padding:5px 8px;border:1px solid #E2E8F0;padding-left:18px;color:#475569;">↳ ${n}</td>
+                    <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#475569;">${(100/personCount).toFixed(2)}% of pool</td>
+                    <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:right;color:#4F46E5;font-weight:700;">₹${perPersonAmount.toLocaleString('en-IN')}</td>
+                    <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#059669;font-weight:600;">Disbursable</td>
                   </tr>
                 `).join('') : ''}
                 <tr style="background:#F1F5F9;font-weight:800;">
-                  <td style="padding:5px 7px;border:1px solid #CBD5E1;">Total Distributed Operating Profit</td>
-                  <td style="padding:5px 7px;border:1px solid #CBD5E1;text-align:center;">100%</td>
-                  <td style="padding:5px 7px;border:1px solid #CBD5E1;text-align:right;color:#059669;font-size:11.5px;">₹${profit.toLocaleString('en-IN')}</td>
-                  <td style="padding:5px 7px;border:1px solid #CBD5E1;text-align:center;color:#0F172A;">Audited 100%</td>
+                  <td style="padding:6px 8px;border:1px solid #CBD5E1;">Total Distributed Operating Profit</td>
+                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">100%</td>
+                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;color:#059669;font-size:11.5px;">₹${profit.toLocaleString('en-IN')}</td>
+                  <td style="padding:5px 8px;border:1px solid #CBD5E1;text-align:center;color:#0F172A;">Audited 100%</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <!-- Note on Model -->
-          <div style="font-size:9px;color:#64748B;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:5px 9px;line-height:1.4;">
+          <div style="font-size:9.5px;color:#64748B;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:7px 12px;line-height:1.45;margin-bottom:12px;">
             <strong>Institutional Note:</strong> Settlement is calculated upon realized room revenues minus documented operating overheads. Disbursements are routed directly into the designated bank account on file.
           </div>
         </div>
 
         <!-- Page 1 Running Footer -->
-        ${renderRunningFooter(1, totalPages, 'Executive Summary &amp; Financial Distribution')}
+        ${renderRunningFooter(1, totalPages)}
       </div>
 
       <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1074,14 +1056,13 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
 
         <div class="inv-page inv-page-${pageNo}">
-          <div class="inv-page-content">
-            ${renderSubPageHeader(pageNo, totalPages)}
-            <div style="font-size:11px;font-weight:700;padding:6px 10px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:4px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
+          <div class="inv-page-content" style="padding-top:4px;">
+            <div style="font-size:11.5px;font-weight:700;padding:7px 12px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:6px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:14px;">
               <span>${block.icon}</span> ${block.title}
             </div>
             ${block.html}
           </div>
-          ${renderRunningFooter(pageNo, totalPages, 'Verified Booking &amp; Stay Ledger')}
+          ${renderRunningFooter(pageNo, totalPages)}
         </div>
         `;
       }).join('\n')}
@@ -1097,11 +1078,8 @@ async function renderInvestorReport(investorId, roomId, month) {
       <!-- 📄 FINAL PAGE: OPERATING EXPENSES, AUDIT & DUAL SIGNATURES  -->
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div class="inv-page inv-page-${finalPageNo}">
-        <div class="inv-page-content">
-          <!-- Final Page Sub-Header -->
-          ${renderSubPageHeader(finalPageNo, totalPages)}
-
-          <div style="font-size:11px;font-weight:700;padding:6px 10px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:4px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
+        <div class="inv-page-content" style="padding-top:4px;">
+          <div style="font-size:11.5px;font-weight:700;padding:7px 12px;background:#F8FAFC;color:#0F172A;border:1px solid #E2E8F0;border-left:4px solid #0F172A;border-radius:6px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:14px;">
             <span>💸</span> 3. Monthly Operational Expenses &amp; P&amp;L Audit
           </div>
 
@@ -1262,7 +1240,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
 
         <!-- Final Page Running Footer -->
-        ${renderRunningFooter(finalPageNo, totalPages, 'Operating Expenses &amp; Dual Certification')}
+        ${renderRunningFooter(finalPageNo, totalPages)}
       </div>
 
     </div>
@@ -1277,11 +1255,19 @@ async function renderInvestorReport(investorId, roomId, month) {
       .inv-page {
         box-sizing: border-box;
         margin-bottom: 24px;
+        background: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 265mm;
+      }
+      .inv-page-content {
+        flex: 1 0 auto;
       }
       .inv-page-footer {
-        margin-top: 14px;
+        margin-top: auto;
         padding-top: 8px;
-        border-top: 1px solid #E2E8F0;
+        border-top: 1px solid #CBD5E1;
         font-size: 9.5px;
         color: #64748B;
         display: flex;
@@ -1342,9 +1328,10 @@ async function renderInvestorReport(investorId, roomId, month) {
           background: #FFFFFF !important;
         }
         .inv-page {
-          display: block !important;
-          min-height: auto !important;
-          max-height: none !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+          min-height: 270mm !important;
           page-break-after: always !important;
           break-after: page !important;
           page-break-inside: avoid !important;
@@ -1367,10 +1354,10 @@ async function renderInvestorReport(investorId, roomId, month) {
           display: none !important;
         }
         .inv-page-content {
-          display: block !important;
+          flex: 1 0 auto !important;
         }
         .inv-page-footer {
-          margin-top: 18px !important;
+          margin-top: auto !important;
           padding-top: 6px !important;
           border-top: 1px solid #CBD5E1 !important;
           page-break-inside: avoid !important;
@@ -1817,10 +1804,11 @@ function buildInvestorReportHTML(reportHTML, filename) {
 
     /* Page Fit Architecture */
     .inv-page {
-      min-height: auto;
-      max-height: none;
+      min-height: 265mm;
       box-sizing: border-box;
-      display: block;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       page-break-after: always;
       break-after: page;
       page-break-inside: avoid !important;
@@ -1834,10 +1822,10 @@ function buildInvestorReportHTML(reportHTML, filename) {
       margin-bottom: 0;
     }
     .inv-page-content {
-      display: block;
+      flex: 1 0 auto;
     }
     .inv-page-footer {
-      margin-top: 18px;
+      margin-top: auto;
       padding-top: 6px;
       border-top: 1px solid #CBD5E1;
       font-size: 9px;
@@ -1864,7 +1852,7 @@ function buildInvestorReportHTML(reportHTML, filename) {
     @media print {
       @page {
         size: A4 portrait;
-        margin: 14mm 14mm 14mm 14mm;
+        margin: 12mm 14mm 12mm 14mm;
       }
       body {
         margin: 0 !important;
@@ -1876,13 +1864,14 @@ function buildInvestorReportHTML(reportHTML, filename) {
       .inv-page {
         margin: 0 !important;
         padding: 0 !important;
-        min-height: auto !important;
-        max-height: none !important;
+        min-height: 270mm !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid-page !important;
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
         box-sizing: border-box !important;
       }
       .inv-page:last-child {
@@ -1890,10 +1879,10 @@ function buildInvestorReportHTML(reportHTML, filename) {
         break-after: auto !important;
       }
       .inv-page-content {
-        display: block !important;
+        flex: 1 0 auto !important;
       }
       .inv-page-footer {
-        margin-top: 18px !important;
+        margin-top: auto !important;
         padding-top: 6px !important;
         border-top: 1px solid #CBD5E1 !important;
         page-break-inside: avoid !important;
