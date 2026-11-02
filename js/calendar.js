@@ -254,8 +254,9 @@ async function renderReports() {
     const dEndObj = new Date(tEnd);
     const rangeLabel = `${dStartObj.getDate()} ${dStartObj.toLocaleString('en-IN', { month: 'short' })} – ${dEndObj.getDate()} ${dEndObj.toLocaleString('en-IN', { month: 'short' })} ${dEndObj.getFullYear()}`;
 
-    const colWidth = 94;
-    const propColWidth = 240;
+    const isMob = (typeof window !== 'undefined' && window.innerWidth <= 768);
+    const colWidth = isMob ? 80 : 94;
+    const propColWidth = isMob ? 110 : 240;
     const totalMatrixWidth = propColWidth + (tDates.length * colWidth);
     const todayIndex = tDates.indexOf(todayStr);
 
@@ -523,6 +524,15 @@ async function renderReports() {
     renderShell(timelineHtml, currentKey);
     window._calM = mo;
     window._calY = yr;
+    setTimeout(() => {
+      try {
+        const vp = document.querySelector('.hh-timeline-viewport');
+        if (vp && todayIndex > 0) {
+          const scrollTarget = Math.max(0, (todayIndex * colWidth) - 40);
+          vp.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        }
+      } catch(e) {}
+    }, 150);
     return;
   }
 

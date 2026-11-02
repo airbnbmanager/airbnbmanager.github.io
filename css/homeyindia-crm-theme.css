@@ -1569,10 +1569,11 @@ html, body {
 
   /* 2. Unified Timeline & Calendar Fixes */
   .hh-prop-cell, .hh-prop-header-cell {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-    font-size: 11px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    font-size: 10px !important;
+    padding: 6px 8px !important;
   }
 
   .hh-prop-thumb {
@@ -2969,10 +2970,10 @@ html, body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
   .hh-prop-cell, .hh-prop-header-cell {
-    width: 140px !important;
-    min-width: 140px !important;
-    max-width: 140px !important;
-    padding: 8px 10px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    padding: 6px 8px !important;
   }
   .hh-prop-thumb {
     width: 34px !important;
