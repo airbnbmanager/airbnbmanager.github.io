@@ -730,7 +730,7 @@ async function renderReports() {
         const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
 
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}')" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}'${overlapCount <= 1 && bk && bk.booking_id ? `,'${bk.booking_id}'` : ''})" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
             <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:1px 3px 0;box-sizing:border-box;">
               <div class="cal-date-num">${d}</div>
               <div style="display:flex;align-items:center;gap:2px;margin-left:auto;">
@@ -1195,7 +1195,12 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
 // ═══════════════════════════════════════════════════════════
 // SINGLE BOOKING POPUP
 // ═══════════════════════════════════════════════════════════
-async function showBookingPopup(roomId, dateStr) {
+async function showBookingPopup(roomId, dateStr, directBookingId) {
+  if (directBookingId) {
+    return openBookingDetails(directBookingId);
+  }
+
+  // 1. Fetch standard overnight stays active on dateStr
   const { data: bks } = await sb.from('guest_register')
     .select('*, rooms(unit_no, nickname, property_name)')
     .eq('room_id', roomId)
@@ -1204,7 +1209,24 @@ async function showBookingPopup(roomId, dateStr) {
     .neq('verification_status', 'rejected')
     .order('check_in', { ascending: true });
 
-  const bookings = bks || [];
+  let bookings = bks || [];
+
+  // 2. Also fetch same-day / day-use stays (check_in == dateStr and check_out == dateStr)
+  const { data: sameDayBks } = await sb.from('guest_register')
+    .select('*, rooms(unit_no, nickname, property_name)')
+    .eq('room_id', roomId)
+    .eq('check_in', dateStr)
+    .eq('check_out', dateStr)
+    .neq('verification_status', 'rejected')
+    .order('check_in', { ascending: true });
+
+  if (sameDayBks && sameDayBks.length > 0) {
+    const existingIds = new Set(bookings.map(x => x.booking_id));
+    sameDayBks.forEach(sbk => {
+      if (!existingIds.has(sbk.booking_id)) bookings.push(sbk);
+    });
+  }
+
   if (bookings.length === 0) return;
 
   if (bookings.length > 1) {
