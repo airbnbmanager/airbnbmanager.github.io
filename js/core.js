@@ -5453,17 +5453,12 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
           </button>
         </div>
       </div>
-      <div class="uhh-print-body" style="padding:16px 12px 100px;background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <div id="uhhPrintCardInner" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;">
+      <div class="uhh-print-body" style="padding:16px 12px calc(40px + env(safe-area-inset-bottom, 16px));background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="uhhPrintCardInner" class="uhh-report-card" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;overflow-x:auto;-webkit-overflow-scrolling:touch;">
           ${extractedStyles}
           ${html}
         </div>
       </div>
-      <!-- Floating Close Button — always visible on iPad/mobile when scrolled down -->
-      <button type="button" class="no-print" onclick="document.getElementById('uhhPrintOverlay')?.remove()"
-        style="position:fixed;bottom:max(24px,env(safe-area-inset-bottom,24px));right:max(20px,env(safe-area-inset-right,20px));z-index:9999999;background:#EF4444;color:#fff;border:none;padding:13px 22px;border-radius:50px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 24px rgba(239,68,68,0.55);display:flex;align-items:center;gap:8px;-webkit-tap-highlight-color:transparent;letter-spacing:0.2px;">
-        ✕ Close Report
-      </button>
     `;
 
     document.body.appendChild(overlay);

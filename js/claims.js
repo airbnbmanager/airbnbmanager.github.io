@@ -419,7 +419,7 @@ window.renderClaims = async function() {
     <div class="card" style="padding:12px 20px;background:#EEF2FF;border:1px solid #C7D2FE;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div style="font-size:13px;color:#3730A3;">
-          Selected via Checkboxes: <strong id="selectedCountText">0 items</strong> · 
+          Selected via Checkboxes: <strong id="selectedCountText">0 items</strong> ·
           Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1615,14 +1615,19 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         .card-bal { background: ${safeBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${safeBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
         .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .val { font-size: 18px; font-weight: 800; margin-top: 2px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 700; }
-        td { padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
-        .dep { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
-        .exp { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; }
+        table { width: 100% !important; min-width: 620px !important; border-collapse: collapse !important; table-layout: auto !important; font-size: 11px !important; }
+        th { background: #f1f5f9 !important; padding: 8px 10px !important; text-align: left !important; border-bottom: 2px solid #cbd5e1 !important; font-weight: 700 !important; white-space: nowrap !important; }
+        td { padding: 8px 10px !important; border-bottom: 1px solid #e2e8f0 !important; white-space: normal !important; word-break: break-word !important; vertical-align: middle !important; }
+        th:nth-child(1), td:nth-child(1) { width: 95px !important; white-space: nowrap !important; }
+        th:nth-child(2), td:nth-child(2) { width: 100px !important; white-space: nowrap !important; }
+        th:nth-child(3), td:nth-child(3) { min-width: 260px !important; white-space: normal !important; word-break: break-word !important; }
+        th:nth-child(4), td:nth-child(4) { width: 120px !important; text-align: right !important; white-space: nowrap !important; }
+        .dep { background: #dcfce7 !important; color: #15803d !important; padding: 2px 6px !important; border-radius: 4px !important; font-weight: 700 !important; font-size: 9px !important; white-space: nowrap !important; display: inline-block !important; }
+        .exp { background: #fee2e2 !important; color: #b91c1c !important; padding: 2px 6px !important; border-radius: 4px !important; font-weight: 700 !important; font-size: 9px !important; white-space: nowrap !important; display: inline-block !important; }
         @media print {
-          body { padding: 0; }
+          body { padding: 0 !important; }
           .toolbar { display: none !important; }
+          table { min-width: 100% !important; }
         }
       </style>
     </head>
@@ -1655,26 +1660,28 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th style="text-align:right;">Amount (₹)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${txns.map(t => `
+      <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table class="uhh-report-table">
+          <thead>
             <tr>
-              <td>${t.date || '-'}</td>
-              <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-              <td>${escapeHtml(t.desc)}</td>
-              <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th style="text-align:right;">Amount (₹)</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${txns.map(t => `
+              <tr>
+                <td>${t.date || '-'}</td>
+                <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                <td>${escapeHtml(t.desc)}</td>
+                <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
 
       ${typeof window.getOfficialReportFooterHTML === 'function' ? window.getOfficialReportFooterHTML() : `
         <div style="margin-top:24px;padding-top:12px;border-top:1px solid #cbd5e1;text-align:center;font-size:11px;color:#64748b;">
@@ -2113,13 +2120,21 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '.c-total{background:#FFF7ED;border-color:#FDBA74}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
     '.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.val{font-size:18px;font-weight:800;margin-top:2px}' +
     '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.cat-chip{background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#9A3412}' +
-    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px}th{background:#FFF7ED;padding:8px;text-align:left;border-bottom:2px solid #FED7AA;font-weight:700;color:#9A3412}' +
-    'td{padding:7px 8px;border-bottom:1px solid #EDE9FE}' +
-    '.bs{background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
-    '.bc{background:#fef9c3;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
-    '.bp{background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px}' +
-    '.tr-total{background:#FFF7ED;font-weight:800}' +
-    '@media print{body{padding:0}.toolbar{display:none!important}}' +
+    'table{width:100%!important;min-width:680px!important;border-collapse:collapse!important;table-layout:auto!important;font-size:11px!important;margin-bottom:16px!important}' +
+    'th{background:#FFF7ED!important;padding:8px 10px!important;text-align:left!important;border-bottom:2px solid #FED7AA!important;font-weight:700!important;color:#9A3412!important;white-space:nowrap!important}' +
+    'td{padding:8px 10px!important;border-bottom:1px solid #EDE9FE!important;white-space:normal!important;word-break:break-word!important;vertical-align:middle!important}' +
+    'th:nth-child(1),td:nth-child(1){width:36px!important;white-space:nowrap!important}' +
+    'th:nth-child(2),td:nth-child(2){width:88px!important;white-space:nowrap!important}' +
+    'th:nth-child(3),td:nth-child(3){width:95px!important;white-space:nowrap!important}' +
+    'th:nth-child(4),td:nth-child(4){min-width:220px!important;white-space:normal!important;word-break:break-word!important}' +
+    'th:nth-child(5),td:nth-child(5){min-width:130px!important;white-space:normal!important;word-break:break-word!important}' +
+    'th:nth-child(6),td:nth-child(6){width:95px!important;white-space:nowrap!important;text-align:center!important}' +
+    'th:nth-child(7),td:nth-child(7){width:110px!important;white-space:nowrap!important;text-align:right!important}' +
+    '.bs{background:#dcfce7!important;color:#15803d!important;padding:2px 6px!important;border-radius:4px!important;font-weight:700!important;font-size:9px!important;display:inline-block!important;white-space:nowrap!important}' +
+    '.bc{background:#fef9c3!important;color:#92400e!important;padding:2px 6px!important;border-radius:4px!important;font-weight:700!important;font-size:9px!important;display:inline-block!important;white-space:nowrap!important}' +
+    '.bp{background:#fee2e2!important;color:#b91c1c!important;padding:2px 6px!important;border-radius:4px!important;font-weight:700!important;font-size:9px!important;display:inline-block!important;white-space:nowrap!important}' +
+    '.tr-total{background:#FFF7ED!important;font-weight:800!important}' +
+    '@media print{body{padding:0!important}.toolbar{display:none!important}table{min-width:100%!important}}' +
     '</style></head><body>' +
     '<div class="toolbar"><span style="font-weight:700;">🏢 ' + title + '</span>' +
     '<div style="display:flex;gap:8px;"><button onclick="window.print()">🖨️ Print / Save as PDF</button>' +
@@ -2133,7 +2148,8 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '</div>' +
     '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
     '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
-    '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
+    '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">' +
+    '<table class="uhh-report-table"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (compItems.length === 0
       ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748B;">No COMPANY-paid expenses found in this date range.</td></tr>'
       : compItems.map((item, idx) =>
@@ -2143,14 +2159,14 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
           '<td>' + (item.moduleLabel||'-') + '</td>' +
           '<td>' + esc(item.description) + '</td>' +
           '<td style="color:#475569;">' + esc(item.vendorOrStaff) + '</td>' +
-          '<td><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
+          '<td style="text-align:center;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
           '<td style="text-align:right;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
           '</tr>'
         ).join('') +
         '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
         '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
     ) +
-    '</tbody></table>' +
+    '</tbody></table></div>' +
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
     '<strong>THE UNIQUE HAVEN HOMES PRIVATE LIMITED</strong> · uniquehavenhomesstay.com<br>⚡ Developed by Praveen Singh</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>' +
