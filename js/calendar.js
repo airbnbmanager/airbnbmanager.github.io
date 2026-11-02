@@ -1200,25 +1200,58 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
     return openBookingDetails(directBookingId);
   }
 
+  // Support room_id normalization & aliases (e.g., GOM-402 vs FLAT402 vs Flat 402)
+  const roomAliases = [roomId];
+  const cleanRid = String(roomId || '').replace(/[\s\-_]/g, '').toUpperCase();
+  if (cleanRid === 'GOM402' || cleanRid === 'FLAT402' || cleanRid === '402') {
+    roomAliases.push('GOM-402', 'FLAT402', 'Flat 402', '402');
+  }
+
   // 1. Fetch standard overnight stays active on dateStr
-  const { data: bks } = await sb.from('guest_register')
-    .select('*, rooms(unit_no, nickname, property_name)')
-    .eq('room_id', roomId)
-    .lte('check_in', dateStr)
-    .gt('check_out', dateStr)
-    .neq('verification_status', 'rejected')
-    .order('check_in', { ascending: true });
+  let bks = [];
+  try {
+    const res = await sb.from('guest_register')
+      .select('*, rooms(unit_no, nickname, property_name)')
+      .in('room_id', roomAliases)
+      .lte('check_in', dateStr)
+      .gt('check_out', dateStr)
+      .neq('verification_status', 'rejected')
+      .order('check_in', { ascending: true });
+    bks = res.data || [];
+  } catch(e) {
+    const res = await sb.from('guest_register')
+      .select('*')
+      .in('room_id', roomAliases)
+      .lte('check_in', dateStr)
+      .gt('check_out', dateStr)
+      .neq('verification_status', 'rejected')
+      .order('check_in', { ascending: true });
+    bks = res.data || [];
+  }
 
   let bookings = bks || [];
 
   // 2. Also fetch same-day / day-use stays (check_in == dateStr and check_out == dateStr)
-  const { data: sameDayBks } = await sb.from('guest_register')
-    .select('*, rooms(unit_no, nickname, property_name)')
-    .eq('room_id', roomId)
-    .eq('check_in', dateStr)
-    .eq('check_out', dateStr)
-    .neq('verification_status', 'rejected')
-    .order('check_in', { ascending: true });
+  let sameDayBks = [];
+  try {
+    const res2 = await sb.from('guest_register')
+      .select('*, rooms(unit_no, nickname, property_name)')
+      .in('room_id', roomAliases)
+      .eq('check_in', dateStr)
+      .eq('check_out', dateStr)
+      .neq('verification_status', 'rejected')
+      .order('check_in', { ascending: true });
+    sameDayBks = res2.data || [];
+  } catch(e2) {
+    const res2 = await sb.from('guest_register')
+      .select('*')
+      .in('room_id', roomAliases)
+      .eq('check_in', dateStr)
+      .eq('check_out', dateStr)
+      .neq('verification_status', 'rejected')
+      .order('check_in', { ascending: true });
+    sameDayBks = res2.data || [];
+  }
 
   if (sameDayBks && sameDayBks.length > 0) {
     const existingIds = new Set(bookings.map(x => x.booking_id));
@@ -1227,7 +1260,13 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
     });
   }
 
-  if (bookings.length === 0) return;
+  if (bookings.length === 0) {
+    // If no booking found on this room, allow host to create booking on this slot
+    if (typeof calCreateBooking === 'function') {
+      calCreateBooking(roomId, dateStr);
+    }
+    return;
+  }
 
   if (bookings.length > 1) {
     return showMultiBookingList(bookings, roomId, dateStr);
@@ -1249,12 +1288,30 @@ window.openBookingDetails = async function(bId) {
     return window.openBookingDrawer(bId);
   }
 
-  const { data: b } = await sb.from('guest_register')
-    .select('*, rooms(nickname, unit_no, property_name)')
-    .eq('booking_id', bId)
-    .single();
+  let b = null;
+  try {
+    const res = await sb.from('guest_register')
+      .select('*, rooms(nickname, unit_no, property_name)')
+      .eq('booking_id', bId)
+      .maybeSingle();
+    b = res.data;
+  } catch(e) {}
 
-  if (!b) { alert('Booking not found'); return; }
+  if (!b) {
+    try {
+      const res2 = await sb.from('guest_register')
+        .select('*')
+        .eq('booking_id', bId)
+        .maybeSingle();
+      b = res2.data;
+    } catch(e2) {}
+  }
+
+  if (!b) {
+    if (window.fsn) fsn.error('Not Found', 'Booking record not found.');
+    else alert('Booking not found');
+    return;
+  }
 
   const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
                     b.booking_mode === 'Offline-Blocked' ||

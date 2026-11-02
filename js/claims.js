@@ -1615,13 +1615,13 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
         .card-bal { background: ${safeBalance >= 0 ? '#ecfdf5' : '#fff1f2'}; border-color: ${safeBalance >= 0 ? '#6ee7b7' : '#fecdd3'}; }
         .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .val { font-size: 18px; font-weight: 800; margin-top: 2px; }
-        table { width: 100% !important; min-width: 620px !important; border-collapse: collapse !important; table-layout: auto !important; font-size: 11px !important; }
+        table { width: 100% !important; min-width: 650px !important; border-collapse: collapse !important; table-layout: auto !important; font-size: 11px !important; }
         th { background: #f1f5f9 !important; padding: 8px 10px !important; text-align: left !important; border-bottom: 2px solid #cbd5e1 !important; font-weight: 700 !important; white-space: nowrap !important; }
-        td { padding: 8px 10px !important; border-bottom: 1px solid #e2e8f0 !important; white-space: normal !important; word-break: break-word !important; vertical-align: middle !important; }
+        td { padding: 8px 10px !important; border-bottom: 1px solid #e2e8f0 !important; vertical-align: middle !important; }
         th:nth-child(1), td:nth-child(1) { width: 95px !important; white-space: nowrap !important; }
-        th:nth-child(2), td:nth-child(2) { width: 100px !important; white-space: nowrap !important; }
-        th:nth-child(3), td:nth-child(3) { min-width: 260px !important; white-space: normal !important; word-break: break-word !important; }
-        th:nth-child(4), td:nth-child(4) { width: 120px !important; text-align: right !important; white-space: nowrap !important; }
+        th:nth-child(2), td:nth-child(2) { width: 110px !important; white-space: nowrap !important; }
+        th:nth-child(3), td:nth-child(3) { width: auto !important; min-width: 240px !important; white-space: normal !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+        th:nth-child(4), td:nth-child(4) { width: 125px !important; text-align: right !important; white-space: nowrap !important; }
         .dep { background: #dcfce7 !important; color: #15803d !important; padding: 2px 6px !important; border-radius: 4px !important; font-weight: 700 !important; font-size: 9px !important; white-space: nowrap !important; display: inline-block !important; }
         .exp { background: #fee2e2 !important; color: #b91c1c !important; padding: 2px 6px !important; border-radius: 4px !important; font-weight: 700 !important; font-size: 9px !important; white-space: nowrap !important; display: inline-block !important; }
         @media print {
@@ -1661,28 +1661,22 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
       </div>
 
       <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table class="uhh-report-table" style="width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;">
-          <colgroup>
-            <col style="width:90px;">
-            <col style="width:110px;">
-            <col style="width:auto;">
-            <col style="width:125px;">
-          </colgroup>
+        <table class="uhh-report-table" style="width:100%;min-width:650px;border-collapse:collapse;table-layout:auto;">
           <thead>
             <tr>
-              <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Date</th>
-              <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Type</th>
-              <th style="padding:8px 10px;text-align:left;">Description</th>
-              <th style="padding:8px 10px;text-align:right;white-space:nowrap;">Amount (₹)</th>
+              <th style="padding:8px 10px;text-align:left;white-space:nowrap;width:95px;">Date</th>
+              <th style="padding:8px 10px;text-align:left;white-space:nowrap;width:110px;">Type</th>
+              <th style="padding:8px 10px;text-align:left;min-width:240px;">Description</th>
+              <th style="padding:8px 10px;text-align:right;white-space:nowrap;width:125px;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
             ${txns.map(t => `
               <tr>
-                <td style="padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.date || '-'}</td>
-                <td style="padding:8px 10px;white-space:nowrap;"><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-                <td style="padding:8px 10px;white-space:normal;word-break:break-word;line-height:1.4;">${escapeHtml(t.desc)}</td>
-                <td style="padding:8px 10px;text-align:right;white-space:nowrap;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
+                <td style="padding:8px 10px;white-space:nowrap;width:95px;">${t.date || '-'}</td>
+                <td style="padding:8px 10px;white-space:nowrap;width:110px;"><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                <td style="padding:8px 10px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.4;min-width:240px;">${escapeHtml(t.desc)}</td>
+                <td style="padding:8px 10px;text-align:right;white-space:nowrap;font-weight:700;width:125px;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -2126,14 +2120,14 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '.c-total{background:#FFF7ED;border-color:#FDBA74}.c-settled{background:#f0fdf4;border-color:#86efac}.c-pending{background:#fef2f2;border-color:#fca5a5}' +
     '.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.val{font-size:18px;font-weight:800;margin-top:2px}' +
     '.cat-box{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.cat-chip{background:#FFF7ED;border:1px solid #FED7AA;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:#9A3412}' +
-    'table{width:100%!important;min-width:680px!important;border-collapse:collapse!important;table-layout:auto!important;font-size:11px!important;margin-bottom:16px!important}' +
+    'table{width:100%!important;min-width:720px!important;border-collapse:collapse!important;table-layout:auto!important;font-size:11px!important;margin-bottom:16px!important}' +
     'th{background:#FFF7ED!important;padding:8px 10px!important;text-align:left!important;border-bottom:2px solid #FED7AA!important;font-weight:700!important;color:#9A3412!important;white-space:nowrap!important}' +
-    'td{padding:8px 10px!important;border-bottom:1px solid #EDE9FE!important;white-space:normal!important;word-break:break-word!important;vertical-align:middle!important}' +
+    'td{padding:8px 10px!important;border-bottom:1px solid #EDE9FE!important;vertical-align:middle!important}' +
     'th:nth-child(1),td:nth-child(1){width:36px!important;white-space:nowrap!important}' +
     'th:nth-child(2),td:nth-child(2){width:88px!important;white-space:nowrap!important}' +
     'th:nth-child(3),td:nth-child(3){width:95px!important;white-space:nowrap!important}' +
-    'th:nth-child(4),td:nth-child(4){min-width:220px!important;white-space:normal!important;word-break:break-word!important}' +
-    'th:nth-child(5),td:nth-child(5){min-width:130px!important;white-space:normal!important;word-break:break-word!important}' +
+    'th:nth-child(4),td:nth-child(4){width:auto!important;min-width:180px!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important}' +
+    'th:nth-child(5),td:nth-child(5){width:150px!important;min-width:130px!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important}' +
     'th:nth-child(6),td:nth-child(6){width:95px!important;white-space:nowrap!important;text-align:center!important}' +
     'th:nth-child(7),td:nth-child(7){width:110px!important;white-space:nowrap!important;text-align:right!important}' +
     '.bs{background:#dcfce7!important;color:#15803d!important;padding:2px 6px!important;border-radius:4px!important;font-weight:700!important;font-size:9px!important;display:inline-block!important;white-space:nowrap!important}' +
@@ -2155,20 +2149,19 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
     '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
     '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">' +
-    '<table class="uhh-report-table" style="width:100%;min-width:760px;border-collapse:collapse;table-layout:fixed;">' +
-    '<colgroup><col style="width:36px;"><col style="width:90px;"><col style="width:95px;"><col style="width:auto;"><col style="width:150px;"><col style="width:105px;"><col style="width:120px;"></colgroup>' +
+    '<table class="uhh-report-table" style="width:100%;min-width:720px;border-collapse:collapse;table-layout:auto;">' +
     '<thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (compItems.length === 0
       ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748B;">No COMPANY-paid expenses found in this date range.</td></tr>'
       : compItems.map((item, idx) =>
           '<tr>' +
-          '<td style="color:#64748B;white-space:nowrap;">' + (idx+1) + '</td>' +
-          '<td style="white-space:nowrap;">' + (item.dateStr||'-') + '</td>' +
-          '<td style="white-space:nowrap;">' + (item.moduleLabel||'-') + '</td>' +
-          '<td style="white-space:normal;word-break:break-word;line-height:1.4;">' + esc(item.description) + '</td>' +
-          '<td style="color:#475569;white-space:normal;word-break:break-word;">' + esc(item.vendorOrStaff) + '</td>' +
-          '<td style="text-align:center;white-space:nowrap;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
-          '<td style="text-align:right;white-space:nowrap;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
+          '<td style="color:#64748B;white-space:nowrap;width:36px;">' + (idx+1) + '</td>' +
+          '<td style="white-space:nowrap;width:88px;">' + (item.dateStr||'-') + '</td>' +
+          '<td style="white-space:nowrap;width:95px;">' + (item.moduleLabel||'-') + '</td>' +
+          '<td style="white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.4;">' + esc(item.description) + '</td>' +
+          '<td style="color:#475569;white-space:normal;word-break:break-word;overflow-wrap:anywhere;width:150px;">' + esc(item.vendorOrStaff) + '</td>' +
+          '<td style="text-align:center;white-space:nowrap;width:95px;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
+          '<td style="text-align:right;white-space:nowrap;font-weight:700;color:#EA580C;width:110px;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
           '</tr>'
         ).join('') +
         '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +

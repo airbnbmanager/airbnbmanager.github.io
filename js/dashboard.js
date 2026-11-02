@@ -197,30 +197,42 @@ window.getAirbnbPropertySubtitle = function(b) {
 window.renderAirbnbOverlappingMedia = function(b) {
   if (!b) return '';
   const roomId = (b.room_id || '').trim();
+  const cleanRid = roomId.replace(/[\s\-_]/g, '').toUpperCase();
+  const isTehzeeb = cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' ||
+    (b.rooms?.nickname || '').toLowerCase().includes('tehzeeb') ||
+    (b.rooms?.property_name || '').toLowerCase().includes('tehzeeb');
+
   const base = (window.ShowcaseData && (
     (typeof window.ShowcaseData.getProperty === 'function' && (
       window.ShowcaseData.getProperty(roomId) ||
+      (cleanRid === 'FLAT402' ? window.ShowcaseData.getProperty('GOM-402') : null) ||
       (b.rooms?.nickname && window.ShowcaseData.getProperty(b.rooms.nickname)) ||
       (b.rooms?.property_name && window.ShowcaseData.getProperty(b.rooms.property_name))
     )) ||
     (window.ShowcaseData.BASELINE && (
       window.ShowcaseData.BASELINE[roomId] ||
-      (roomId === 'Flat 402' ? window.ShowcaseData.BASELINE['GOM-402'] : null)
+      ((roomId === 'Flat 402' || cleanRid === 'FLAT402') ? window.ShowcaseData.BASELINE['GOM-402'] : null)
     ))
   )) || {};
 
   let coverImg = base.cover_image;
-  if (!coverImg || coverImg.includes('logo-emblem.png')) {
+  if (!coverImg || coverImg.includes('logo-emblem.png') || coverImg.includes('logo.png')) {
     if (typeof getPropertyCoverThumb === 'function') {
       coverImg = getPropertyCoverThumb(b);
     }
   }
-  if (!coverImg || coverImg.includes('logo-emblem.png')) {
-    if (roomId === 'Flat 402' || roomId === 'GOM-402' || (b.rooms?.nickname || '').toLowerCase().includes('tehzeeb') || (b.rooms?.property_name || '').toLowerCase().includes('tehzeeb')) {
+  if (!coverImg || coverImg.includes('logo-emblem.png') || coverImg.includes('logo.png')) {
+    if (isTehzeeb) {
       coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
     }
   }
-  if (!coverImg) coverImg = 'assets/logo-emblem.png';
+  if (!coverImg || coverImg.includes('logo')) {
+    if (isTehzeeb) {
+      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+    } else {
+      coverImg = 'assets/logo-emblem.png';
+    }
+  }
 
   const name = b.guest_name || 'Guest';
   const initial = name.trim().charAt(0).toUpperCase() || 'G';

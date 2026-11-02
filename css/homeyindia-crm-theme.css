@@ -3971,11 +3971,12 @@ html, body {
 }
 
 #uhhPrintCardInner th,
-#uhhPrintCardInner td {
+#uhhPrintCardInner td,
+.uhh-report-table th,
+.uhh-report-table td {
   display: table-cell !important;
-  white-space: normal !important;
   word-break: break-word !important;
-  overflow-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
   max-width: none !important;
   vertical-align: middle !important;
   text-align: left !important;
@@ -3983,13 +3984,17 @@ html, body {
 }
 
 #uhhPrintCardInner th::before,
-#uhhPrintCardInner td::before {
+#uhhPrintCardInner td::before,
+.uhh-report-table th::before,
+.uhh-report-table td::before {
   display: none !important;
   content: none !important;
 }
 
 #uhhPrintCardInner td:last-child,
-#uhhPrintCardInner th:last-child {
+#uhhPrintCardInner th:last-child,
+.uhh-report-table td:last-child,
+.uhh-report-table th:last-child {
   text-align: right !important;
   white-space: nowrap !important;
 }

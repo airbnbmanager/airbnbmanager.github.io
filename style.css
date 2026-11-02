@@ -8178,10 +8178,20 @@ textarea:focus {
 
 @media (min-width: 769px) {
   .pwa-bottom-nav,
-  #pwa-bottom-nav {
+  #pwa-bottom-nav,
+  .bottom-nav,
+  #pwa-install-bar {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    bottom: -9999px !important;
+    opacity: 0 !important;
+    z-index: -9999 !important;
   }
 }
 
@@ -8255,7 +8265,6 @@ textarea:focus {
 .pwa-nav-item.active .pwa-nav-label {
   font-weight: 700 !important;
   color: var(--primary) !important;
-}
 }
 
 .pwa-nav-item.active .pwa-nav-icon {

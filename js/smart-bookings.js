@@ -759,6 +759,9 @@ const ROOM_COVER_FALLBACKS = {
   'GOM-401': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939148/original/9157436b-67ee-45a0-9753-4876ec438965.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'GOM-402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'Flat 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'FLAT402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'FLAT 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  '402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'GOM-501': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913833/original/d69e46a7-d86b-4e60-84a2-e64e528b18ec.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'VIL-105': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'VIL-104': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937810/original/71a2e9b0-96f3-4d40-beec-df0df57e1c16.jpeg?im_w=720&width=720&quality=70&auto=webp',
@@ -773,11 +776,15 @@ const ROOM_COVER_FALLBACKS = {
 
 function getPropertyCoverThumb(b) {
   const roomId = (b?.room_id || b?.source_room_id || '').trim();
-  if (roomId === 'Flat 402' || roomId === 'GOM-402') {
+  const cleanRid = roomId.replace(/[\s\-_]/g, '').toUpperCase();
+  const nick = (b?.rooms?.nickname || b?.rooms?.property_name || '').toLowerCase();
+
+  if (cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' || nick.includes('tehzeeb')) {
     return 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
   }
   if (window.ShowcaseData && typeof window.ShowcaseData.getProperty === 'function') {
     const p = window.ShowcaseData.getProperty(roomId) ||
+              (cleanRid === 'FLAT402' ? window.ShowcaseData.getProperty('GOM-402') : null) ||
               (b.rooms?.nickname && window.ShowcaseData.getProperty(b.rooms.nickname)) ||
               (b.rooms?.property_name && window.ShowcaseData.getProperty(b.rooms.property_name));
     if (p && p.cover_image) return p.cover_image;
@@ -785,9 +792,8 @@ function getPropertyCoverThumb(b) {
   if (roomId && ROOM_COVER_FALLBACKS[roomId]) {
     return ROOM_COVER_FALLBACKS[roomId];
   }
-  const nick = (b?.rooms?.nickname || b?.rooms?.property_name || '').toLowerCase();
-  if (nick.includes('tehzeeb')) {
-    return 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+  if (ROOM_COVER_FALLBACKS[cleanRid]) {
+    return ROOM_COVER_FALLBACKS[cleanRid];
   }
   for (const [rid, url] of Object.entries(ROOM_COVER_FALLBACKS)) {
     if (nick && nick.includes(rid.toLowerCase())) return url;
@@ -1447,12 +1453,27 @@ window.openBookingDrawer = async function(bookingId) {
   if (!window._sbkState) window._sbkState = { cachedBookings: [], cachedPaidMap: {} };
 
   let all = window._sbkState.cachedBookings || [];
-  let b = all.find(x => x.booking_id === bookingId);
+  let b = all.find(x => String(x.booking_id) === String(bookingId));
   if (!b) {
-    const { data: dbBooking } = await sb.from('guest_register')
-      .select('*, rooms(nickname, unit_no, property_name)')
-      .eq('booking_id', bookingId)
-      .single();
+    let dbBooking = null;
+    try {
+      const res = await sb.from('guest_register')
+        .select('*, rooms(nickname, unit_no, property_name)')
+        .eq('booking_id', bookingId)
+        .maybeSingle();
+      dbBooking = res.data;
+    } catch(e) {}
+
+    if (!dbBooking) {
+      try {
+        const res2 = await sb.from('guest_register')
+          .select('*')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+        dbBooking = res2.data;
+      } catch(e2) {}
+    }
+
     if (!dbBooking) {
       if (window.fsn) fsn.error('Not Found', 'Booking record not found.');
       else alert('Booking not found');
