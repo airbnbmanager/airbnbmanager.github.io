@@ -890,7 +890,7 @@ async function renderFlatsStatus() {
 
   renderShell(`
     ${updateNoticeHTML()}
-    ${['owner','admin','moderator','developer'].includes(SESSION.role) ? syncInfoHTML() : ''}
+
 
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
       <div>
@@ -928,82 +928,90 @@ async function renderFlatsStatus() {
       </div>
     </div>
 
-    <!-- Quick Filter KPI Ribbon -->
-    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
-      <div class="stat-card" onclick="setFlatsFilter('dirty')" style="cursor:pointer;border-left:4px solid #EF4444;${activeFilter === 'dirty' ? 'background:#FEF2F2;box-shadow:0 0 0 2px #EF4444;' : ''}">
-        <div class="stat-num" style="color:#EF4444;">${dirtyCount}</div>
-        <div class="stat-label">🧹 Need Cleaning</div>
+    <style>
+      .flats-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .flats-kpi-card {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 8px 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+      }
+      .flats-kpi-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      }
+      .flats-kpi-num {
+        font-size: clamp(16px, 3.6vw, 20px);
+        font-weight: 800;
+        line-height: 1.1;
+      }
+      .flats-kpi-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+
+    <!-- Interactive KPI Ribbon / Filters -->
+    <div class="flats-kpi-grid">
+      <div class="flats-kpi-card" onclick="setFlatsFilter('all')" style="${activeFilter === 'all' ? 'background:#0F172A;color:#fff;border-color:#0F172A;box-shadow:0 2px 8px rgba(15,23,42,0.25);' : ''}">
+        <div class="flats-kpi-num" style="${activeFilter === 'all' ? 'color:#fff;' : 'color:#0F172A;'}">${totalCount}</div>
+        <div class="flats-kpi-lbl" style="${activeFilter === 'all' ? 'color:#94A3B8;' : 'color:#64748B;'}">All Properties</div>
       </div>
-      <div class="stat-card" onclick="setFlatsFilter('progress')" style="cursor:pointer;border-left:4px solid #F59E0B;${activeFilter === 'progress' ? 'background:#FFFBEB;box-shadow:0 0 0 2px #F59E0B;' : ''}">
-        <div class="stat-num" style="color:#D97706;">${inProgressCount}</div>
-        <div class="stat-label">🔄 In Progress</div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('dirty')" style="border-top:3px solid #EF4444;${activeFilter === 'dirty' ? 'background:#FEF2F2;border-color:#EF4444;box-shadow:0 0 0 2px #EF4444;' : ''}">
+        <div class="flats-kpi-num" style="color:#EF4444;">${dirtyCount}</div>
+        <div class="flats-kpi-lbl" style="color:#991B1B;">🧹 Dirty</div>
       </div>
-      <div class="stat-card" onclick="setFlatsFilter('turnaround')" style="cursor:pointer;border-left:4px solid #8B5CF6;${activeFilter === 'turnaround' ? 'background:#F5F3FF;box-shadow:0 0 0 2px #8B5CF6;' : ''}">
-        <div class="stat-num" style="color:#8B5CF6;">${turnaroundCount}</div>
-        <div class="stat-label">⚡ Turnarounds</div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('progress')" style="border-top:3px solid #F59E0B;${activeFilter === 'progress' ? 'background:#FFFBEB;border-color:#F59E0B;box-shadow:0 0 0 2px #F59E0B;' : ''}">
+        <div class="flats-kpi-num" style="color:#D97706;">${inProgressCount}</div>
+        <div class="flats-kpi-lbl" style="color:#92400E;">🔄 In Progress</div>
       </div>
-      <div class="stat-card" onclick="setFlatsFilter('clean')" style="cursor:pointer;border-left:4px solid #10B981;${activeFilter === 'clean' ? 'background:#ECFDF5;box-shadow:0 0 0 2px #10B981;' : ''}">
-        <div class="stat-num" style="color:#10B981;">${cleanCount}</div>
-        <div class="stat-label">✅ Clean & Ready</div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('turnaround')" style="border-top:3px solid #8B5CF6;${activeFilter === 'turnaround' ? 'background:#F5F3FF;border-color:#8B5CF6;box-shadow:0 0 0 2px #8B5CF6;' : ''}">
+        <div class="flats-kpi-num" style="color:#8B5CF6;">${turnaroundCount}</div>
+        <div class="flats-kpi-lbl" style="color:#6D28D9;">⚡ Turnaround</div>
       </div>
-      <div class="stat-card" onclick="setFlatsFilter('occupied')" style="cursor:pointer;border-left:4px solid #3B82F6;${activeFilter === 'occupied' || activeFilter === 'booked' ? 'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;' : ''}">
-        <div class="stat-num" style="color:#3B82F6;">${bookedCount}</div>
-        <div class="stat-label">🔵 Occupied</div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('clean')" style="border-top:3px solid #10B981;${activeFilter === 'clean' ? 'background:#ECFDF5;border-color:#10B981;box-shadow:0 0 0 2px #10B981;' : ''}">
+        <div class="flats-kpi-num" style="color:#10B981;">${cleanCount}</div>
+        <div class="flats-kpi-lbl" style="color:#065F46;">✅ Clean Ready</div>
       </div>
-      <div class="stat-card" onclick="setFlatsFilter('free')" style="cursor:pointer;border-left:4px solid #059669;${activeFilter === 'free' ? 'background:#F0FDF4;box-shadow:0 0 0 2px #059669;' : ''}">
-        <div class="stat-num" style="color:#059669;">${freeCount}</div>
-        <div class="stat-label">🟢 Vacant / Free</div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('occupied')" style="border-top:3px solid #3B82F6;${activeFilter === 'occupied' || activeFilter === 'booked' ? 'background:#EFF6FF;border-color:#3B82F6;box-shadow:0 0 0 2px #3B82F6;' : ''}">
+        <div class="flats-kpi-num" style="color:#3B82F6;">${bookedCount}</div>
+        <div class="flats-kpi-lbl" style="color:#1E40AF;">🔵 Occupied</div>
+      </div>
+      <div class="flats-kpi-card" onclick="setFlatsFilter('free')" style="border-top:3px solid #059669;${activeFilter === 'free' ? 'background:#F0FDF4;border-color:#059669;box-shadow:0 0 0 2px #059669;' : ''}">
+        <div class="flats-kpi-num" style="color:#059669;">${freeCount}</div>
+        <div class="flats-kpi-lbl" style="color:#047857;">🟢 Vacant</div>
       </div>
     </div>
 
-    <!-- Search & Filter Bar -->
-    <div class="card" style="padding:12px;margin-bottom:14px;">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <div style="flex:1;min-width:220px;position:relative;">
-          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);">🔍</span>
-          <input type="text" id="flatsSearchInput" placeholder="Search flat, unit, guest name, phone, or caretaker..."
+    <!-- Search Bar with active filter indicator -->
+    <div class="card" style="padding:10px 14px;margin-bottom:12px;border-radius:10px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;position:relative;">
+          <input type="text" id="flatsSearchInput" placeholder="🔍 Search unit (e.g. 101, Tehzeeb), guest, phone, or caretaker..."
             value="${window._flatsSearchQuery || ''}"
             oninput="window._flatsSearchQuery=this.value;renderFlatsStatus();"
-            style="width:100%;padding:9px 10px 9px 34px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;" />
+            style="width:100%;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;outline:none;" />
         </div>
-        ${window._flatsSearchQuery ? `<button class="outline btn-sm" onclick="window._flatsSearchQuery='';renderFlatsStatus();" style="padding:4px 8px;">✕ Clear</button>` : ''}
-      </div>
-
-      <!-- Filter Pills -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-        <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-right:2px;">Filter:</span>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('all')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'all' ? 'background:var(--dark);color:#fff;' : 'background:var(--bg);color:var(--dark);border:1px solid var(--border);'}">
-          All (${totalCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('dirty')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'dirty' ? 'background:#EF4444;color:#fff;' : 'background:var(--bg);color:#EF4444;border:1px solid #FCA5A5;'}">
-          🧹 Dirty (${dirtyCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('progress')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'progress' ? 'background:#F59E0B;color:#fff;' : 'background:var(--bg);color:#D97706;border:1px solid #FCD34D;'}">
-          🔄 In Progress (${inProgressCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('clean')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'clean' ? 'background:#10B981;color:#fff;' : 'background:var(--bg);color:#065F46;border:1px solid #A7F3D0;'}">
-          ✅ Clean (${cleanCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('turnaround')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'turnaround' ? 'background:#8B5CF6;color:#fff;' : 'background:var(--bg);color:#7C3AED;border:1px solid #DDD6FE;'}">
-          ⚡ Turnaround (${turnaroundCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('free')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'free' ? 'background:#059669;color:#fff;' : 'background:var(--bg);color:#059669;border:1px solid #A7F3D0;'}">
-          🟢 Free (${freeCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('occupied')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'occupied' || activeFilter === 'booked' ? 'background:#3B82F6;color:#fff;' : 'background:var(--bg);color:#1D4ED8;border:1px solid #BFDBFE;'}">
-          🔵 Occupied (${bookedCount})
-        </button>
-        <button type="button" class="btn-sm" onclick="setFlatsFilter('blocked')"
-          style="border-radius:20px;padding:3px 12px;font-size:12px;${activeFilter === 'blocked' ? 'background:#64748B;color:#fff;' : 'background:var(--bg);color:#475569;border:1px solid #CBD5E1;'}">
-          ⛔ Blocked (${blockedCount})
-        </button>
+        ${window._flatsSearchQuery ? `<button class="btn-sm" onclick="window._flatsSearchQuery='';renderFlatsStatus();" style="padding:6px 10px;background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:6px;font-size:11px;">✕ Clear</button>` : ''}
+        ${blockedCount > 0 ? `
+          <button type="button" class="btn-sm" onclick="setFlatsFilter('blocked')"
+            style="padding:6px 10px;font-size:11.5px;border-radius:6px;border:1px solid #CBD5E1;background:${activeFilter==='blocked'?'#64748B':'#F8FAFC'};color:${activeFilter==='blocked'?'#fff':'#475569'};">
+            ⛔ Blocked (${blockedCount})
+          </button>
+        ` : ''}
       </div>
     </div>
 
@@ -1028,6 +1036,10 @@ async function renderFlatsStatus() {
           const cleanBadgeIcon = isDirty ? '🧹' : isProgress ? '🔄' : '✅';
           const cleanBadgeLabel = isDirty ? 'DIRTY — NEEDS CLEANING' : isProgress ? 'CLEANING IN PROGRESS' : 'CLEAN & READY';
 
+          const scProp = (window.ShowcaseData && window.ShowcaseData.getProperty ? window.ShowcaseData.getProperty(f.room_id) : null) ||
+                         (window.ShowcaseData && window.ShowcaseData.BASELINE ? window.ShowcaseData.BASELINE[f.room_id] : null);
+          const coverImg = scProp?.cover_image || f.rooms?.cover_image || 'assets/logo-emblem.png';
+
           // Caretaker contact & whatsapp
           const ctName = f.rooms?.checkin_manager || 'Staff';
           const ctPhone = (f.rooms?.caretaker_phone || '').replace(/[^0-9]/g, '');
@@ -1038,19 +1050,22 @@ async function renderFlatsStatus() {
           return `
             <div class="card" style="margin-bottom:0;padding:15px;border-radius:12px;border:1.5px solid ${cardBorder};background:#fff;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
               <div>
-                <!-- Property Title & Occupancy Badge -->
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
-                  <div>
-                    <div style="font-size:16px;font-weight:800;color:var(--dark);line-height:1.2;">
-                      ${propTitle}
+                <!-- Property Title, Thumbnail & Occupancy Badge -->
+                <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;">
+                  <img src="${coverImg}" alt="${escapeHtml(propTitle)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#E2E8F0;" onerror="this.onerror=null;this.src='assets/logo-emblem.png';" />
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                      <div style="font-size:15px;font-weight:800;color:var(--dark);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        ${propTitle}
+                      </div>
+                      <span class="badge ${statusColor}" style="font-weight:700;font-size:10.5px;white-space:nowrap;">
+                        ${statusIcon} ${f.status || 'Free'}
+                      </span>
                     </div>
-                    <div style="font-size:12px;color:var(--muted);margin-top:2px;">
-                      Unit <strong>${f.rooms?.unit_no || f.room_id}</strong> · ${f.rooms?.property_name || ''}
+                    <div style="font-size:11.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                      Unit <strong>${f.rooms?.unit_no || f.room_id}</strong> &bull; ${escapeHtml(scProp?.area_name || f.rooms?.property_name || '')}
                     </div>
                   </div>
-                  <span class="badge ${statusColor}" style="font-weight:700;font-size:11px;white-space:nowrap;">
-                    ${statusIcon} ${f.status || 'Free'}
-                  </span>
                 </div>
 
                 <!-- Cleaning Status Banner -->
