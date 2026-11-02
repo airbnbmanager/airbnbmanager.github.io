@@ -12,11 +12,11 @@ window.GST_ENGINE = (function() {
   const CO = {
     name:       'THE UNIQUE HAVEN HOMES PRIVATE LIMITED',
     tradeName:  'The Unique Haven Homes Homestays',
-    gstin:      '09ABECT9843K1Z7',
-    pan:        'ABECT9843K',
+    gstin:      '09AAMCT8448C1ZX',
+    pan:        'AAMCT8448C',
     cin:        'U55101UP2026PTC244637',
     sac:        '996311', // Accommodation services in homestays / guest houses
-    address:    'P NO 39 & 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, Uttar Pradesh – 226016',
+    address:    'Plot No.: 39 & 40, Radhikapuri Colony, Takrohi, Indira Nagar, Lucknow - 226016',
     state:      'Uttar Pradesh',
     stateCode:  '09',
     phone:      '+91 94500 55554 / +91 82996 00709',
@@ -61,19 +61,22 @@ window.GST_ENGINE = (function() {
   }
 
   // 3. HELPER: NEXT INVOICE NUMBER
-  function getNextInvoiceNo(dateStr) {
+  function getNextInvoiceNo(dateStr, isGST = true) {
     const fy = getFY(dateStr);
-    const key = 'uhh_inv_seq_' + fy;
-    let seq = parseInt(localStorage.getItem(key) || localStorage.getItem('uhh_inv_seq') || '0', 10) + 1;
-    return `UHH/${fy}/${String(seq).padStart(4, '0')}`;
+    const prefix = isGST ? `UHH/${fy}/` : `UHH/NG/${fy}/`;
+    const key = isGST ? ('uhh_inv_seq_' + fy) : ('uhh_inv_seq_ng_' + fy);
+    const fallbackKey = isGST ? 'uhh_inv_seq' : 'uhh_inv_seq_ng';
+    let seq = parseInt(localStorage.getItem(key) || localStorage.getItem(fallbackKey) || '0', 10) + 1;
+    return `${prefix}${String(seq).padStart(4, '0')}`;
   }
 
-  function commitNextInvoiceSeq(dateStr) {
+  function commitNextInvoiceSeq(dateStr, isGST = true) {
     const fy = getFY(dateStr);
-    const key = 'uhh_inv_seq_' + fy;
-    let seq = parseInt(localStorage.getItem(key) || localStorage.getItem('uhh_inv_seq') || '0', 10) + 1;
+    const key = isGST ? ('uhh_inv_seq_' + fy) : ('uhh_inv_seq_ng_' + fy);
+    const fallbackKey = isGST ? 'uhh_inv_seq' : 'uhh_inv_seq_ng';
+    let seq = parseInt(localStorage.getItem(key) || localStorage.getItem(fallbackKey) || '0', 10) + 1;
     localStorage.setItem(key, String(seq));
-    localStorage.setItem('uhh_inv_seq', String(seq));
+    localStorage.setItem(fallbackKey, String(seq));
     return seq;
   }
 
@@ -228,7 +231,7 @@ window.GST_ENGINE = (function() {
     };
   }
 
-  // 9. BUILD FULL A4 PRINTABLE INVOICE HTML (Exact match to hotel GST sample receipt)
+  // 9. BUILD FULL A4 PRINTABLE INVOICE HTML (Supports Both GST Tax Invoice & Without GST Invoice)
   function buildPrintableInvoiceHTML(inv) {
     const isGST = inv.is_gst_invoice === true;
     
@@ -251,13 +254,13 @@ window.GST_ENGINE = (function() {
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     const totalNum = Number(inv.total_amount || 0);
-    const taxableNum = Number(inv.taxable_value || 0);
-    const gstRateNum = Number(inv.gst_rate || 5);
-    const cgstNum = Number(inv.cgst || (totalNum - taxableNum) / 2);
-    const sgstNum = Number(inv.sgst || (totalNum - taxableNum) / 2);
-    const taxAmtNum = cgstNum + sgstNum;
+    const taxableNum = isGST ? Number(inv.taxable_value || 0) : totalNum;
+    const gstRateNum = isGST ? Number(inv.gst_rate || 5) : 0;
+    const cgstNum = isGST ? Number(inv.cgst || (totalNum - taxableNum) / 2) : 0;
+    const sgstNum = isGST ? Number(inv.sgst || (totalNum - taxableNum) / 2) : 0;
+    const taxAmtNum = isGST ? (cgstNum + sgstNum) : 0;
     const halfRate = (gstRateNum / 2).toFixed(1).replace('.0', '');
-    const ratePerNight = inv.nights ? (taxableNum / inv.nights) : taxableNum;
+    const ratePerNight = inv.nights ? ((isGST ? taxableNum : totalNum) / inv.nights) : (isGST ? taxableNum : totalNum);
     const words = numToWords(totalNum);
 
     const serviceDesc = inv.room_name || inv.room_id || 'Premium Luxury Homestay Room';
@@ -269,8 +272,12 @@ window.GST_ENGINE = (function() {
     <!-- Top Header Bar outside box (Sample match) -->
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px;font-size:11px;font-weight:700;">
       <div>
-        <span style="font-size:13px;font-weight:900;letter-spacing:0.5px;">TAX INVOICE</span>
-        <span style="border:1px solid #000;padding:1px 6px;margin-left:6px;font-size:9.5px;font-weight:700;border-radius:2px;">ORIGINAL FOR RECIPIENT</span>
+        <span style="font-size:13.5px;font-weight:900;letter-spacing:0.5px;color:#000;">
+          ${isGST ? 'TAX INVOICE' : 'INVOICE (WITHOUT GST)'}
+        </span>
+        <span style="border:1px solid #000;padding:1px 6px;margin-left:6px;font-size:9.5px;font-weight:700;border-radius:2px;background:${isGST ? '#fff' : '#f8fafc'};">
+          ${isGST ? 'ORIGINAL FOR RECIPIENT' : 'ORIGINAL FOR RECIPIENT · DIRECT STAY BILL'}
+        </span>
       </div>
       <div style="font-size:10px;color:#222;font-weight:700;">
         Homestay || Luxury Suites || Villa
@@ -297,7 +304,9 @@ window.GST_ENGINE = (function() {
               <strong>Mobile:</strong> ${CO.phone} | <strong>Email:</strong> ${CO.email}
             </div>
             <div style="color:#000;margin-top:2px;">
-              <strong>GSTIN (18%):</strong> ${CO.gstin} &nbsp;|&nbsp; <strong>GSTIN (5%):</strong> ${CO.gstin}
+              ${isGST 
+                ? `<strong>GSTIN (18%):</strong> ${CO.gstin} &nbsp;|&nbsp; <strong>GSTIN (5%):</strong> ${CO.gstin}`
+                : `<strong>Billing Mode:</strong> Direct Accommodation / Non-GST Supply`}
             </div>
             <div style="color:#444;font-size:9px;">
               <strong>CIN:</strong> ${CO.cin} &nbsp;|&nbsp; <strong>PAN:</strong> ${CO.pan}
@@ -343,13 +352,13 @@ window.GST_ENGINE = (function() {
           <strong>Address:</strong> ${escapeHtml(inv.guest_address || 'Lucknow, Uttar Pradesh, India')}
         </div>
         <div style="display:flex;gap:18px;margin-top:2px;font-size:9.5px;">
-          <div><strong>GSTIN:</strong> ${inv.guest_gstin ? escapeHtml(inv.guest_gstin) : 'URP / Consumer (Unregistered)'}</div>
+          <div><strong>GSTIN:</strong> ${isGST ? (inv.guest_gstin ? escapeHtml(inv.guest_gstin) : 'URP / Consumer (Unregistered)') : 'Not Applicable (Non-GST Consumer Bill)'}</div>
           <div><strong>Mobile:</strong> ${escapeHtml(inv.guest_phone || '-')}</div>
           <div><strong>PAN Number:</strong> ${inv.guest_gstin ? escapeHtml(inv.guest_gstin.substring(2, 12)) : CO.pan}</div>
         </div>
       </div>
 
-      <!-- 3. SERVICES TABLE (8 Columns exactly like sample) -->
+      <!-- 3. SERVICES TABLE (8 Columns) -->
       <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:left;">
         <thead>
           <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;font-size:9.5px;text-align:center;">
@@ -359,7 +368,7 @@ window.GST_ENGINE = (function() {
             <th style="padding:5px 4px;border-right:1px solid #000;width:75px;">CHECK IN</th>
             <th style="padding:5px 4px;border-right:1px solid #000;width:50px;">QTY.</th>
             <th style="padding:5px 6px;border-right:1px solid #000;width:75px;text-align:right;">RATE</th>
-            <th style="padding:5px 4px;border-right:1px solid #000;width:68px;text-align:right;">TAX</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;width:68px;text-align:right;">${isGST ? 'TAX' : 'TAX / GST'}</th>
             <th style="padding:5px 6px;width:85px;text-align:right;">AMOUNT</th>
           </tr>
         </thead>
@@ -377,8 +386,9 @@ window.GST_ENGINE = (function() {
             <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;font-weight:700;">${inv.nights || 1} DAY</td>
             <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${ratePerNight.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="padding:6px 4px;border-right:1px solid #000;text-align:right;">
-              ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}<br/>
-              <span style="font-size:8.5px;color:#555;">(${gstRateNum}%)</span>
+              ${isGST 
+                ? `${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}<br/><span style="font-size:8.5px;color:#555;">(${gstRateNum}%)</span>`
+                : `<span style="color:#059669;font-weight:700;">₹ 0.00</span><br/><span style="font-size:8.5px;color:#64748B;">(0% Non-GST)</span>`}
             </td>
             <td style="padding:6px 6px;text-align:right;font-weight:800;">
               ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}
@@ -402,7 +412,9 @@ window.GST_ENGINE = (function() {
             <td colspan="4" style="padding:5px 8px;border-right:1px solid #000;text-align:right;letter-spacing:0.5px;">TOTAL</td>
             <td style="padding:5px 4px;border-right:1px solid #000;text-align:center;">${inv.nights || 1}</td>
             <td style="padding:5px 4px;border-right:1px solid #000;"></td>
-            <td style="padding:5px 4px;border-right:1px solid #000;text-align:right;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:5px 4px;border-right:1px solid #000;text-align:right;">
+              ${isGST ? '₹ ' + taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}) : '₹ 0.00'}
+            </td>
             <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
           </tr>
 
@@ -426,35 +438,58 @@ window.GST_ENGINE = (function() {
         </tbody>
       </table>
 
-      <!-- 4. TAX BREAKDOWN TABLE (HSN/SAC Grid exactly like sample) -->
-      <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:center;">
-        <thead>
-          <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
-            <th rowspan="2" style="padding:5px 4px;border-right:1px solid #000;width:90px;">HSN/SAC</th>
-            <th rowspan="2" style="padding:5px 6px;border-right:1px solid #000;width:110px;text-align:right;">Taxable Value</th>
-            <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">CGST</th>
-            <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">SGST</th>
-            <th rowspan="2" style="padding:5px 6px;text-align:right;width:115px;">Total Tax Amount</th>
-          </tr>
-          <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;">
-            <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
-            <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
-            <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
-            <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="padding:6px 4px;border-right:1px solid #000;">${CO.sac}</td>
-            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${taxableNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
-            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${cgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
-            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${sgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="padding:6px 6px;text-align:right;font-weight:800;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- 4. TAX BREAKDOWN (IF GST) OR SETTLEMENT SUMMARY (IF WITHOUT GST) -->
+      ${isGST ? `
+        <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:center;">
+          <thead>
+            <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
+              <th rowspan="2" style="padding:5px 4px;border-right:1px solid #000;width:90px;">HSN/SAC</th>
+              <th rowspan="2" style="padding:5px 6px;border-right:1px solid #000;width:110px;text-align:right;">Taxable Value</th>
+              <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">CGST</th>
+              <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">SGST</th>
+              <th rowspan="2" style="padding:5px 6px;text-align:right;width:115px;">Total Tax Amount</th>
+            </tr>
+            <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;">
+              <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
+              <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
+              <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
+              <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:6px 4px;border-right:1px solid #000;">${CO.sac}</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${taxableNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${cgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${sgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 6px;text-align:right;font-weight:800;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            </tr>
+          </tbody>
+        </table>
+      ` : `
+        <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:left;">
+          <thead>
+            <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
+              <th style="padding:5px 8px;border-right:1px solid #000;">TARIFF / STAY CLASSIFICATION</th>
+              <th style="padding:5px 8px;border-right:1px solid #000;text-align:right;width:115px;">TOTAL STAY CHARGES</th>
+              <th style="padding:5px 8px;border-right:1px solid #000;text-align:right;width:115px;">TAXES / GST</th>
+              <th style="padding:5px 8px;border-right:1px solid #000;text-align:center;width:125px;">SETTLEMENT STATUS</th>
+              <th style="padding:5px 8px;text-align:right;width:120px;">NET AMOUNT PAID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:6px 8px;border-right:1px solid #000;font-weight:700;">Direct Guest Accommodation (Non-GST Supply)</td>
+              <td style="padding:6px 8px;border-right:1px solid #000;text-align:right;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 8px;border-right:1px solid #000;text-align:right;color:#059669;font-weight:700;">₹ 0.00 (0% - No GST)</td>
+              <td style="padding:6px 8px;border-right:1px solid #000;text-align:center;font-weight:800;color:#059669;">✔ PAID IN FULL</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            </tr>
+          </tbody>
+        </table>
+      `}
 
       <!-- 5. Total Amount (in words) -->
       <div style="padding:6px 10px;border-bottom:1.5px solid #000;background:#fff;font-size:10px;">
@@ -490,7 +525,9 @@ window.GST_ENGINE = (function() {
     </div> <!-- End of Bordered Frame -->
 
     <div style="font-size:9px;color:#666;text-align:center;margin-top:4px;">
-      This is a computer-generated tax invoice under GST Act. All disputes subject to Lucknow jurisdiction only.
+      ${isGST 
+        ? 'This is a computer-generated tax invoice under GST Act. All disputes subject to Lucknow jurisdiction only.' 
+        : 'This is an official computer-generated invoice for accommodation services provided without GST. Not valid for claiming GST Input Tax Credit (ITC). All disputes subject to Lucknow jurisdiction only.'}
     </div>
 
   </div>`;
@@ -500,8 +537,8 @@ window.GST_ENGINE = (function() {
   function printInvoiceDocument(inv) {
     const html = buildPrintableInvoiceHTML(inv);
     const cleanInvNo = String(inv.invoice_no || '').replace(/[\/\\:*?"<>|]/g, '-');
-    const cleanGuest = String(inv.guest_name || 'Guest').trim().replace(/[\/\\:*?"<>|]/g, '-').replace(/\s+/g, '_');
-    const docTitle = `TUHH ${inv.is_gst ? 'GST Tax Invoice' : 'Bill'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
+    const isGST = inv.is_gst_invoice === true;
+    const docTitle = `TUHH ${isGST ? 'GST Tax Invoice' : 'Without GST Invoice'} — ${cleanInvNo} — ${inv.guest_name || 'Guest'}`;
 
     window.printDocumentHTML(html, docTitle);
   }
@@ -802,8 +839,8 @@ Generated automatically via TUHH Management Portal.`;
     printInvoiceDocument(inv);
   }
 
-  // 15. MAIN INTERACTIVE MODAL: OPEN GST INVOICE MODAL
-  async function openGSTInvoiceModal(bookingId) {
+  // 15. MAIN INTERACTIVE MODAL: OPEN GST / WITHOUT GST INVOICE MODAL
+  async function openGSTInvoiceModal(bookingId, preferredMode) {
     if (!bookingId) {
       alert('Please provide a valid Booking ID.');
       return;
@@ -841,10 +878,22 @@ Generated automatically via TUHH Management Portal.`;
       : 1);
 
     const totalAmt = existing ? existing.total_amount : (booking.total_amount || 0);
-    const defaultIsGST = existing ? (existing.is_gst_invoice === true) : true;
-    const defaultInvNo = existing ? existing.invoice_no : getNextInvoiceNo(today);
+
+    // Determine initial mode: preferredMode can be 'without_gst' / 'gst'
+    let defaultIsGST = true;
+    if (preferredMode === 'without_gst' || preferredMode === 'non_gst' || preferredMode === false) {
+      defaultIsGST = false;
+    } else if (preferredMode === 'gst' || preferredMode === true) {
+      defaultIsGST = true;
+    } else if (existing && typeof existing.is_gst_invoice === 'boolean') {
+      defaultIsGST = existing.is_gst_invoice;
+    }
+
+    const defaultInvNo = existing ? existing.invoice_no : getNextInvoiceNo(today, defaultIsGST);
     const defaultInvDate = existing ? existing.invoice_date : today;
-    const defaultRate = existing ? existing.gst_rate : (totalAmt / n <= 7500 ? 5 : 18);
+    const defaultRate = existing 
+      ? (defaultIsGST ? (existing.gst_rate ?? 5) : 0) 
+      : (defaultIsGST ? (totalAmt / n <= 7500 ? 5 : 18) : 0);
 
     // Form state holder
     const state = {
@@ -879,10 +928,10 @@ Generated automatically via TUHH Management Portal.`;
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
     function renderModalContent() {
-      const calc = calculateGST(state.total_amount, state.nights, state.gst_rate);
-      state.taxable_value = calc.base;
-      state.cgst = calc.cgst;
-      state.sgst = calc.sgst;
+      const calc = calculateGST(state.total_amount, state.nights, state.is_gst_invoice ? state.gst_rate : 0);
+      state.taxable_value = state.is_gst_invoice ? calc.base : state.total_amount;
+      state.cgst = state.is_gst_invoice ? calc.cgst : 0;
+      state.sgst = state.is_gst_invoice ? calc.sgst : 0;
 
       const isAirbnb = state.booking_mode === 'Online-Airbnb' || !!booking.airbnb_confirmation_code;
 
@@ -896,11 +945,11 @@ Generated automatically via TUHH Management Portal.`;
           <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px;padding-right:40px;">
             <div>
               <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:18px;">🧾</span>
+                <span style="font-size:18px;">${state.is_gst_invoice ? '🧾' : '📄'}</span>
                 <h2 style="margin:0;font-size:19px;font-weight:900;color:var(--dark);">
-                  GST Invoice &amp; Tax Bill Manager
+                  ${state.is_gst_invoice ? 'GST Tax Invoice &amp; Tax Bill Manager' : 'Without GST Invoice (Non-GST Clean Bill)'}
                 </h2>
-                ${state.existing ? '<span class="badge" style="background:#DCFCE7;color:#15803D;font-size:11px;font-weight:800;">✔ Already Invoiced</span>' : '<span class="badge" style="background:#FEF3C7;color:#B45309;font-size:11px;font-weight:700;">Draft</span>'}
+                ${state.existing ? '<span class="badge" style="background:#DCFCE7;color:#15803D;font-size:11px;font-weight:800;">✔ Already Saved</span>' : '<span class="badge" style="background:#FEF3C7;color:#B45309;font-size:11px;font-weight:700;">Draft</span>'}
               </div>
               <div style="font-size:12px;color:var(--muted);margin-top:2px;">
                 Ref: <strong>${escapeHtml(booking.booking_id)}</strong> · Guest: <strong>${escapeHtml(state.guest_name)}</strong> · Room: <strong>${escapeHtml(state.room_name)}</strong>
@@ -913,14 +962,26 @@ Generated automatically via TUHH Management Portal.`;
             </div>
           </div>
 
-          <!-- Tab Navigation -->
-          <div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;">
-            <button class="btn-sm ${state.activeTab === 'edit' ? 'primary' : 'outline'}" style="padding:7px 16px;font-weight:700;border-radius:8px;background:${state.activeTab === 'edit' ? 'var(--dark)' : '#fff'};color:${state.activeTab === 'edit' ? '#fff' : 'var(--dark)'};" onclick="window._gstSetTab('edit')">
-              📝 Configure &amp; Options
-            </button>
-            <button class="btn-sm ${state.activeTab === 'preview' ? 'primary' : 'outline'}" style="padding:7px 16px;font-weight:700;border-radius:8px;background:${state.activeTab === 'preview' ? 'var(--dark)' : '#fff'};color:${state.activeTab === 'preview' ? '#fff' : 'var(--dark)'};" onclick="window._gstSetTab('preview')">
-              👁️ A4 Print Preview
-            </button>
+          <!-- Tab Navigation & Fast Mode Switch -->
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;">
+              <button class="btn-sm ${state.activeTab === 'edit' ? 'primary' : 'outline'}" style="padding:7px 16px;font-weight:700;border-radius:8px;background:${state.activeTab === 'edit' ? 'var(--dark)' : '#fff'};color:${state.activeTab === 'edit' ? '#fff' : 'var(--dark)'};" onclick="window._gstSetTab('edit')">
+                📝 Configure Details
+              </button>
+              <button class="btn-sm ${state.activeTab === 'preview' ? 'primary' : 'outline'}" style="padding:7px 16px;font-weight:700;border-radius:8px;background:${state.activeTab === 'preview' ? 'var(--dark)' : '#fff'};color:${state.activeTab === 'preview' ? '#fff' : 'var(--dark)'};" onclick="window._gstSetTab('preview')">
+                👁️ A4 Print Preview (${state.is_gst_invoice ? 'With GST' : 'Without GST'})
+              </button>
+            </div>
+
+            <!-- Fast Quick Mode Toggle Pill -->
+            <div style="display:flex;gap:6px;align-items:center;background:#F1F5F9;padding:3px;border-radius:8px;">
+              <button type="button" onclick="window._gstSetIsGST(false)" style="border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;background:${!state.is_gst_invoice ? '#0F172A' : 'transparent'};color:${!state.is_gst_invoice ? '#fff' : '#64748B'};transition:all 0.15s;">
+                📄 Without GST
+              </button>
+              <button type="button" onclick="window._gstSetIsGST(true)" style="border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;background:${state.is_gst_invoice ? '#B45309' : 'transparent'};color:${state.is_gst_invoice ? '#fff' : '#64748B'};transition:all 0.15s;">
+                🧾 With GST (Tax)
+              </button>
+            </div>
           </div>
 
           <!-- Body Container -->
@@ -931,47 +992,54 @@ Generated automatically via TUHH Management Portal.`;
                 <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;">
                   <span style="font-size:22px;">ℹ️</span>
                   <div style="font-size:12px;color:#92400E;line-height:1.5;">
-                    <strong>Airbnb Booking Detected:</strong> Under GST Section 9(5), Airbnb collects and remits GST directly on accommodation bookings. For CA filings, only <strong>Direct Bookings</strong> (Direct/Walk-in) typically need host GST output billing. You can still generate a bill if guest explicitly requested it.
+                    <strong>Airbnb Booking Detected:</strong> Under GST Section 9(5), Airbnb collects and remits GST directly on accommodation bookings. For CA filings, only <strong>Direct Bookings</strong> typically need host GST output billing. For direct/leisure guests, choose <strong>Without GST Invoice</strong>.
                   </div>
                 </div>
               ` : ''}
 
-              <!-- ⭐️ USER'S CORE REQUIREMENT: QUESTION TOGGLE -->
-              <div style="background:#F8FAFC;border:2px solid #B45309;border-radius:12px;padding:16px;margin-bottom:16px;">
-                <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:#B45309;margin-bottom:4px;">
-                  📌 Statutory Classification Question
+              <!-- ⭐️ CORE FEATURE: INVOICE TYPE SELECTION (WITH GST vs WITHOUT GST) -->
+              <div style="background:#F8FAFC;border:2px solid ${state.is_gst_invoice ? '#B45309' : '#0284C7'};border-radius:12px;padding:16px;margin-bottom:16px;transition:all 0.15s;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:${state.is_gst_invoice ? '#B45309' : '#0284C7'};">
+                    📌 Invoice Classification Option
+                  </div>
+                  <span class="badge" style="background:${state.is_gst_invoice ? '#FEF3C7' : '#E0F2FE'};color:${state.is_gst_invoice ? '#92400E' : '#0369A1'};font-size:11px;font-weight:800;">
+                    Selected: ${state.is_gst_invoice ? '🧾 With GST (Tax Invoice)' : '📄 Without GST (Clean Bill)'}
+                  </span>
                 </div>
-                <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:4px;">
-                  Kya ye official GST Tax Invoice rahega? (CA Return &amp; Customer Record)
-                </div>
-                <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;">
-                  <strong>HAAN</strong> karne par iska proper record CA ke liye GSTR-1 / GSTR-3B tax return me banega aur official invoice number assign hoga. <strong>NAHI</strong> karne par yeh sirf customer internal receipt rahega.
+
+                <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;">
+                  Aapko kaunsa invoice create karna hai?
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                  <label style="border:2px solid ${state.is_gst_invoice ? '#059669' : 'var(--border)'};background:${state.is_gst_invoice ? '#F0FDF4' : '#fff'};border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:all 0.15s;">
-                    <input type="radio" name="is_gst_choice" value="yes" ${state.is_gst_invoice ? 'checked' : ''} onchange="window._gstSetIsGST(true)" style="margin-top:3px;"/>
+                  
+                  <!-- Option A: Without GST Invoice -->
+                  <label style="border:2px solid ${!state.is_gst_invoice ? '#0284C7' : 'var(--border)'};background:${!state.is_gst_invoice ? '#F0F9FF' : '#fff'};border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:all 0.15s;box-shadow:${!state.is_gst_invoice ? '0 4px 12px rgba(2,132,199,0.15)' : 'none'};">
+                    <input type="radio" name="is_gst_choice" value="no" ${!state.is_gst_invoice ? 'checked' : ''} onchange="window._gstSetIsGST(false)" style="margin-top:3px;cursor:pointer;"/>
                     <div>
-                      <div style="font-weight:800;font-size:13px;color:${state.is_gst_invoice ? '#059669' : 'var(--dark)'};">
-                        ✅ HAAN — Official GST Tax Invoice
+                      <div style="font-weight:800;font-size:13.5px;color:${!state.is_gst_invoice ? '#0284C7' : 'var(--dark)'};">
+                        📄 Without GST Invoice (Clean Bill)
                       </div>
-                      <div style="font-size:11px;color:var(--muted);margin-top:2px;">
-                        Record for CA · Assign Tax Serial No · Full CGST/SGST Breakdown
+                      <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;">
+                        <strong>0% Tax</strong> · Clean accommodation bill · No CGST/SGST lines · For direct, leisure, walk-in guests · Excluded from CA GSTR-1 output tax liability.
                       </div>
                     </div>
                   </label>
 
-                  <label style="border:2px solid ${!state.is_gst_invoice ? '#2563EB' : 'var(--border)'};background:${!state.is_gst_invoice ? '#EFF6FF' : '#fff'};border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:all 0.15s;">
-                    <input type="radio" name="is_gst_choice" value="no" ${!state.is_gst_invoice ? 'checked' : ''} onchange="window._gstSetIsGST(false)" style="margin-top:3px;"/>
+                  <!-- Option B: Official GST Tax Invoice -->
+                  <label style="border:2px solid ${state.is_gst_invoice ? '#B45309' : 'var(--border)'};background:${state.is_gst_invoice ? '#FFFBEB' : '#fff'};border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:all 0.15s;box-shadow:${state.is_gst_invoice ? '0 4px 12px rgba(180,83,9,0.15)' : 'none'};">
+                    <input type="radio" name="is_gst_choice" value="yes" ${state.is_gst_invoice ? 'checked' : ''} onchange="window._gstSetIsGST(true)" style="margin-top:3px;cursor:pointer;"/>
                     <div>
-                      <div style="font-weight:800;font-size:13px;color:${!state.is_gst_invoice ? '#2563EB' : 'var(--dark)'};">
-                        📄 NAHI — Customer Receipt / Estimate
+                      <div style="font-weight:800;font-size:13.5px;color:${state.is_gst_invoice ? '#B45309' : 'var(--dark)'};">
+                        🧾 Official GST Tax Invoice (With GST)
                       </div>
-                      <div style="font-size:11px;color:var(--muted);margin-top:2px;">
-                        Internal guest bill · Exclude from CA GSTR-1 register
+                      <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;">
+                        <strong>5% / 18% GST</strong> · Full CGST/SGST breakdown · Recorded for CA GSTR-1 &amp; GSTR-3B filings · For corporate guests claiming Input Tax Credit (ITC).
                       </div>
                     </div>
                   </label>
+
                 </div>
               </div>
 
@@ -995,7 +1063,7 @@ Generated automatically via TUHH Management Portal.`;
               <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;">
                 <div style="font-size:12px;font-weight:800;color:var(--dark);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
                   <span>👤 Guest / Customer Billed To</span>
-                  <span style="font-size:10px;color:var(--muted);font-weight:normal;">(Corporate guests can provide GSTIN for Input Tax Credit)</span>
+                  <span style="font-size:10px;color:var(--muted);font-weight:normal;">${state.is_gst_invoice ? '(Corporate guests can provide GSTIN for Input Tax Credit)' : '(Direct Guest Details)'}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
                   <div>
@@ -1007,23 +1075,29 @@ Generated automatically via TUHH Management Portal.`;
                     <input type="text" id="gstInpPhone" value="${escapeHtml(state.guest_phone)}" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;" onchange="state.guest_phone=this.value"/>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <div>
-                    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">Guest GSTIN (Optional B2B)</label>
-                    <input type="text" id="gstInpGSTIN" value="${escapeHtml(state.guest_gstin)}" placeholder="e.g. 09ABECT9843K1Z7" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-transform:uppercase;" onchange="state.guest_gstin=this.value.trim().toUpperCase()"/>
+                ${state.is_gst_invoice ? `
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                      <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">Guest GSTIN (Optional B2B)</label>
+                      <input type="text" id="gstInpGSTIN" value="${escapeHtml(state.guest_gstin)}" placeholder="e.g. 09AAMCT8448C1ZX" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-transform:uppercase;" onchange="state.guest_gstin=this.value.trim().toUpperCase()"/>
+                    </div>
+                    <div>
+                      <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">Company / Entity Name (Optional)</label>
+                      <input type="text" id="gstInpCompany" value="${escapeHtml(state.guest_company)}" placeholder="e.g. Acme Tech Pvt Ltd" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;" onchange="state.guest_company=this.value"/>
+                    </div>
                   </div>
-                  <div>
-                    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">Company / Entity Name (Optional)</label>
-                    <input type="text" id="gstInpCompany" value="${escapeHtml(state.guest_company)}" placeholder="e.g. Acme Tech Pvt Ltd" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;" onchange="state.guest_company=this.value"/>
+                ` : `
+                  <div style="font-size:11.5px;color:#059669;background:#F0FDF4;padding:8px 12px;border-radius:6px;font-weight:600;">
+                    ✓ Without GST Invoice: No GSTIN required. Clean guest accommodation bill will be generated.
                   </div>
-                </div>
+                `}
               </div>
 
-              <!-- Financial & GST Computation Card -->
+              <!-- Financial & Stay Computation Card -->
               <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;">
                 <div style="font-size:12px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
-                  <span>💰 Stay Value &amp; GST Computation (SAC: 996311)</span>
-                  <span style="font-size:11px;color:#B45309;font-weight:700;">Rate per night: ₹${calc.perNight.toLocaleString('en-IN')}</span>
+                  <span>💰 Stay Value Computation ${state.is_gst_invoice ? '(SAC: 996311)' : '(Non-GST Direct Bill)'}</span>
+                  <span style="font-size:11px;color:${state.is_gst_invoice ? '#B45309' : '#0284C7'};font-weight:700;">Rate per night: ₹${calc.perNight.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
@@ -1036,35 +1110,56 @@ Generated automatically via TUHH Management Portal.`;
                     <input type="number" id="gstInpNights" value="${state.nights}" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;" oninput="state.nights=parseInt(this.value,10)||1;window._gstRecompute();"/>
                   </div>
                   <div>
-                    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">GST Rate Slab</label>
-                    <select id="gstInpRate" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;" onchange="state.gst_rate=parseFloat(this.value);window._gstRecompute();">
-                      <option value="5" ${state.gst_rate === 5 ? 'selected' : ''}>5% (Per night ≤ ₹7,500 - No ITC)</option>
-                      <option value="18" ${state.gst_rate === 18 ? 'selected' : ''}>18% (Per night &gt; ₹7,500 - With ITC)</option>
-                      <option value="12" ${state.gst_rate === 12 ? 'selected' : ''}>12% (Custom slab)</option>
-                      <option value="0" ${state.gst_rate === 0 ? 'selected' : ''}>0% (Exempt)</option>
-                    </select>
+                    <label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:2px;">GST Rate</label>
+                    ${state.is_gst_invoice ? `
+                      <select id="gstInpRate" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;" onchange="state.gst_rate=parseFloat(this.value);window._gstRecompute();">
+                        <option value="5" ${state.gst_rate === 5 ? 'selected' : ''}>5% (Per night ≤ ₹7,500)</option>
+                        <option value="18" ${state.gst_rate === 18 ? 'selected' : ''}>18% (Per night &gt; ₹7,500)</option>
+                        <option value="12" ${state.gst_rate === 12 ? 'selected' : ''}>12% (Custom slab)</option>
+                        <option value="0" ${state.gst_rate === 0 ? 'selected' : ''}>0% (Exempt)</option>
+                      </select>
+                    ` : `
+                      <input type="text" value="0% (Non-GST Supply)" readonly style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;background:#F1F5F9;color:#059669;"/>
+                    `}
                   </div>
                 </div>
 
                 <!-- Breakdown summary preview -->
-                <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
-                  <div>
-                    <div style="font-size:10px;color:var(--muted);font-weight:700;">TAXABLE VALUE</div>
-                    <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:2px;">₹${calc.base.toLocaleString('en-IN')}</div>
+                ${state.is_gst_invoice ? `
+                  <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
+                    <div>
+                      <div style="font-size:10px;color:var(--muted);font-weight:700;">TAXABLE VALUE</div>
+                      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:2px;">₹${calc.base.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:var(--muted);font-weight:700;">CGST (${calc.halfRate}%)</div>
+                      <div style="font-size:15px;font-weight:800;color:#B45309;margin-top:2px;">₹${calc.cgst.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:var(--muted);font-weight:700;">SGST (${calc.halfRate}%)</div>
+                      <div style="font-size:15px;font-weight:800;color:#B45309;margin-top:2px;">₹${calc.sgst.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div style="background:#0F172A;color:#fff;border-radius:6px;padding:6px;">
+                      <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;">GRAND TOTAL</div>
+                      <div style="font-size:15px;font-weight:900;color:#F59E0B;margin-top:2px;">₹${calc.total.toLocaleString('en-IN')}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style="font-size:10px;color:var(--muted);font-weight:700;">CGST (${calc.halfRate}%)</div>
-                    <div style="font-size:15px;font-weight:800;color:#B45309;margin-top:2px;">₹${calc.cgst.toLocaleString('en-IN')}</div>
+                ` : `
+                  <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+                    <div>
+                      <div style="font-size:10px;color:#166534;font-weight:700;">TOTAL STAY AMOUNT</div>
+                      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:2px;">₹${calc.total.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:#166534;font-weight:700;">GST / TAXES CHARGED</div>
+                      <div style="font-size:15px;font-weight:800;color:#059669;margin-top:2px;">₹ 0.00 (0% - None)</div>
+                    </div>
+                    <div style="background:#0F172A;color:#fff;border-radius:6px;padding:6px;">
+                      <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;">NET SETTLED</div>
+                      <div style="font-size:15px;font-weight:900;color:#10B981;margin-top:2px;">₹${calc.total.toLocaleString('en-IN')}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style="font-size:10px;color:var(--muted);font-weight:700;">SGST (${calc.halfRate}%)</div>
-                    <div style="font-size:15px;font-weight:800;color:#B45309;margin-top:2px;">₹${calc.sgst.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style="background:#0F172A;color:#fff;border-radius:6px;padding:6px;">
-                    <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;">GRAND TOTAL</div>
-                    <div style="font-size:15px;font-weight:900;color:#F59E0B;margin-top:2px;">₹${calc.total.toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
+                `}
               </div>
 
               <!-- Digital Signature & Company Seal Bar -->
@@ -1092,9 +1187,9 @@ Generated automatically via TUHH Management Portal.`;
               <div class="uhh-invoice-document invoice-doc" style="padding:10px 0;background:#fff;">
                 ${buildPrintableInvoiceHTML({
                   ...state,
-                  taxable_value: calc.base,
-                  cgst: calc.cgst,
-                  sgst: calc.sgst
+                  taxable_value: state.is_gst_invoice ? calc.base : state.total_amount,
+                  cgst: state.is_gst_invoice ? calc.cgst : 0,
+                  sgst: state.is_gst_invoice ? calc.sgst : 0
                 })}
               </div>
             `}
@@ -1102,11 +1197,11 @@ Generated automatically via TUHH Management Portal.`;
 
           <!-- Bottom Action Buttons -->
           <div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--border);padding-top:14px;margin-top:12px;flex-wrap:wrap;">
-            <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveAndPrint()">
-              🖨️ Print / Save PDF
+            <button class="btn-sm" style="background:${state.is_gst_invoice ? '#B45309' : '#0284C7'};color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveAndPrint()">
+              🖨️ Print / Save PDF (${state.is_gst_invoice ? 'With GST' : 'Without GST'})
             </button>
             <button class="btn-sm" style="background:#059669;color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveOnly()">
-              💾 Save Invoice &amp; CA Record
+              💾 Save ${state.is_gst_invoice ? 'GST Invoice' : 'Without GST Bill'}
             </button>
             <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstWhatsApp(this)">
               💬 Send on WhatsApp
@@ -1133,6 +1228,19 @@ Generated automatically via TUHH Management Portal.`;
 
     window._gstSetIsGST = function(isG) {
       state.is_gst_invoice = isG;
+      if (!isG) {
+        state.gst_rate = 0;
+        if (!state.existing || !state.existing.invoice_no) {
+          state.invoice_no = getNextInvoiceNo(state.invoice_date, false);
+        }
+      } else {
+        if (state.gst_rate === 0) {
+          state.gst_rate = (state.total_amount / state.nights <= 7500) ? 5 : 18;
+        }
+        if (!state.existing || !state.existing.invoice_no) {
+          state.invoice_no = getNextInvoiceNo(state.invoice_date, true);
+        }
+      }
       renderModalContent();
     };
 
@@ -1143,7 +1251,7 @@ Generated automatically via TUHH Management Portal.`;
       const rInp = document.getElementById('gstInpRate');
       if (totInp) state.total_amount = parseFloat(totInp.value) || 0;
       if (nInp) state.nights = parseInt(nInp.value, 10) || 1;
-      if (rInp) state.gst_rate = parseFloat(rInp.value) || 5;
+      if (rInp && state.is_gst_invoice) state.gst_rate = parseFloat(rInp.value) || 5;
       renderModalContent();
     };
 
@@ -1160,18 +1268,18 @@ Generated automatically via TUHH Management Portal.`;
       if (dtInp) state.invoice_date = dtInp.value;
       if (nameInp) state.guest_name = nameInp.value.trim();
       if (phInp) state.guest_phone = phInp.value.trim();
-      if (gstinInp) state.guest_gstin = gstinInp.value.trim();
-      if (compInp) state.guest_company = compInp.value.trim();
+      if (gstinInp && state.is_gst_invoice) state.guest_gstin = gstinInp.value.trim();
+      if (compInp && state.is_gst_invoice) state.guest_company = compInp.value.trim();
 
-      const calc = calculateGST(state.total_amount, state.nights, state.gst_rate);
-      state.taxable_value = calc.base;
-      state.cgst = calc.cgst;
-      state.sgst = calc.sgst;
+      const calc = calculateGST(state.total_amount, state.nights, state.is_gst_invoice ? state.gst_rate : 0);
+      state.taxable_value = state.is_gst_invoice ? calc.base : state.total_amount;
+      state.cgst = state.is_gst_invoice ? calc.cgst : 0;
+      state.sgst = state.is_gst_invoice ? calc.sgst : 0;
 
       const res = await persistInvoice(state);
-      commitNextInvoiceSeq(state.invoice_date);
+      commitNextInvoiceSeq(state.invoice_date, state.is_gst_invoice);
 
-      alert(`✅ Invoice ${state.invoice_no} saved successfully!\n${state.is_gst_invoice ? 'Recorded for CA GST Return.' : 'Saved as Customer Receipt.'}`);
+      alert(`✅ Invoice ${state.invoice_no} saved successfully!\n${state.is_gst_invoice ? 'Recorded for CA GST Return.' : 'Saved as Without GST Invoice (Non-GST Clean Bill).'}`);
       state.existing = state;
       renderModalContent();
     };
@@ -1198,21 +1306,21 @@ Generated automatically via TUHH Management Portal.`;
       if (dtInp && dtInp.value) state.invoice_date = dtInp.value;
       if (nameInp && nameInp.value.trim()) state.guest_name = nameInp.value.trim();
       if (phInp && phInp.value.trim()) state.guest_phone = phInp.value.trim();
-      if (gstinInp) state.guest_gstin = gstinInp.value.trim();
-      if (compInp) state.guest_company = compInp.value.trim();
+      if (gstinInp && state.is_gst_invoice) state.guest_gstin = gstinInp.value.trim();
+      if (compInp && state.is_gst_invoice) state.guest_company = compInp.value.trim();
       if (totInp && parseFloat(totInp.value)) state.total_amount = parseFloat(totInp.value);
       if (nInp && parseInt(nInp.value, 10)) state.nights = parseInt(nInp.value, 10);
-      if (rInp && parseFloat(rInp.value) !== undefined) state.gst_rate = parseFloat(rInp.value);
+      if (rInp && state.is_gst_invoice && parseFloat(rInp.value) !== undefined) state.gst_rate = parseFloat(rInp.value);
       if (posInp && posInp.value.trim()) state.place_of_supply = posInp.value.trim();
 
-      const calc = calculateGST(state.total_amount, state.nights, state.gst_rate);
-      state.taxable_value = calc.base;
-      state.cgst = calc.cgst;
-      state.sgst = calc.sgst;
+      const calc = calculateGST(state.total_amount, state.nights, state.is_gst_invoice ? state.gst_rate : 0);
+      state.taxable_value = state.is_gst_invoice ? calc.base : state.total_amount;
+      state.cgst = state.is_gst_invoice ? calc.cgst : 0;
+      state.sgst = state.is_gst_invoice ? calc.sgst : 0;
 
       // Auto-save the invoice record silently in background (non-blocking)
       persistInvoice(state).then(() => {
-        commitNextInvoiceSeq(state.invoice_date);
+        commitNextInvoiceSeq(state.invoice_date, state.is_gst_invoice);
         state.existing = state;
       }).catch(e => console.warn('Auto-save notice:', e));
 
@@ -1221,7 +1329,7 @@ Generated automatically via TUHH Management Portal.`;
       const fullPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
 
       const shortMsg = `🧾 *THE UNIQUE HAVEN HOMES PVT. LTD.*
-${isGST ? '*OFFICIAL GST TAX INVOICE*' : '*BOOKING BILL / RECEIPT*'}
+${isGST ? '*OFFICIAL GST TAX INVOICE*' : '*ACCOMMODATION INVOICE (WITHOUT GST)*'}
 Namaste *${state.guest_name || 'Guest'}* ji 🙏
 
 📄 *Invoice No:* ${state.invoice_no}
@@ -1231,7 +1339,8 @@ Namaste *${state.guest_name || 'Guest'}* ji 🙏
 💰 *Total Amount:* ₹${Number(state.total_amount || 0).toLocaleString('en-IN')}
 ${isGST ? `📊 *Taxable Base:* ₹${Number(calc.base).toLocaleString('en-IN')} | *GST (${state.gst_rate}%):* ₹${Number(calc.cgst + calc.sgst).toLocaleString('en-IN')}
 🏢 *GSTIN:* ${CO.gstin} | *SAC:* ${CO.sac}
-` : ''}✅ *Payment Status:* FULLY PAID
+` : `📋 *Billing Mode:* Direct Accommodation (Without GST / 0% Tax)
+`}✅ *Payment Status:* FULLY PAID
 
 ✨ *The Unique Haven Homes Property Management*`;
 
@@ -1271,6 +1380,9 @@ ${isGST ? `📊 *Taxable Base:* ₹${Number(calc.base).toLocaleString('en-IN')} 
   return {
     CO: CO,
     openGSTInvoiceModal: openGSTInvoiceModal,
+    openWithoutGSTInvoiceModal: function(bookingId) {
+      return openGSTInvoiceModal(bookingId, 'without_gst');
+    },
     openCARegisterModal: openCARegisterModal,
     exportCAGSTReportCSV: exportCAGSTReportCSV,
     copyCASummaryText: copyCASummaryText,
@@ -1287,6 +1399,9 @@ ${isGST ? `📊 *Taxable Base:* ₹${Number(calc.base).toLocaleString('en-IN')} 
 
 // Window level bridges
 window.openGSTInvoiceModal = window.GST_ENGINE.openGSTInvoiceModal;
+window.openWithoutGSTInvoiceModal = function(bookingId) {
+  return window.GST_ENGINE.openWithoutGSTInvoiceModal(bookingId);
+};
 window.openCARegisterModal = window.GST_ENGINE.openCARegisterModal;
 window.exportCAGSTReportCSV = window.GST_ENGINE.exportCAGSTReportCSV;
 window.deleteGSTInvoice = window.GST_ENGINE.deleteInvoice;

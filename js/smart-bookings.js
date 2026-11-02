@@ -1563,7 +1563,7 @@ window.openBookingDrawer = async function(bookingId) {
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <button class="btn-sm" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}', roomId: '${b.room_id || ''}', amount: ${bal > 0 ? Math.round(bal) : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;border:none;padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Generate & Send Branded Payment QR for this Booking">💳 Send QR</button>
                 <button class="btn-sm" onclick="window.openBookingReceiptModal('${b.booking_id}')" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Booking Confirmation & Advance Voucher (No GST)">📄 Receipt</button>
-                <button class="btn-sm" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" style="background:#4F46E5;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="View Combined Multi-Property Group Receipt">🏢 Group Receipt</button>
+                <button class="btn-sm" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" style="background:#0284C7;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View Bill Without GST (0% Tax / Clean Bill)">📄 Bill (No GST)</button>
                 <button class="btn-sm" onclick="window.openGSTInvoiceModal('${b.booking_id}')" style="background:#B45309;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View GST Invoice">🧾 GST Bill</button>
                 <button class="btn-sm" onclick="window.openPOSTerminal && window.openPOSTerminal({ room_id: '${b.room_id}', guest_name: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}' })" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Add Concierge Services / Add-Ons for this Stay">🛎️ Add-Ons</button>
                 ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:4px 10px;font-size:11.5px;">+ Add Payment</button>` : ''}
@@ -1714,8 +1714,11 @@ window.openBookingDrawer = async function(bookingId) {
                 🎊 Group Manager
               </button>
             ` : ''}
+            <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" title="Generate Bill Without GST">
+              📄 Without GST Invoice
+            </button>
             <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
-              🧾 GST Invoice
+              🧾 GST Tax Invoice
             </button>
 
             ${canM ? `

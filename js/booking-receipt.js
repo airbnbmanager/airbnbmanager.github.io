@@ -2716,8 +2716,11 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id || data.booking.phone || data.booking.booking_id}')" title="View Combined Multi-Property Receipt for this guest / group">
               🏢 Combined Group Receipt
             </button>
-            <button type="button" class="btn-sm outline" style="background:transparent;color:#CBD5E1;border:1px solid #475569;padding:7px 10px;font-size:11.5px;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
-              🧾 Need GST Invoice?
+            <button type="button" class="btn-sm outline" style="background:transparent;color:#38BDF8;border:1px solid #0284C7;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openWithoutGSTInvoiceModal){window.openWithoutGSTInvoiceModal('${data.booking.booking_id}');}">
+              📄 Without GST Invoice
+            </button>
+            <button type="button" class="btn-sm outline" style="background:transparent;color:#FDE047;border:1px solid #B45309;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
+              🧾 GST Tax Invoice
             </button>
           </div>
         </div>

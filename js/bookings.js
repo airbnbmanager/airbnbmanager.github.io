@@ -1135,8 +1135,9 @@ async function showGuestLedger(guestName, bookingId, phone, airbnbCode, initialF
                     )}
                   </td>
                   <td style="text-align:center;white-space:nowrap;">
-                    <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:3px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Receipt">📄 Receipt</button>
-                    <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="GST Bill">🧾 Bill</button>
+                    <button class="btn-sm" style="background:#0F172A;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:2px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Receipt">📄 Receipt</button>
+                    <button class="btn-sm" style="background:#0284C7;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;margin-right:2px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" title="Without GST Bill">📄 Bill (No-GST)</button>
+                    <button class="btn-sm" style="background:#B45309;color:#fff;padding:2px 7px;font-size:10.5px;font-weight:700;border:none;border-radius:4px;cursor:pointer;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="GST Tax Invoice">🧾 GST Bill</button>
                   </td>
                 </tr>
               `;
