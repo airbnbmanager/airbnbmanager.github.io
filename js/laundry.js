@@ -31,15 +31,15 @@ window.renderLaundry = async function() {
     renderShell('<div class="card"><div class="error">❌ Access denied</div></div>', 'laundry');
     return;
   }
-  
+
   renderShell('<div class="loading">Loading...</div>', 'laundry');
-  
+
   const currentMonth = window._laundryMonth || new Date().toISOString().slice(0, 7);
   const monthStart = currentMonth + '-01';
   const [lYear, lMon] = currentMonth.split('-').map(Number);
   const lastDayNum = new Date(lYear, lMon, 0).getDate();
   const monthEnd = `${currentMonth}-${String(lastDayNum).padStart(2, '0')}`;
-  
+
   const [{ data: records }, { data: items }, { data: rooms }, { data: recItems }, { data: allPayments }, { data: vendors }] = await Promise.all([
     sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd).order('record_date', { ascending: false }),
     sb.from('laundry_items').select('*').eq('active', true).order('item_name'),
@@ -48,32 +48,32 @@ window.renderLaundry = async function() {
     sb.from('laundry_payments').select('*').order('payment_date', { ascending: false }),
     sb.from('laundry_vendors').select('*').order('vendor_name')
   ]);
-  
+
   window._laundryVendorsList = vendors || [];
   window._laundryItemsList = items || [];
-  
+
   // Group payments by record_id + recalculate paid amount from payments table
   const paymentsByRecord = {};
   (allPayments || []).forEach(p => {
     if (!paymentsByRecord[p.record_id]) paymentsByRecord[p.record_id] = [];
     paymentsByRecord[p.record_id].push(p);
   });
-  
+
   const roomMap = {};
   (rooms || []).forEach(r => { roomMap[r.room_id] = r.nickname || r.unit_no; });
-  
+
   const itemsByRecord = {};
   (recItems || []).forEach(ri => {
     if (!itemsByRecord[ri.record_id]) itemsByRecord[ri.record_id] = [];
     itemsByRecord[ri.record_id].push(ri);
   });
-  
+
   const monthRecordIds = new Set((records || []).map(r => r.id));
   const monthPayments = (allPayments || []).filter(p => monthRecordIds.has(p.record_id));
-  
+
   const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const totalPaid = monthPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
-  
+
   // Claim totals for this month's records
   const unclaimedPays = monthPayments.filter(p => !p.claim_status || p.claim_status === 'not_claimed' || p.claim_status === 'unclaimed');
   const claimedPays = monthPayments.filter(p => p.claim_status === 'claimed');
@@ -83,7 +83,7 @@ window.renderLaundry = async function() {
   const totalReceived = receivedPays.reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalDue = Math.max(0, totalAmount - totalPaid);
   const totalAdvance = Math.max(0, totalPaid - totalAmount);
-  
+
   // Item-wise consumption
   const itemStats = {};
   (recItems || []).forEach(ri => {
@@ -94,7 +94,7 @@ window.renderLaundry = async function() {
     itemStats[name].qty += Number(ri.quantity || 0);
     itemStats[name].amount += Number(ri.subtotal || 0);
   });
-  
+
   const itemStatsHTML = Object.entries(itemStats)
     .sort((a,b) => b[1].amount - a[1].amount)
     .map(([name, s]) => `<tr>
@@ -135,7 +135,7 @@ window.renderLaundry = async function() {
         </button>
       </td>
     </tr>`).join('');
-  
+
   renderShell(`
     <div class="card">
       <h1>🧺 Laundry Tracker</h1>
@@ -149,48 +149,49 @@ window.renderLaundry = async function() {
       </div>
     </div>
 
-    <div class="card">
-      <div class="laundry-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
-        <div class="kpi-tile" style="border-left:4px solid #3B82F6;background:rgba(59,130,246,0.08);">
-          <div class="kpi-num" style="color:#3B82F6;">₹${totalAmount.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">Total Amount</div>
+    <!-- COMPACT RESPONSIVE KPI METRICS -->
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+      <div class="laundry-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px;">
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #3B82F6;background:rgba(59,130,246,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#3B82F6;">₹${totalAmount.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">Total Amount</div>
         </div>
-        <div class="kpi-tile" style="border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
-          <div class="kpi-num" style="color:#10B981;">₹${totalPaid.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">Paid</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#10B981;">₹${totalPaid.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">Paid</div>
         </div>
         ${totalAdvance > 0 ? `
-        <div class="kpi-tile" style="border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
-          <div class="kpi-num" style="color:#10B981;">₹${totalAdvance.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">Advance to Vendor</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #10B981;background:rgba(16,185,129,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#10B981;">₹${totalAdvance.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">Advance to Vendor</div>
         </div>
         ` : `
-        <div class="kpi-tile" style="border-left:4px solid ${totalDue > 0 ? '#EF4444' : '#10B981'};background:${totalDue > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)'};">
-          <div class="kpi-num" style="color:${totalDue > 0 ? '#EF4444' : '#10B981'};">₹${totalDue.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">Due</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid ${totalDue > 0 ? '#EF4444' : '#10B981'};background:${totalDue > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)'};">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:${totalDue > 0 ? '#EF4444' : '#10B981'};">₹${totalDue.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">Due</div>
         </div>
         `}
-        <div class="kpi-tile" style="border-left:4px solid #F59E0B;background:rgba(245,158,11,0.08);">
-          <div class="kpi-num" style="color:#F59E0B;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">⏳ Unclaimed (${unclaimedPays.length})</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #F59E0B;background:rgba(245,158,11,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#F59E0B;">₹${totalUnclaimed.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">⏳ Unclaimed (${unclaimedPays.length})</div>
         </div>
-        <div class="kpi-tile" style="border-left:4px solid #6366F1;background:rgba(99,102,241,0.08);">
-          <div class="kpi-num" style="color:#6366F1;">₹${totalClaimed.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">📤 Claimed (${claimedPays.length})</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #6366F1;background:rgba(99,102,241,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#6366F1;">₹${totalClaimed.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">📤 Claimed (${claimedPays.length})</div>
         </div>
-        <div class="kpi-tile" style="border-left:4px solid #059669;background:rgba(5,150,105,0.08);">
-          <div class="kpi-num" style="color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
-          <div class="kpi-sub">✅ Received (${receivedPays.length})</div>
+        <div class="kpi-tile" style="padding:10px 8px;border-radius:10px;text-align:center;border-left:4px solid #059669;background:rgba(5,150,105,0.08);">
+          <div class="kpi-num" style="font-size:18px;font-weight:900;color:#059669;">₹${totalReceived.toLocaleString('en-IN')}</div>
+          <div class="kpi-sub" style="font-size:11px;font-weight:700;color:#64748B;margin-top:2px;">✅ Received (${receivedPays.length})</div>
         </div>
       </div>
     </div>
 
     <!-- VENDOR-WISE REPORT & ITEM-WISE CONSUMPTION DUAL GRID -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;">
       ${Object.keys(vendorStats).length > 0 ? `
-      <div class="card" style="margin-bottom:0;">
-        <div class="section-title">🏆 Vendor-wise Report (${currentMonth})</div>
-        <div class="table-wrap"><table>
+      <div class="card" style="margin-bottom:0;padding:12px 14px;">
+        <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">🏆 Vendor-wise Report (${currentMonth})</div>
+        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:540px;width:100%;">
           <thead><tr>
             <th>Vendor</th>
             <th style="text-align:center;">Orders</th>
@@ -204,21 +205,21 @@ window.renderLaundry = async function() {
       </div>` : ''}
 
       ${Object.keys(itemStats).length > 0 ? `
-      <div class="card" style="margin-bottom:0;">
-        <div class="section-title">📊 Item-wise Consumption (${currentMonth})</div>
-        <div class="table-wrap"><table>
+      <div class="card" style="margin-bottom:0;padding:12px 14px;">
+        <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">📊 Item-wise Consumption (${currentMonth})</div>
+        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:380px;width:100%;">
           <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amount</th></tr></thead>
           <tbody>${itemStatsHTML}</tbody>
         </table></div>
       </div>` : ''}
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-        <div class="section-title" style="margin:0;">📋 Laundry Records</div>
-        <input type="text" id="laundrySearchInput" placeholder="🔍 Filter property, vendor, item..." onkeyup="filterLaundryRecords()" style="max-width:260px;padding:6px 10px;font-size:12px;" />
+        <div class="section-title" style="margin:0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">📋 Laundry Records</div>
+        <input type="text" id="laundrySearchInput" placeholder="🔍 Filter property, vendor, item..." onkeyup="filterLaundryRecords()" style="max-width:260px;padding:6px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;" />
       </div>
-      <div class="table-wrap"><table>
+      <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:680px;width:100%;">
         <thead><tr>
           <th>Date</th><th>Property</th><th>Vendor</th><th>Items</th>
           <th style="text-align:right;">Total</th><th>Status</th><th>📷 Photos</th><th>Actions</th>
@@ -299,11 +300,11 @@ window.renderAddLaundry = async function() {
     sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
     sb.from('laundry_vendors').select('*').eq('active', true).order('vendor_name')
   ]);
-  
+
   window._laundryItemsList = items || [];
   window._laundryRoomsList = rooms || [];
   window._laundryVendorsList = vendors || [];
-  
+
   renderShell(`
     <div class="card">
       <h1>➕ Add Laundry Record</h1>
@@ -338,18 +339,18 @@ window.renderAddLaundry = async function() {
         </div>
       </div>
     </div>
-    
+
     <div class="card">
       <div class="section-title">🧺 Items</div>
       <div id="laundryItemsRows"></div>
       <button onclick="addLaundryItemRow()" class="btn-sm" style="margin-top:8px;">➕ Add Item</button>
-      
+
       <div style="margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:right;">
         <span style="font-size:14px;color:#666;">Grand Total: </span>
         <span id="laundryGrandTotal" style="font-size:20px;font-weight:800;color:#059669;">₹0</span>
       </div>
     </div>
-    
+
     <div class="card">
       <div class="form-grid">
                 <div class="form-group">
@@ -389,12 +390,12 @@ window.renderAddLaundry = async function() {
       <div id="lErr"></div>
     </div>
   `, 'laundry');
-  
+
   addLaundryItemRow();
-  
+
   // Reset previous blob
   window._laundryBillBlob = null;
-  
+
   // Attach bill photo handlers
   ['lBillCam', 'lBillGal'].forEach(id => {
     const el = document.getElementById(id);
@@ -421,7 +422,7 @@ window.addLaundryItemRow = function() {
   const container = document.getElementById('laundryItemsRows');
   const idx = container.children.length;
   const items = window._laundryItemsList || [];
-  
+
   const row = document.createElement('div');
   row.className = 'laundry-item-row';
   row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;';
@@ -457,19 +458,19 @@ window.updateItemRate = async function(select) {
     const name = prompt('New item name:');
     if (!name) { select.value = ''; return; }
     const rate = parseFloat(prompt('Default rate per piece (₹):') || '0');
-    
+
     const { data, error } = await sb.from('laundry_items').insert({
       item_name: name.trim(),
       default_rate: rate,
       active: true
     }).select().single();
-    
+
     if (error) {
       alert('Error: ' + error.message);
       select.value = '';
       return;
     }
-    
+
     // Add new option to all dropdowns
     document.querySelectorAll('.laundry-item-select').forEach(sel => {
       const newOpt = document.createElement('option');
@@ -480,24 +481,24 @@ window.updateItemRate = async function(select) {
       const addNewOpt = sel.querySelector('option[value="__new__"]');
       sel.insertBefore(newOpt, addNewOpt);
     });
-    
+
     // Refresh cache
     window._laundryItemsList = [...(window._laundryItemsList || []), data];
-    
+
     // Auto-select new item in current row
     select.value = data.id;
     const row = select.closest('.laundry-item-row');
     row.querySelector('.laundry-rate').value = data.default_rate;
     updateLaundryTotal();
-    
+
     fsn.success('Added', '✅ ' + name + ' added to items');
     return;
   }
-  
+
   const opt = select.options[select.selectedIndex];
   const itemId = select.value;
   let rate = parseFloat(opt?.dataset?.rate || 0);
-  
+
   // Look up vendor-specific rate if available
   const vendorName = document.getElementById('lVendor')?.value;
   const vendor = (window._laundryVendorsList || []).find(v => v.vendor_name === vendorName);
@@ -505,7 +506,7 @@ window.updateItemRate = async function(select) {
   if (itemId && vendorRates && vendorRates[itemId] !== undefined && vendorRates[itemId] !== null && vendorRates[itemId] !== '') {
     rate = parseFloat(vendorRates[itemId]);
   }
-  
+
   const row = select.closest('.laundry-item-row');
   row.querySelector('.laundry-rate').value = rate;
   updateLaundryTotal();
@@ -554,16 +555,16 @@ window.saveLaundry = async function() {
   const payMode = document.getElementById('lPayMode').value;
   const paidAmt = parseFloat(document.getElementById('lPaidAmt').value) || 0;
   const notes = document.getElementById('lNotes').value.trim();
-  
+
   if (!date || !vendor) {
     document.getElementById('lErr').innerHTML = '<div class="error">Date and Vendor required</div>';
     return;
   }
-  
+
   const rows = document.querySelectorAll('.laundry-item-row');
   const items = [];
   let total = 0;
-  
+
   rows.forEach(row => {
     const itemIdRaw = row.querySelector('.laundry-item-select').value;
     const qty = parseInt(row.querySelector('.laundry-qty').value) || 0;
@@ -577,16 +578,16 @@ window.saveLaundry = async function() {
       total += subtotal;
     }
   });
-  
+
   console.log('[Laundry Save] items:', items, 'total:', total);
-  
+
   if (items.length === 0) {
     document.getElementById('lErr').innerHTML = '<div class="error">Add at least 1 valid item (item, qty, rate/total required)</div>';
     return;
   }
-  
+
   const paymentStatus = paidAmt >= total ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending');
-  
+
   // Upload bill photo if provided
   let billPhotoPath = null;
   if (window._laundryBillBlob) {
@@ -600,7 +601,7 @@ window.saveLaundry = async function() {
       return;
     }
   }
-  
+
   const { data: rec, error: e1 } = await sb.from('laundry_records').insert({
     record_date: date,
     room_id: room,
@@ -613,17 +614,17 @@ window.saveLaundry = async function() {
     notes: notes,
     bill_photo: billPhotoPath
   }).select().single();
-  
+
   if (e1) {
     console.error('[Laundry] record insert failed:', e1);
     document.getElementById('lErr').innerHTML = '<div class="error">Record: ' + e1.message + '</div>';
     return;
   }
-  
+
   const itemsToInsert = items.map(i => ({ ...i, record_id: rec.id }));
   console.log('[Laundry] inserting items:', itemsToInsert);
   const { error: e2 } = await sb.from('laundry_record_items').insert(itemsToInsert);
-  
+
   if (e2) {
     console.error('[Laundry] items insert failed:', e2, itemsToInsert);
     // rollback record so it doesn't orphan
@@ -631,7 +632,7 @@ window.saveLaundry = async function() {
     document.getElementById('lErr').innerHTML = '<div class="error">Items: ' + e2.message + '</div>';
     return;
   }
-  
+
   window._laundryBillBlob = null;
   fsn.success('Success', '✅ Laundry saved!');
   if (window.notifyDataChanged) window.notifyDataChanged();
@@ -648,7 +649,7 @@ window.deleteLaundry = async function(id) {
 
 window.editLaundry = async function(id) {
   renderShell('<div class="loading">Loading...</div>', 'laundry');
-  
+
   const [{ data: rec }, { data: recItems }, { data: items }, { data: rooms }, { data: vendors }] = await Promise.all([
     sb.from('laundry_records').select('*').eq('id', id).single(),
     sb.from('laundry_record_items').select('*').eq('record_id', id),
@@ -656,23 +657,23 @@ window.editLaundry = async function(id) {
     sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
     sb.from('laundry_vendors').select('*').eq('active', true).order('vendor_name')
   ]);
-  
+
   if (!rec) {
     fsn.error('Error', 'Record not found');
     renderLaundry();
     return;
   }
-  
+
   window._laundryItemsList = items || [];
   window._laundryEditId = id;
   window._laundryVendorsList = vendors || [];
-  
+
   // Check if vendor exists in list, else add it as option
   const vendorInList = (vendors || []).some(v => v.vendor_name === rec.vendor_name);
-  const vendorOpts = (vendors || []).map(v => 
+  const vendorOpts = (vendors || []).map(v =>
     `<option value="${v.vendor_name}" ${v.vendor_name === rec.vendor_name ? 'selected' : ''}>${v.vendor_name}${v.phone ? ' (' + v.phone + ')' : ''}</option>`
   ).join('');
-  
+
   renderShell(`
     <div class="card">
       <h1>✏️ Edit Laundry Record</h1>
@@ -708,18 +709,18 @@ window.editLaundry = async function(id) {
         </div>
       </div>
     </div>
-    
+
     <div class="card">
       <div class="section-title">🧺 Items</div>
       <div id="laundryItemsRows"></div>
       <button onclick="addLaundryItemRow()" class="btn-sm" style="margin-top:8px;">➕ Add Item</button>
-      
+
       <div style="margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;text-align:right;">
         <span style="font-size:14px;color:#666;">Grand Total: </span>
         <span id="laundryGrandTotal" style="font-size:20px;font-weight:800;color:#059669;">₹0</span>
       </div>
     </div>
-    
+
     <div class="card">
       <div class="form-grid">
                 <div class="form-group">
@@ -765,7 +766,7 @@ window.editLaundry = async function(id) {
       <div id="lErr"></div>
     </div>
   `, 'laundry');
-  
+
   // Pre-populate items
   (recItems || []).forEach(ri => {
     addLaundryItemRow();
@@ -777,11 +778,11 @@ window.editLaundry = async function(id) {
     row.querySelector('.laundry-rate').value = ri.rate;
   });
   updateLaundryTotal();
-  
+
   // Store existing bill photo path + reset blob
   window._laundryEditBillPath = rec.bill_photo || null;
   window._laundryBillBlob = null;
-  
+
   // Attach bill photo handlers (same as add form)
   ['lBillCam', 'lBillGal'].forEach(id => {
     const el = document.getElementById(id);
@@ -812,16 +813,16 @@ window.updateLaundry = async function() {
   const payMode = document.getElementById('lPayMode').value;
   const paidAmt = parseFloat(document.getElementById('lPaidAmt').value) || 0;
   const notes = document.getElementById('lNotes').value.trim();
-  
+
   if (!date || !vendor || vendor === '__new__' || vendor === '__manage__') {
     document.getElementById('lErr').innerHTML = '<div class="error">Date and Vendor required</div>';
     return;
   }
-  
+
   const rows = document.querySelectorAll('.laundry-item-row');
   const items = [];
   let total = 0;
-  
+
   rows.forEach(row => {
     const itemIdRaw = row.querySelector('.laundry-item-select').value;
     const qty = parseInt(row.querySelector('.laundry-qty').value) || 0;
@@ -834,14 +835,14 @@ window.updateLaundry = async function() {
       total += subtotal;
     }
   });
-  
+
   if (items.length === 0) {
     document.getElementById('lErr').innerHTML = '<div class="error">Add at least 1 item</div>';
     return;
   }
-  
+
   const paymentStatus = paidAmt >= total ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending');
-  
+
   // Upload new bill photo if provided (and delete old)
   let billPhotoPath = window._laundryEditBillPath;
   if (window._laundryBillBlob) {
@@ -862,7 +863,7 @@ window.updateLaundry = async function() {
       return;
     }
   }
-  
+
   // Update master record
   const { error: e1 } = await sb.from('laundry_records').update({
     record_date: date,
@@ -876,21 +877,21 @@ window.updateLaundry = async function() {
     notes: notes,
     bill_photo: billPhotoPath
   }).eq('id', id);
-  
+
   if (e1) {
     document.getElementById('lErr').innerHTML = '<div class="error">' + e1.message + '</div>';
     return;
   }
-  
+
   // Delete old items, insert new
   await sb.from('laundry_record_items').delete().eq('record_id', id);
   const { error: e2 } = await sb.from('laundry_record_items').insert(items);
-  
+
   if (e2) {
     document.getElementById('lErr').innerHTML = '<div class="error">Items: ' + e2.message + '</div>';
     return;
   }
-  
+
   window._laundryBillBlob = null;
   window._laundryEditBillPath = null;
   fsn.success('Success', '✅ Updated!');
@@ -918,29 +919,29 @@ window.getVendorRatesMap = function(vendor) {
 window.applySelectedVendorRates = function() {
   const vendorName = document.getElementById('lVendor')?.value;
   const editBtn = document.getElementById('btnEditVendorInline');
-  
+
   if (!vendorName || vendorName === '__new__' || vendorName === '__manage__') {
     if (editBtn) editBtn.style.display = 'none';
     return;
   }
-  
+
   if (editBtn) {
     editBtn.style.display = 'inline-block';
     editBtn.textContent = '✏️ Edit Rates';
     editBtn.title = `Modify rates or details for ${vendorName}`;
   }
-  
+
   const vendor = (window._laundryVendorsList || []).find(v => v.vendor_name === vendorName);
   if (!vendor) return;
   const vendorRates = window.getVendorRatesMap(vendor);
-  
+
   // Re-apply rates to all existing rows in the form
   let updatedCount = 0;
   document.querySelectorAll('.laundry-item-row').forEach(row => {
     const itemSelect = row.querySelector('.laundry-item-select');
     const itemId = itemSelect?.value;
     if (!itemId || itemId === '__new__') return;
-    
+
     const rateInput = row.querySelector('.laundry-rate');
     if (vendorRates && vendorRates[itemId] !== undefined && vendorRates[itemId] !== null && vendorRates[itemId] !== '') {
       rateInput.value = vendorRates[itemId];
@@ -950,7 +951,7 @@ window.applySelectedVendorRates = function() {
       rateInput.value = opt?.dataset?.rate || 0;
     }
   });
-  
+
   window.updateLaundryTotal();
   if (updatedCount > 0 && typeof fsn !== 'undefined') {
     fsn.success('Rates Applied', `✅ Applied custom rates for ${vendorName}`);
@@ -991,19 +992,19 @@ window.handleVendorChange = async function(select) {
     if (editBtn) editBtn.style.display = 'none';
     return;
   }
-  
+
   if (val === '__manage__') {
     select.value = window._lastSelectedVendor || '';
     window.openManageVendorsModal();
     return;
   }
-  
+
   if (val === '__new__') {
     select.value = window._lastSelectedVendor || '';
     window.openEditVendorModal(null);
     return;
   }
-  
+
   window._lastSelectedVendor = val;
   window.applySelectedVendorRates();
 };
@@ -1013,18 +1014,18 @@ window.openManageVendorsModal = async function() {
     sb.from('laundry_vendors').select('*').order('vendor_name'),
     sb.from('laundry_items').select('*').eq('active', true).order('item_name')
   ]);
-  
+
   window._laundryVendorsList = vendors || [];
   window._laundryItemsList = items || [];
-  
+
   const existingModal = document.getElementById('manageVendorsModalOverlay');
   if (existingModal) existingModal.remove();
-  
+
   const modal = document.createElement('div');
   modal.id = 'manageVendorsModalOverlay';
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
-  
+
   const renderVendorCards = () => {
     if (!vendors || vendors.length === 0) {
       return '<div style="text-align:center;padding:30px;color:var(--muted);">No laundry vendors found. Click "+ Add New Vendor" to create one.</div>';
@@ -1038,7 +1039,7 @@ window.openManageVendorsModal = async function() {
           ${it.item_name}: ₹${r}${isCustom ? ' <span style="color:#059669;font-weight:800;" title="Custom vendor rate">★</span>' : ''}
         </span>`;
       }).join('');
-      
+
       return `
         <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px;background:#fff;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
@@ -1067,7 +1068,7 @@ window.openManageVendorsModal = async function() {
       `;
     }).join('');
   };
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="background:#fff;border-radius:14px;padding:22px;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E5E7EB;">
@@ -1081,17 +1082,17 @@ window.openManageVendorsModal = async function() {
         </div>
         <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;color:#6B7280;cursor:pointer;">✕</button>
       </div>
-      
+
       <div style="margin-bottom:12px;display:flex;justify-content:flex-end;">
         <button onclick="openEditVendorModal(null)" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
           ➕ Add New Vendor
         </button>
       </div>
-      
+
       <div style="flex:1;overflow-y:auto;padding-right:4px;">
         ${renderVendorCards()}
       </div>
-      
+
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;">
         <button onclick="this.closest('.modal-overlay').remove()" style="background:#F3F4F6;color:#374151;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;">
           Close
@@ -1108,21 +1109,21 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
     const { data } = await sb.from('laundry_vendors').select('*').eq('id', vendorId).single();
     vendor = data;
   }
-  
+
   const { data: items } = await sb.from('laundry_items').select('*').eq('active', true).order('item_name');
   window._laundryItemsList = items || [];
-  
+
   const vRates = window.getVendorRatesMap(vendor);
   const isEdit = !!vendor;
-  
+
   const existingModal = document.getElementById('editVendorModalOverlay');
   if (existingModal) existingModal.remove();
-  
+
   const modal = document.createElement('div');
   modal.id = 'editVendorModalOverlay';
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px;';
-  
+
   const ratesInputsHTML = (items || []).map(it => {
     const isCustom = vRates[it.id] !== undefined && vRates[it.id] !== null && vRates[it.id] !== '';
     const currentRate = isCustom ? vRates[it.id] : it.default_rate;
@@ -1139,7 +1140,7 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
       </div>
     `;
   }).join('');
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="background:#fff;border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E5E7EB;">
@@ -1148,13 +1149,13 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
         </h3>
         <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:22px;color:#6B7280;cursor:pointer;">✕</button>
       </div>
-      
+
       <div style="flex:1;overflow-y:auto;padding-right:4px;">
         <div class="form-group" style="margin-bottom:12px;">
           <label style="font-size:12px;font-weight:700;color:#374151;">Vendor Name *</label>
           <input type="text" id="evVendorName" value="${vendor ? vendor.vendor_name : (presetName || '')}" placeholder="e.g. Laundry New SS or Ram Singh" style="width:100%;padding:8px 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:14px;font-weight:600;">
         </div>
-        
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
           <div class="form-group" style="margin:0;">
             <label style="font-size:12px;font-weight:700;color:#374151;">Phone (Optional)</label>
@@ -1168,7 +1169,7 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
             </label>
           </div>
         </div>
-        
+
         <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin-bottom:14px;">
           <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
             💰 Vendor-wise Item Rates (₹ per piece)
@@ -1180,10 +1181,10 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
             ${ratesInputsHTML}
           </div>
         </div>
-        
+
         <div id="evErr" style="margin-bottom:8px;"></div>
       </div>
-      
+
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;display:flex;gap:10px;justify-content:flex-end;">
         <button onclick="this.closest('.modal-overlay').remove()" style="background:#F3F4F6;color:#374151;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
         <button id="btnSaveVendorRates" style="background:#059669;color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px;">
@@ -1193,19 +1194,19 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   modal.querySelector('#btnSaveVendorRates').onclick = async () => {
     const btn = modal.querySelector('#btnSaveVendorRates');
     const errDiv = modal.querySelector('#evErr');
     const name = modal.querySelector('#evVendorName').value.trim();
     const phone = modal.querySelector('#evVendorPhone').value.trim() || null;
     const active = modal.querySelector('#evVendorActive').checked;
-    
+
     if (!name) {
       errDiv.innerHTML = '<div class="error" style="color:#DC2626;font-size:12px;">Vendor name is required</div>';
       return;
     }
-    
+
     const newRates = {};
     modal.querySelectorAll('.vendor-rate-input').forEach(inp => {
       const itemId = inp.getAttribute('data-item-id');
@@ -1214,10 +1215,10 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
         newRates[itemId] = val;
       }
     });
-    
+
     btn.disabled = true;
     btn.textContent = 'Saving...';
-    
+
     try {
       const payload = {
         vendor_name: name,
@@ -1225,7 +1226,7 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
         active: active,
         address: JSON.stringify({ rates: newRates })
       };
-      
+
       let savedVendor = null;
       if (isEdit) {
         const { data, error } = await sb.from('laundry_vendors').update(payload).eq('id', vendor.id).select().single();
@@ -1238,11 +1239,11 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
         savedVendor = data;
         if (typeof fsn !== 'undefined') fsn.success('Created', `✅ Vendor "${name}" added with custom rates`);
       }
-      
+
       // Update local cache
       const { data: allV } = await sb.from('laundry_vendors').select('*').order('vendor_name');
       window._laundryVendorsList = allV || [];
-      
+
       // If we are currently in Add or Edit Laundry form, update #lVendor select
       const lVendorSelect = document.getElementById('lVendor');
       if (lVendorSelect) {
@@ -1257,9 +1258,9 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
         lVendorSelect.value = currentSelected;
         window.applySelectedVendorRates();
       }
-      
+
       modal.remove();
-      
+
       // If manage vendors modal is open in background, refresh it
       const manageOverlay = document.getElementById('manageVendorsModalOverlay');
       if (manageOverlay) {
@@ -1278,7 +1279,7 @@ window.openEditVendorModal = async function(vendorId, presetName = null) {
 window.addLaundryPayment = async function(recordId, dueAmount) {
   const { data: rec } = await sb.from('laundry_records').select('*').eq('id', recordId).single();
   if (!rec) { fsn.error('Error', 'Record not found'); return; }
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -1322,7 +1323,7 @@ window.addLaundryPayment = async function(recordId, dueAmount) {
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   // Reset previous blob + attach payment photo handlers
   window._laundryPayBlob = null;
   ['lpPayCam', 'lpPayGal'].forEach(id => {
@@ -1351,12 +1352,12 @@ window.saveLaundryPayment = async function(recordId) {
   const date = document.getElementById('lpDate').value;
   const mode = document.getElementById('lpMode').value;
   const notes = document.getElementById('lpNotes').value.trim();
-  
+
   if (amount <= 0 || !date) {
     document.getElementById('lpErr').innerHTML = '<div class="error">Amount and Date required</div>';
     return;
   }
-  
+
   // Upload payment screenshot if provided
   let paymentPhotoPath = null;
   if (window._laundryPayBlob) {
@@ -1370,7 +1371,7 @@ window.saveLaundryPayment = async function(recordId) {
       return;
     }
   }
-  
+
   const { error } = await sb.from('laundry_payments').insert({
     record_id: recordId,
     amount, payment_date: date, payment_mode: mode, notes,
@@ -1378,24 +1379,24 @@ window.saveLaundryPayment = async function(recordId) {
     payment_photo: paymentPhotoPath,
     claim_status: 'unclaimed'
   });
-  
+
   if (error) {
     document.getElementById('lpErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
+
   // Update record's paid_amount + status
   const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
   const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
   const total = Number(rec?.total_amount || 0);
   const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
-  
+
   await sb.from('laundry_records').update({
     paid_amount: totalPaid,
     payment_status: status
   }).eq('id', recordId);
-  
+
   document.querySelector('.modal-overlay')?.remove();
   window._laundryPayBlob = null;
   fsn.success('Success', '✅ Payment added!');
@@ -1407,7 +1408,7 @@ window.showLaundryPayments = async function(recordId) {
   const { data: payments } = await sb.from('laundry_payments')
     .select('*').eq('record_id', recordId).order('payment_date', { ascending: false });
   const { data: rec } = await sb.from('laundry_records').select('*').eq('id', recordId).single();
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -1473,10 +1474,10 @@ window.showLaundryPayments = async function(recordId) {
 window.editLaundryPayment = async function(paymentId, recordId) {
   const { data: pay } = await sb.from('laundry_payments').select('*').eq('id', paymentId).single();
   if (!pay) { fsn.error('Error', 'Payment not found'); return; }
-  
+
   // Close existing modal
   document.querySelector('.modal-overlay')?.remove();
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -1518,40 +1519,40 @@ window.updateLaundryPayment = async function(paymentId, recordId) {
   const date = document.getElementById('lpEditDate').value;
   const mode = document.getElementById('lpEditMode').value;
   const notes = document.getElementById('lpEditNotes').value.trim();
-  
+
   if (amount <= 0 || !date) {
     document.getElementById('lpEditErr').innerHTML = '<div class="error">Amount and Date required</div>';
     return;
   }
-  
+
   const paymentSource = document.getElementById('lpPaymentSource')?.value || 'UHHS-OD';
 
   const { error } = await sb.from('laundry_payments').update({
     amount, payment_date: date, payment_mode: mode, notes,
     payment_source: paymentSource
   }).eq('id', paymentId);
-  
+
   if (error) {
     document.getElementById('lpEditErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
+
   // Recalculate record status
   const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
   const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
   const total = Number(rec?.total_amount || 0);
   const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
-  
+
   await sb.from('laundry_records').update({
     paid_amount: totalPaid,
     payment_status: status
   }).eq('id', recordId);
-  
+
   document.querySelector('.modal-overlay')?.remove();
   fsn.success('Success', '✅ Payment updated!');
   if (window.notifyDataChanged) window.notifyDataChanged();
-  
+
   // Refresh main list AND reopen history
   await renderLaundry();
   setTimeout(() => showLaundryPayments(recordId), 300);
@@ -1560,19 +1561,19 @@ window.updateLaundryPayment = async function(paymentId, recordId) {
 window.deleteLaundryPayment = async function(paymentId, recordId) {
   if (!confirm('Delete this payment?')) return;
   await sb.from('laundry_payments').delete().eq('id', paymentId);
-  
+
   // Recalculate record status
   const { data: allPays } = await sb.from('laundry_payments').select('amount').eq('record_id', recordId);
   const totalPaid = (allPays || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const { data: rec } = await sb.from('laundry_records').select('total_amount').eq('id', recordId).single();
   const total = Number(rec?.total_amount || 0);
   const status = totalPaid >= total ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Pending');
-  
+
   await sb.from('laundry_records').update({
     paid_amount: totalPaid,
     payment_status: status
   }).eq('id', recordId);
-  
+
   document.querySelector('.modal-overlay')?.remove();
   fsn.success('Success', '✅ Payment deleted');
   if (window.notifyDataChanged) window.notifyDataChanged();
@@ -1633,25 +1634,25 @@ window.showLaundryReport = async function() {
   const currentMonth = window._laundryMonth || new Date().toISOString().slice(0, 7);
   const monthStart = currentMonth + '-01';
   const monthEnd = currentMonth + '-31';
-  
+
   const [{ data: records }, { data: recItems }, { data: allPayments }, { data: items }] = await Promise.all([
     sb.from('laundry_records').select('*').gte('record_date', monthStart).lte('record_date', monthEnd),
     sb.from('laundry_record_items').select('*'),
     sb.from('laundry_payments').select('*').gte('payment_date', monthStart).lte('payment_date', monthEnd),
     sb.from('laundry_items').select('*')
   ]);
-  
+
   const itemsMap = {};
   (items || []).forEach(i => itemsMap[i.id] = i.item_name);
-  
+
   const recordIds = (records || []).map(r => r.id);
   const monthItems = (recItems || []).filter(ri => recordIds.includes(ri.record_id));
-  
+
   // Financial summary
   const totalAmount = (records || []).reduce((s, r) => s + Number(r.total_amount || 0), 0);
   const totalPaid = (allPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const totalDue = totalAmount - totalPaid;
-  
+
   // Claim breakdown
   const unclaimed = (allPayments || []).filter(p => (p.claim_status || 'not_claimed') === 'not_claimed');
   const claimed = (allPayments || []).filter(p => p.claim_status === 'claimed');
@@ -1659,7 +1660,7 @@ window.showLaundryReport = async function() {
   const unclaimedAmt = unclaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
   const claimedAmt = claimed.reduce((s, p) => s + Number(p.amount || 0), 0);
   const receivedAmt = received.reduce((s, p) => s + Number(p.amount || 0), 0);
-  
+
   // Vendor breakdown
   const vendorMap = {};
   (records || []).forEach(r => {
@@ -1672,7 +1673,7 @@ window.showLaundryReport = async function() {
     vendorMap[v].due += Math.max(0, Number(r.total_amount || 0) - rPaid);
   });
   const vendorList = Object.entries(vendorMap).sort((a,b) => b[1].amount - a[1].amount);
-  
+
   // Item consumption
   const itemStats = {};
   monthItems.forEach(ri => {
@@ -1682,7 +1683,7 @@ window.showLaundryReport = async function() {
     itemStats[name].amount += Number(ri.subtotal || (ri.quantity * ri.rate) || 0);
   });
   const itemList = Object.entries(itemStats).sort((a,b) => b[1].qty - a[1].qty);
-  
+
   // Payment mode breakdown
   const modeMap = {};
   (allPayments || []).forEach(p => {
@@ -1691,7 +1692,7 @@ window.showLaundryReport = async function() {
     modeMap[m].count++;
     modeMap[m].amount += Number(p.amount || 0);
   });
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
@@ -1704,7 +1705,7 @@ window.showLaundryReport = async function() {
         </div>
         <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
       </div>
-      
+
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
         <div style="padding:12px;background:#EFF6FF;border-radius:8px;text-align:center;">
           <div style="font-size:20px;font-weight:800;color:#1E40AF;">₹${totalAmount.toLocaleString('en-IN')}</div>
@@ -1719,7 +1720,7 @@ window.showLaundryReport = async function() {
           <div style="font-size:11px;color:#666;">Due</div>
         </div>
       </div>
-      
+
       <div style="margin-bottom:20px;padding:14px;background:#FFFBEB;border-radius:8px;border-left:4px solid #F59E0B;">
         <div style="font-weight:700;margin-bottom:8px;">📤 Claim Status</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;">
@@ -1728,7 +1729,7 @@ window.showLaundryReport = async function() {
           <div><span style="color:#065F46;">✅ Received:</span> <strong>₹${receivedAmt.toLocaleString('en-IN')}</strong> (${received.length})</div>
         </div>
       </div>
-      
+
       <div style="margin-bottom:20px;">
         <div style="font-weight:700;margin-bottom:8px;">🏆 Vendor Breakdown</div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -1756,7 +1757,7 @@ window.showLaundryReport = async function() {
           </tbody>
         </table>
       </div>
-      
+
       <div style="margin-bottom:20px;">
         <div style="font-weight:700;margin-bottom:8px;">📊 Top Items Consumed</div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -1776,7 +1777,7 @@ window.showLaundryReport = async function() {
           </tbody>
         </table>
       </div>
-      
+
       <div style="margin-bottom:12px;">
         <div style="font-weight:700;margin-bottom:8px;">💳 Payment Modes</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1787,7 +1788,7 @@ window.showLaundryReport = async function() {
           `).join('') || '<div style="color:#999;">No payments yet</div>'}
         </div>
       </div>
-      
+
       <div style="text-align:right;padding-top:12px;border-top:1px solid #eee;">
         <button onclick="this.closest('.modal-overlay').remove()" style="background:#6B7280;color:#fff;padding:8px 20px;border:none;border-radius:6px;cursor:pointer;">Close</button>
       </div>
@@ -1854,7 +1855,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     .gte('record_date', monthStart)
     .lte('record_date', monthEnd)
     .order('record_date', { ascending: true });
-  
+
   if (vendorName && vendorName !== 'All') {
     query = query.eq('vendor_name', vendorName);
   }
@@ -1920,7 +1921,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #1e293b; line-height: 1.4; }
     .page-container { max-width: 850px; margin: 0 auto; background: #fff; padding: 32px 36px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
-    
+
     /* Letterhead Header */
     .doc-head { border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
     .doc-brand h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
@@ -1928,7 +1929,7 @@ window.printVendorLaundryReport = async function(vendorName, monthYear) {
     .doc-badge { background: #f1f5f9; padding: 8px 14px; border-radius: 6px; text-align: right; border: 1px solid #e2e8f0; }
     .doc-badge .title { font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; }
     .doc-badge .meta { font-size: 11px; color: #64748b; margin-top: 2px; }
-    
+
     /* Meta bar */
     .meta-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
     .meta-item label { font-size: 10.5px; text-transform: uppercase; font-weight: 700; color: #64748b; display: block; margin-bottom: 2px; }

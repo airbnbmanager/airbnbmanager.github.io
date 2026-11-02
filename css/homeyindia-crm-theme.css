@@ -1763,15 +1763,33 @@ html, body {
   .hh-cal-toolbar {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
-    padding: 12px !important;
+    gap: 8px !important;
+    padding: 10px !important;
   }
   .hh-cal-toolbar-left,
   .hh-cal-toolbar-right {
     width: 100% !important;
     flex-wrap: wrap !important;
     justify-content: flex-start !important;
-    gap: 8px !important;
+    gap: 6px !important;
+  }
+  .hh-cal-legend-bar {
+    padding: 6px 10px !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    font-size: 11px !important;
+  }
+  .hh-cal-legend-bar + div {
+    padding: 6px 10px !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    font-size: 11.5px !important;
   }
 }
 

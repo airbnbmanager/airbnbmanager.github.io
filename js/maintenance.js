@@ -15,95 +15,108 @@ const MAINT_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Verified'];
 async function renderMaintenanceLog() {
   renderShell(`<div class="loading">Loading...</div>`, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
-  
+
   const monthFilter = window._maintMonth || 'All';
   const statusFilter = window._maintStatus || 'All';
   const propFilter = window._maintProp || 'All';
   const priorityFilter = window._maintPriority || 'All';
-  
+
   const [{ data: logs }, { data: rooms }, { data: emps }] = await Promise.all([
     sb.from('maintenance_log').select('*').order('reported_date', { ascending: false }),
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees').select('emp_id, name').eq('status', 'Active')
   ]);
-  
+
   const roomMap = {};
   (rooms || []).forEach(r => { roomMap[r.room_id] = r; });
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
-  
+
   // Apply filters
   let filtered = logs || [];
   if (monthFilter !== 'All') filtered = filtered.filter(l => (l.reported_date || '').startsWith(monthFilter));
   if (statusFilter !== 'All') filtered = filtered.filter(l => (l.status || 'Pending') === statusFilter);
   if (propFilter !== 'All') filtered = filtered.filter(l => l.room_id === propFilter);
   if (priorityFilter !== 'All') filtered = filtered.filter(l => (l.priority || 'Normal') === priorityFilter);
-  
+
   // Stats
   const totalCost = filtered.reduce((s, l) => s + Number(l.cost || 0), 0);
   const pending = filtered.filter(l => (l.status || 'Pending') === 'Pending').length;
   const inProgress = filtered.filter(l => l.status === 'In Progress').length;
   const resolved = filtered.filter(l => l.status === 'Resolved' || l.status === 'Verified').length;
   const urgent = filtered.filter(l => l.priority === '🔴 Urgent' && (l.status || 'Pending') !== 'Resolved' && l.status !== 'Verified').length;
-  
+
   // Month options (from data)
   const months = [...new Set((logs || []).map(l => (l.reported_date || '').slice(0, 7)).filter(Boolean))].sort().reverse();
-  
+
   renderShell(`
-    <div class="card">
-      <h1>🔧 Maintenance</h1>
-      <div class="sub">${filtered.length} of ${(logs||[]).length} entries</div>
-      <button onclick="renderAddMaintenance()">➕ Add Issue</button>
+    <div class="card" style="margin-bottom:12px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h1 style="margin:0;font-size:20px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            <span>🔧</span> Maintenance &amp; Repairs
+          </h1>
+          <div class="sub" style="margin-top:2px;font-size:12.5px;color:#64748B;">${filtered.length} of ${(logs||[]).length} entries recorded</div>
+        </div>
+        <button onclick="renderAddMaintenance()" style="background:#0284C7;color:#fff;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <span>➕</span> Add Issue
+        </button>
+      </div>
     </div>
 
-    <div class="card">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
-        <div style="text-align:center;padding:12px;background:#EFF6FF;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#1E40AF;">₹${totalCost.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;color:#666;">Total Cost</div>
+    <!-- COMPACT RESPONSIVE KPI METRICS -->
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px;">
+        <div style="text-align:center;padding:10px 6px;background:#EFF6FF;border-radius:10px;border:1px solid #DBEAFE;">
+          <div style="font-size:18px;font-weight:900;color:#1E40AF;">₹${totalCost.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;font-weight:700;color:#3B82F6;margin-top:2px;">Total Cost</div>
         </div>
-        <div style="text-align:center;padding:12px;background:#FEF2F2;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#DC2626;">${pending}</div>
-          <div style="font-size:11px;color:#666;">⏳ Pending</div>
+        <div style="text-align:center;padding:10px 6px;background:#FEF2F2;border-radius:10px;border:1px solid #FEE2E2;">
+          <div style="font-size:18px;font-weight:900;color:#DC2626;">${pending}</div>
+          <div style="font-size:11px;font-weight:700;color:#EF4444;margin-top:2px;">⏳ Pending</div>
         </div>
-        <div style="text-align:center;padding:12px;background:#FEF3C7;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#B45309;">${inProgress}</div>
-          <div style="font-size:11px;color:#666;">🔧 In Progress</div>
+        <div style="text-align:center;padding:10px 6px;background:#FEF3C7;border-radius:10px;border:1px solid #FDE68A;">
+          <div style="font-size:18px;font-weight:900;color:#B45309;">${inProgress}</div>
+          <div style="font-size:11px;font-weight:700;color:#D97706;margin-top:2px;">🔧 In Progress</div>
         </div>
-        <div style="text-align:center;padding:12px;background:#F0FDF4;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#059669;">${resolved}</div>
-          <div style="font-size:11px;color:#666;">✅ Resolved</div>
+        <div style="text-align:center;padding:10px 6px;background:#F0FDF4;border-radius:10px;border:1px solid #DCFCE7;">
+          <div style="font-size:18px;font-weight:900;color:#059669;">${resolved}</div>
+          <div style="font-size:11px;font-weight:700;color:#10B981;margin-top:2px;">✅ Resolved</div>
         </div>
-        <div style="text-align:center;padding:12px;background:#FEE2E2;border-radius:8px;">
-          <div style="font-size:22px;font-weight:800;color:#991B1B;">${urgent}</div>
-          <div style="font-size:11px;color:#666;">🔴 Urgent</div>
+        <div style="text-align:center;padding:10px 6px;background:#FEE2E2;border-radius:10px;border:1px solid #FECACA;">
+          <div style="font-size:18px;font-weight:900;color:#991B1B;">${urgent}</div>
+          <div style="font-size:11px;font-weight:700;color:#DC2626;margin-top:2px;">🔴 Urgent</div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="section-title">🔍 Filters</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-        <select onchange="window._maintMonth=this.value;renderMaintenanceLog()">
+    <!-- RESPONSIVE FILTER GRID -->
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+      <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.4px;">🔍 Filter Maintenance Issues</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintMonth=this.value;renderMaintenanceLog()">
           <option value="All" ${monthFilter==='All'?'selected':''}>📅 All Months</option>
           ${months.map(m => `<option value="${m}" ${monthFilter===m?'selected':''}>${m}</option>`).join('')}
         </select>
-        <select onchange="window._maintStatus=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintStatus=this.value;renderMaintenanceLog()">
           <option value="All" ${statusFilter==='All'?'selected':''}>📊 All Status</option>
           ${MAINT_STATUSES.map(s => `<option value="${s}" ${statusFilter===s?'selected':''}>${s}</option>`).join('')}
         </select>
-        <select onchange="window._maintProp=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintProp=this.value;renderMaintenanceLog()">
           <option value="All" ${propFilter==='All'?'selected':''}>🏠 All Properties</option>
           ${(rooms || []).map(r => `<option value="${r.room_id}" ${propFilter===r.room_id?'selected':''}>${r.nickname || r.unit_no}</option>`).join('')}
         </select>
-        <select onchange="window._maintPriority=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintPriority=this.value;renderMaintenanceLog()">
           <option value="All" ${priorityFilter==='All'?'selected':''}>⚡ All Priority</option>
           ${MAINT_PRIORITIES.map(p => `<option value="${p}" ${priorityFilter===p?'selected':''}>${p}</option>`).join('')}
         </select>
       </div>
     </div>
 
-    <div class="card"><div class="table-wrap"><table>
+    <!-- HORIZONTALLY SCROLLABLE TABLE WRAPPER -->
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
+      <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="min-width:760px;width:100%;">
       <thead><tr>
         <th>Priority</th><th>Account</th><th>Property</th><th>Type</th><th>Description</th>
         <th>Assigned</th><th>Cost</th><th>Status</th><th>Date</th><th>Photo</th><th>Actions</th>
@@ -155,7 +168,7 @@ async function renderAddMaintenance() {
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
-  
+
   renderShell(`
     <div class="card"><h1>➕ Add Maintenance Issue</h1><button class="secondary btn-sm" onclick="renderMaintenanceLog()">← Back</button></div>
     <div class="card">
@@ -192,7 +205,7 @@ async function renderAddMaintenance() {
           <input id="mCost" type="number" value="0" oninput="onMaintCostChange()">
         </div>
       </div>
-      
+
       <!-- 💰 Payment Info (shown only if cost > 0) -->
       <div id="maintPaymentSection" style="display:none;padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
@@ -276,7 +289,7 @@ async function renderAddMaintenance() {
     </div>
   `, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
-  
+
   // Photo handler factory (bill + payment)
   const _attachMaintPhoto = (inputIds, previewId, blobKey) => {
     inputIds.forEach(id => {
@@ -310,19 +323,19 @@ async function maintCompressImage(file, maxWidth = 800, quality = 0.7) {
       reject(new Error('File too large (max 10MB)'));
       return;
     }
-    
+
     const reader = new FileReader();
     const timeout = setTimeout(() => {
       reject(new Error('Read timeout — file may be corrupt'));
     }, 30000);
-    
+
     reader.onload = e => {
       clearTimeout(timeout);
       const img = new Image();
       const imgTimeout = setTimeout(() => {
         reject(new Error('Image load timeout — HEIC not supported? Try JPEG'));
       }, 15000);
-      
+
       img.onload = () => {
         clearTimeout(imgTimeout);
         try {
@@ -381,7 +394,7 @@ async function saveMaintenance() {
     document.getElementById('mErr').innerHTML = '<div class="error">Description required</div>';
     return;
   }
-  
+
   // Upload both photos (bill + payment)
   let billPhotoUrl = null;
   let payPhotoUrl = null;
@@ -399,17 +412,17 @@ async function saveMaintenance() {
     document.getElementById('mErr').innerHTML = '<div class="error">Photo upload: ' + err.message + '</div>';
     return;
   }
-  
+
   const cost = parseFloat(document.getElementById('mCost').value) || 0;
   const payMode = document.getElementById('mPaymentMode')?.value || null;
   const payDate = document.getElementById('mPaymentDate')?.value || null;
-  
+
   // Validation: if cost > 0, payment mode required
   if (cost > 0 && !payMode) {
     document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode required hai (cost > 0)</div>';
     return;
   }
-  
+
   const { data: newMaint, error } = await sb.from('maintenance_log').insert({
     payment_source: document.getElementById('mPaymentSource')?.value || 'UHHS-OD',
     room_id: document.getElementById('mRoom').value || null,
@@ -429,14 +442,14 @@ async function saveMaintenance() {
     payment_mode: cost > 0 ? payMode : null,
     payment_date: cost > 0 ? (payDate || new Date().toISOString().slice(0,10)) : null
   }).select().single();
-  
+
   // Cash Book no longer tracks maintenance (separate module)
-  
+
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
+
   window._maintBillBlob = null;
   window._maintPayBlob = null;
   fsn.success('Success', '✅ Issue saved!');
@@ -452,14 +465,14 @@ async function editMaintenance(id) {
     sb.from('rooms').select('room_id, nickname, unit_no').order('room_id'),
     sb.from('employees').select('emp_id, name').eq('status', 'Active').order('name')
   ]);
-  
+
   if (!m) { fsn.error('Error', 'Not found'); return; }
   window._maintEditId = id;
   window._maintEditPhotoBefore = m.photo_before;
   window._maintEditPhotoAfter = m.photo_after;
   window._maintEditPaymentPhoto = m.payment_photo;
   window._maintEditPayBlob = null;
-  
+
   renderShell(`
     <div class="card"><h1>✏️ Edit Issue</h1><button class="secondary btn-sm" onclick="renderMaintenanceLog()">← Back</button></div>
     <div class="card">
@@ -497,7 +510,7 @@ async function editMaintenance(id) {
           <input id="mCost" type="number" value="${m.cost || 0}" oninput="onMaintCostChange()">
         </div>
       </div>
-      
+
       <!-- 💰 Payment Info -->
       <div id="maintPaymentSection" style="display:${(m.cost || 0) > 0 ? 'block' : 'none'};padding:12px;background:#FFF9E6;border:1px solid #FCD34D;border-radius:8px;margin:8px 0;">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#92400E;">💰 Payment Info</div>
@@ -558,12 +571,12 @@ async function editMaintenance(id) {
           <input id="mResolvedDate" type="date" value="${m.resolved_date || ''}">
         </div>
       </div>
-      
+
       ${m.photo_before ? `<div class="form-group">
         <label>📸 Before Photo (existing)</label>
         <div><button type="button" class="btn-sm" style="background:#F59E0B;color:#fff;padding:6px 12px;" onclick="dlIdPhoto('${m.photo_before && m.photo_before.includes('/id-proofs/') ? m.photo_before.split('/id-proofs/')[1] : m.photo_before}')">📷 View Before Photo</button></div>
       </div>` : ''}
-      
+
       <div class="form-group">
         <label>✅ After Photo (post-repair)</label>
         ${m.photo_after ? `<div style="margin-bottom:8px;padding:8px;background:#F0FDF4;border-radius:6px;">
@@ -577,7 +590,7 @@ async function editMaintenance(id) {
         <input id="mPhotoAfterGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="mPhotoAfterPreview" style="margin-top:8px;"></div>
       </div>
-      
+
       <div class="form-group">
         <label>💳 Payment Screenshot</label>
         ${m.payment_photo ? `<div style="margin-bottom:8px;padding:8px;background:#EFF6FF;border-radius:6px;">
@@ -591,7 +604,7 @@ async function editMaintenance(id) {
         <input id="mPhotoPayGal" type="file" accept="image/*,image/heic,image/heif,.heic,.heif" style="display:none;">
         <div id="mPhotoPayPreview" style="margin-top:8px;"></div>
       </div>
-      
+
       <div class="form-group">
         <label>Notes</label>
         <textarea id="mNotes" rows="2">${m.notes || ''}</textarea>
@@ -601,7 +614,7 @@ async function editMaintenance(id) {
     </div>
   `, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
-  
+
   // Photo handler factory - attach to both after and payment
   const _attachEditPhoto = (inputIds, previewId, blobKey) => {
     inputIds.forEach(id => {
@@ -634,7 +647,7 @@ async function updateMaintenance() {
     document.getElementById('mErr').innerHTML = '<div class="error">Description required</div>';
     return;
   }
-  
+
   let photoAfterUrl = window._maintEditPhotoAfter;
   if (window._maintAfterPhotoBlob) {
     try {
@@ -653,7 +666,7 @@ async function updateMaintenance() {
       return;
     }
   }
-  
+
   // Upload new payment photo if provided
   let paymentPhotoUrl = window._maintEditPaymentPhoto;
   if (window._maintEditPayBlob) {
@@ -673,7 +686,7 @@ async function updateMaintenance() {
       return;
     }
   }
-  
+
   const status = document.getElementById('mStatus').value;
   const updateObj = {
     room_id: document.getElementById('mRoom').value || null,
@@ -693,28 +706,28 @@ async function updateMaintenance() {
     payment_mode: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentMode')?.value || null) : null,
     payment_date: (parseFloat(document.getElementById('mCost').value) || 0) > 0 ? (document.getElementById('mPaymentDate')?.value || null) : null
   };
-  
+
   // Validation
   const _cost = parseFloat(document.getElementById('mCost').value) || 0;
   if (_cost > 0 && !updateObj.payment_mode) {
     document.getElementById('mErr').innerHTML = '<div class="error">⚠️ Payment Mode required hai (cost > 0)</div>';
     return;
   }
-  
+
   // Auto-set resolved date if status changed to resolved
   if ((status === 'Resolved' || status === 'Verified') && !updateObj.resolved_date) {
     updateObj.resolved_date = new Date().toISOString().slice(0, 10);
   }
-  
+
   updateObj.payment_source = document.getElementById('mPaymentSourceEdit')?.value || 'UHHS-OD';
   const { error } = await sb.from('maintenance_log').update(updateObj).eq('id', id);
   if (error) {
     document.getElementById('mErr').innerHTML = '<div class="error">' + error.message + '</div>';
     return;
   }
-  
+
   // Cash Book no longer tracks maintenance updates
-  
+
   window._maintAfterPhotoBlob = null;
   fsn.success('Success', '✅ Updated!');
   if (window.notifyDataChanged) window.notifyDataChanged();
