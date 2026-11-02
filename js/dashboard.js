@@ -12,7 +12,7 @@ function getLocalDateString(d = new Date()) {
 function computeAttention(checkinsToday, checkoutsToday) {
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  
+
   const parseTime = (t, defaultMin) => {
     if (!t) return defaultMin;
     const s = t.toString().trim();
@@ -27,19 +27,19 @@ function computeAttention(checkinsToday, checkoutsToday) {
     }
     return defaultMin;
   };
-  
+
   const lateCheckouts = checkoutsToday.filter(x => {
     const ct = parseTime(x.check_out_time, 11 * 60);
     return nowMinutes > ct;
   }).map(x => {
     const ct = parseTime(x.check_out_time, 11 * 60);
     const delayMin = nowMinutes - ct;
-    const delayStr = delayMin >= 60 
-      ? Math.floor(delayMin/60) + 'h ' + (delayMin%60) + 'm'
+    const delayStr = delayMin >= 60
+      ? Math.floor(delayMin / 60) + 'h ' + (delayMin % 60) + 'm'
       : delayMin + 'm';
     return Object.assign({}, x, { delay: delayStr });
   });
-  
+
   const arrivingSoon = checkinsToday.filter(x => {
     const ct = parseTime(x.check_in_time, 14 * 60);
     const diff = ct - nowMinutes;
@@ -50,10 +50,10 @@ function computeAttention(checkinsToday, checkoutsToday) {
     let eta;
     if (diff < 0) eta = Math.abs(diff) + 'm late';
     else if (diff < 60) eta = 'in ' + diff + 'm';
-    else eta = 'in ' + Math.floor(diff/60) + 'h ' + (diff%60) + 'm';
+    else eta = 'in ' + Math.floor(diff / 60) + 'h ' + (diff % 60) + 'm';
     return Object.assign({}, x, { eta });
   });
-  
+
   return { lateCheckouts, arrivingSoon };
 }
 
@@ -65,14 +65,14 @@ function computeAttention(checkinsToday, checkoutsToday) {
 // ═══════════════════════════════════════════════════════════
 // 🏷️ Rating Badge & Modal Helpers
 // ═══════════════════════════════════════════════════════════
-window.getRatingBadge = function(rating) {
+window.getRatingBadge = function (rating) {
   if (rating === 'good') return ' <span title="Trusted guest" style="font-size:12px;">⭐</span>';
   if (rating === 'bad') return ' <span title="Bad rating - see notes" style="font-size:12px;color:#DC2626;">⚠️</span>';
   if (rating === 'normal') return ' <span title="Normal guest" style="font-size:10px;opacity:0.6;">😐</span>';
   return '';
 };
 
-window.openBookingFromDashboard = function(bkId) {
+window.openBookingFromDashboard = function (bkId) {
   if (typeof window.openBookingDrawer === 'function') {
     window.openBookingDrawer(bkId);
   } else if (typeof window.showBookingDetails === 'function') {
@@ -88,19 +88,19 @@ window.openBookingFromDashboard = function(bkId) {
 };
 
 // WhatsApp action fallbacks if undefined in whatsapp.js
-window.sendCheckinReminder = window.sendCheckinReminder || function(bkId) {
+window.sendCheckinReminder = window.sendCheckinReminder || function (bkId) {
   if (typeof shareBookingWhatsApp === 'function') shareBookingWhatsApp(bkId);
   else if (typeof showWATemplatesMenu === 'function') showWATemplatesMenu(bkId);
   else if (window.fsn) fsn.info('WhatsApp', 'Opening message templates');
 };
 
-window.requestGuestID = window.requestGuestID || function(bkId) {
+window.requestGuestID = window.requestGuestID || function (bkId) {
   if (typeof showPendingIdModal === 'function') showPendingIdModal(0);
   else if (typeof showWATemplatesMenu === 'function') showWATemplatesMenu(bkId);
   else if (window.fsn) fsn.info('ID Request', 'Opening ID Modal');
 };
 
-window.requestReview = window.requestReview || function(bkId) {
+window.requestReview = window.requestReview || function (bkId) {
   if (typeof requestGoogleReview === 'function') requestGoogleReview(bkId);
   else if (typeof showWATemplatesMenu === 'function') showWATemplatesMenu(bkId);
   else if (window.fsn) fsn.info('Review', 'Opening review template');
@@ -108,7 +108,7 @@ window.requestReview = window.requestReview || function(bkId) {
 
 // Interactive Tab State
 window._activeDashTab = window._activeDashTab || 'flow';
-window.switchDashTab = function(tabKey, btn) {
+window.switchDashTab = function (tabKey, btn) {
   window._activeDashTab = tabKey;
   document.querySelectorAll('.dash-nav-tab').forEach(b => b.classList.remove('active'));
   if (btn) {
@@ -123,7 +123,7 @@ window.switchDashTab = function(tabKey, btn) {
 };
 
 // Interactive Room Status Matrix Filter
-window.filterRoomMatrix = function(status, btn) {
+window.filterRoomMatrix = function (status, btn) {
   const container = document.getElementById('dashRoomMatrix');
   if (!container) return;
   document.querySelectorAll('.room-matrix-tab').forEach(b => b.classList.remove('active'));
@@ -141,7 +141,7 @@ window.filterRoomMatrix = function(status, btn) {
 // ═══════════════════════════════════════════════════════════
 // 🏡 AIRBNB HOSTING FEED CARD HELPERS (GLOBAL & BACKWARDS-COMPATIBLE)
 // ═══════════════════════════════════════════════════════════
-window.formatAirbnbDateRange = function(inStr, outStr) {
+window.formatAirbnbDateRange = function (inStr, outStr) {
   if (!inStr) return '';
   try {
     const dIn = new Date(inStr + 'T00:00:00');
@@ -153,12 +153,12 @@ window.formatAirbnbDateRange = function(inStr, outStr) {
     const dayOut = dOut.getDate();
     if (mIn === mOut) return `${dayIn}–${dayOut} ${mIn}`;
     return `${dayIn} ${mIn} – ${dayOut} ${mOut}`;
-  } catch(e) {
+  } catch (e) {
     return inStr;
   }
 };
 
-window.getAirbnbGuestNarrative = function(b, feedType) {
+window.getAirbnbGuestNarrative = function (b, feedType) {
   const rawName = (b && b.guest_name ? b.guest_name : 'Guest').trim();
   const guestCount = Number(b && (b.total_guests || b.guests_count || b.num_guests) || 0) || (feedType === 'checkout' ? 7 : (feedType === 'checkin' ? 8 : 4));
   const countStr = `group of ${guestCount}`;
@@ -174,7 +174,7 @@ window.getAirbnbGuestNarrative = function(b, feedType) {
   }
 };
 
-window.getAirbnbPropertySubtitle = function(b) {
+window.getAirbnbPropertySubtitle = function (b) {
   if (!b) return 'The Unique Haven Homes';
   const roomId = (b.room_id || '').trim();
   const base = (window.ShowcaseData && (
@@ -194,7 +194,7 @@ window.getAirbnbPropertySubtitle = function(b) {
   return b.rooms?.property_name || base.name || (typeof propLabel === 'function' ? propLabel(b.rooms) : '') || b.room_id || 'The Unique Haven Homes';
 };
 
-window.renderAirbnbOverlappingMedia = function(b) {
+window.renderAirbnbOverlappingMedia = function (b) {
   if (!b) return '';
   const roomId = (b.room_id || '').trim();
   const cleanRid = roomId.replace(/[\s\-_]/g, '').toUpperCase();
@@ -252,7 +252,7 @@ window.renderAirbnbOverlappingMedia = function(b) {
   `;
 };
 
-window.renderAirbnbResCard = function(b, feedType) {
+window.renderAirbnbResCard = function (b, feedType) {
   if (!b) return '';
   const timeStr = feedType === 'checkout'
     ? (b.check_out_time || '11:00 am')
@@ -277,10 +277,10 @@ window.renderAirbnbResCard = function(b, feedType) {
         ${totalAmt > 0 || b.phone ? `
         <div class="airbnb-res-badges" onclick="event.stopPropagation()">
           ${totalAmt > 0 ? (
-            isPaid
-              ? `<span style="font-size:10.5px;font-weight:700;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:999px;border:1px solid #a7f3d0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
-              : `<span style="font-size:10.5px;font-weight:700;color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:999px;border:1px solid #fecaca;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
-          ) : ''}
+        isPaid
+          ? `<span style="font-size:10.5px;font-weight:700;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:999px;border:1px solid #a7f3d0;">🟢 ₹${totalAmt.toLocaleString('en-IN')} Paid</span>`
+          : `<span style="font-size:10.5px;font-weight:700;color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:999px;border:1px solid #fecaca;">⚠️ ₹${dueAmt.toLocaleString('en-IN')} Due</span>`
+      ) : ''}
           ${b.phone ? `<a href="tel:${b.phone}" class="airbnb-btn-action" title="Call">📞 Call</a>` : ''}
           ${b.phone ? `<button class="airbnb-btn-action wa" onclick="shareBookingWhatsApp('${b.booking_id}')" title="WhatsApp">💬 WhatsApp</button>` : ''}
         </div>
@@ -291,7 +291,7 @@ window.renderAirbnbResCard = function(b, feedType) {
   `;
 };
 
-window.renderAirbnbGuestItem = function(b, feedType) {
+window.renderAirbnbGuestItem = function (b, feedType) {
   return window.renderAirbnbResCard(b, feedType);
 };
 
@@ -303,327 +303,327 @@ async function renderDashboard() {
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
 
   try {
-  
-  // 🔧 AUTO Payment Overflow Fix (silent, runs on every dashboard load)
-  try {
-    if (typeof window.autoFixOverflowPayments === 'function') {
-      await window.autoFixOverflowPayments(true);
+
+    // 🔧 AUTO Payment Overflow Fix (silent, runs on every dashboard load)
+    try {
+      if (typeof window.autoFixOverflowPayments === 'function') {
+        await window.autoFixOverflowPayments(true);
+      }
+    } catch (e) { console.warn('Auto overflow fix failed:', e); }
+
+    const activeUsers = await getActiveUsers();
+
+    const today = getLocalDateString();
+    const day7 = dateAdd(today, 7);
+
+    // --- DYNAMIC DASHBOARD TIMEFRAME CONTROLLER ---
+    window._dashPeriod = window._dashPeriod || 'this_month';
+    window._dashCustomMonth = window._dashCustomMonth || '';
+
+    const periodMode = window._dashPeriod;
+    let periodStart = '';
+    let periodEnd = '';
+    let prevPeriodStart = '';
+    let prevPeriodEnd = '';
+    let periodDays = 30;
+    let periodDisplayLabel = '';
+
+    const now = new Date();
+    const currY = now.getFullYear();
+    const currM = now.getMonth(); // 0-indexed
+
+    if (periodMode === 'this_week') {
+      periodStart = dateAdd(today, -6);
+      periodEnd = today;
+      prevPeriodStart = dateAdd(periodStart, -7);
+      prevPeriodEnd = dateAdd(periodStart, -1);
+      periodDays = 7;
+      const sD = new Date(periodStart + 'T00:00:00');
+      const eD = new Date(periodEnd + 'T00:00:00');
+      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', { month: 'short' })} – ${eD.getDate()} ${eD.toLocaleString('en-IN', { month: 'short' })}`;
+    } else if (periodMode === 'last_month') {
+      const lmDate = new Date(currY, currM - 1, 1);
+      const lmY = lmDate.getFullYear();
+      const lmM = String(lmDate.getMonth() + 1).padStart(2, '0');
+      const lmLastDay = new Date(lmY, lmDate.getMonth() + 1, 0).getDate();
+      periodStart = `${lmY}-${lmM}-01`;
+      periodEnd = `${lmY}-${lmM}-${String(lmLastDay).padStart(2, '0')}`;
+      const p2Date = new Date(currY, currM - 2, 1);
+      const p2Y = p2Date.getFullYear();
+      const p2M = String(p2Date.getMonth() + 1).padStart(2, '0');
+      const p2LastDay = new Date(p2Y, p2Date.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${p2Y}-${p2M}-01`;
+      prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
+      periodDays = lmLastDay;
+      periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', { month: 'short' })} ${lmY}`;
+    } else if (periodMode === 'this_year') {
+      periodStart = `${currY}-01-01`;
+      periodEnd = `${currY}-12-31`;
+      prevPeriodStart = `${currY - 1}-01-01`;
+      prevPeriodEnd = `${currY - 1}-12-31`;
+      periodDays = 365;
+      periodDisplayLabel = `Full Year ${currY}`;
+    } else if (periodMode === 'custom' && window._dashCustomMonth) {
+      const [cy, cm] = window._dashCustomMonth.split('-');
+      const cYear = parseInt(cy, 10);
+      const cMonth = parseInt(cm, 10);
+      const cLastDay = new Date(cYear, cMonth, 0).getDate();
+      periodStart = `${window._dashCustomMonth}-01`;
+      periodEnd = `${window._dashCustomMonth}-${String(cLastDay).padStart(2, '0')}`;
+      const prevMDate = new Date(cYear, cMonth - 2, 1);
+      const pmY = prevMDate.getFullYear();
+      const pmM = String(prevMDate.getMonth() + 1).padStart(2, '0');
+      const pmLastDay = new Date(pmY, prevMDate.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${pmY}-${pmM}-01`;
+      prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+      periodDays = cLastDay;
+      const cDate = new Date(cYear, cMonth - 1, 1);
+      periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', { month: 'short' })} ${cYear}`;
+    } else {
+      // Default 'this_month'
+      const curLastDay = new Date(currY, currM + 1, 0).getDate();
+      const curMStr = String(currM + 1).padStart(2, '0');
+      periodStart = `${currY}-${curMStr}-01`;
+      periodEnd = `${currY}-${curMStr}-${String(curLastDay).padStart(2, '0')}`;
+      const prevDate = new Date(currY, currM - 1, 1);
+      const pmY = prevDate.getFullYear();
+      const pmM = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const pmLastDay = new Date(pmY, prevDate.getMonth() + 1, 0).getDate();
+      prevPeriodStart = `${pmY}-${pmM}-01`;
+      prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
+      periodDays = curLastDay;
+      periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', { month: 'short' })} ${currY}`;
     }
-  } catch(e) { console.warn('Auto overflow fix failed:', e); }
 
-  const activeUsers = await getActiveUsers();
+    window._dashPeriodStart = periodStart;
+    window._dashPeriodEnd = periodEnd;
+    const monthStart = periodStart;
+    const monthEnd = periodEnd;
+    const lastDay = periodDays;
 
-  const today = getLocalDateString();
-  const day7 = dateAdd(today, 7);
+    const [
+      { data: bookings },
+      { data: flats },
+      { data: payments },
+      { data: tasks },
+      { data: maint },
+      { data: attendance },
+      { data: emps }
+    ] = await Promise.all([
+      sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
+      sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)"),
+      sb.from("payment_history").select("booking_id, amount, payment_date"),
+      sb.from("employee_tasks").select("*, employees(name)").eq('status', 'Pending'),
+      sb.from("maintenance_log").select("*").neq('status', 'Resolved'),
+      sb.from("attendance_log").select("emp_id, status").eq('att_date', today),
+      sb.from("employees").select("emp_id, name").eq('status', 'Active')
+    ]);
 
-  // --- DYNAMIC DASHBOARD TIMEFRAME CONTROLLER ---
-  window._dashPeriod = window._dashPeriod || 'this_month';
-  window._dashCustomMonth = window._dashCustomMonth || '';
+    const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? (window.getGlobalSelectedProperty() || '').trim() : '';
 
-  const periodMode = window._dashPeriod;
-  let periodStart = '';
-  let periodEnd = '';
-  let prevPeriodStart = '';
-  let prevPeriodEnd = '';
-  let periodDays = 30;
-  let periodDisplayLabel = '';
+    // Robust room matching across room_id, source_room_id, joined room object, and unit_no
+    const matchesRoom = (item, targetProp) => {
+      if (!targetProp) return true;
+      if (!item) return false;
+      const t = String(targetProp).trim().toUpperCase();
+      const r = item.room_id ? String(item.room_id).trim().toUpperCase() : '';
+      const sr = item.source_room_id ? String(item.source_room_id).trim().toUpperCase() : '';
+      const ro = item.rooms?.room_id ? String(item.rooms.room_id).trim().toUpperCase() : '';
+      const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : '';
+      return r === t || sr === t || ro === t || (un && un === t);
+    };
 
-  const now = new Date();
-  const currY = now.getFullYear();
-  const currM = now.getMonth(); // 0-indexed
+    const allBookingsRaw = bookings || [];
+    const allBookings = globalProp ? allBookingsRaw.filter(b => matchesRoom(b, globalProp)) : allBookingsRaw;
+    const pendingWebsiteBookings = allBookings.filter(x => !x.is_cancelled && x.verification_status === 'pending');
+    window._pendingCount = pendingWebsiteBookings.length;
 
-  if (periodMode === 'this_week') {
-    periodStart = dateAdd(today, -6);
-    periodEnd = today;
-    prevPeriodStart = dateAdd(periodStart, -7);
-    prevPeriodEnd = dateAdd(periodStart, -1);
-    periodDays = 7;
-    const sD = new Date(periodStart + 'T00:00:00');
-    const eD = new Date(periodEnd + 'T00:00:00');
-    periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', {month:'short'})} – ${eD.getDate()} ${eD.toLocaleString('en-IN', {month:'short'})}`;
-  } else if (periodMode === 'last_month') {
-    const lmDate = new Date(currY, currM - 1, 1);
-    const lmY = lmDate.getFullYear();
-    const lmM = String(lmDate.getMonth() + 1).padStart(2, '0');
-    const lmLastDay = new Date(lmY, lmDate.getMonth() + 1, 0).getDate();
-    periodStart = `${lmY}-${lmM}-01`;
-    periodEnd = `${lmY}-${lmM}-${String(lmLastDay).padStart(2, '0')}`;
-    const p2Date = new Date(currY, currM - 2, 1);
-    const p2Y = p2Date.getFullYear();
-    const p2M = String(p2Date.getMonth() + 1).padStart(2, '0');
-    const p2LastDay = new Date(p2Y, p2Date.getMonth() + 1, 0).getDate();
-    prevPeriodStart = `${p2Y}-${p2M}-01`;
-    prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
-    periodDays = lmLastDay;
-    periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', {month:'short'})} ${lmY}`;
-  } else if (periodMode === 'this_year') {
-    periodStart = `${currY}-01-01`;
-    periodEnd = `${currY}-12-31`;
-    prevPeriodStart = `${currY - 1}-01-01`;
-    prevPeriodEnd = `${currY - 1}-12-31`;
-    periodDays = 365;
-    periodDisplayLabel = `Full Year ${currY}`;
-  } else if (periodMode === 'custom' && window._dashCustomMonth) {
-    const [cy, cm] = window._dashCustomMonth.split('-');
-    const cYear = parseInt(cy, 10);
-    const cMonth = parseInt(cm, 10);
-    const cLastDay = new Date(cYear, cMonth, 0).getDate();
-    periodStart = `${window._dashCustomMonth}-01`;
-    periodEnd = `${window._dashCustomMonth}-${String(cLastDay).padStart(2, '0')}`;
-    const prevMDate = new Date(cYear, cMonth - 2, 1);
-    const pmY = prevMDate.getFullYear();
-    const pmM = String(prevMDate.getMonth() + 1).padStart(2, '0');
-    const pmLastDay = new Date(pmY, prevMDate.getMonth() + 1, 0).getDate();
-    prevPeriodStart = `${pmY}-${pmM}-01`;
-    prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
-    periodDays = cLastDay;
-    const cDate = new Date(cYear, cMonth - 1, 1);
-    periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', {month:'short'})} ${cYear}`;
-  } else {
-    // Default 'this_month'
-    const curLastDay = new Date(currY, currM + 1, 0).getDate();
-    const curMStr = String(currM + 1).padStart(2, '0');
-    periodStart = `${currY}-${curMStr}-01`;
-    periodEnd = `${currY}-${curMStr}-${String(curLastDay).padStart(2, '0')}`;
-    const prevDate = new Date(currY, currM - 1, 1);
-    const pmY = prevDate.getFullYear();
-    const pmM = String(prevDate.getMonth() + 1).padStart(2, '0');
-    const pmLastDay = new Date(pmY, prevDate.getMonth() + 1, 0).getDate();
-    prevPeriodStart = `${pmY}-${pmM}-01`;
-    prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
-    periodDays = curLastDay;
-    periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', {month:'short'})} ${currY}`;
-  }
+    const allFlatsRaw = flats || [];
+    const allFlats = globalProp ? allFlatsRaw.filter(f => matchesRoom(f, globalProp)) : allFlatsRaw;
 
-  window._dashPeriodStart = periodStart;
-  window._dashPeriodEnd = periodEnd;
-  const monthStart = periodStart;
-  const monthEnd = periodEnd;
-  const lastDay = periodDays;
+    const allPayments = payments || [];
+    const bookingIdsForProp = new Set(allBookings.map(b => b.booking_id));
+    const propPayments = globalProp ? allPayments.filter(p => bookingIdsForProp.has(p.booking_id)) : allPayments;
 
-  const [
-    { data: bookings },
-    { data: flats },
-    { data: payments },
-    { data: tasks },
-    { data: maint },
-    { data: attendance },
-    { data: emps }
-  ] = await Promise.all([
-    sb.from("guest_register").select("*, rooms(unit_no, nickname)"),
-    sb.from("flats_status").select("room_id, status, cleaning_status, rooms(unit_no, nickname)"),
-    sb.from("payment_history").select("booking_id, amount, payment_date"),
-    sb.from("employee_tasks").select("*, employees(name)").eq('status', 'Pending'),
-    sb.from("maintenance_log").select("*").neq('status', 'Resolved'),
-    sb.from("attendance_log").select("emp_id, status").eq('att_date', today),
-    sb.from("employees").select("emp_id, name").eq('status', 'Active')
-  ]);
+    const filteredTasks = globalProp ? (tasks || []).filter(t => matchesRoom(t, globalProp)) : (tasks || []);
+    const filteredMaint = globalProp ? (maint || []).filter(m => matchesRoom(m, globalProp)) : (maint || []);
 
-  const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? (window.getGlobalSelectedProperty() || '').trim() : '';
+    // Today's check-ins/outs
+    const rawCheckins = allBookings.filter(x => x.check_in === today);
+    const rawCheckouts = allBookings.filter(x => x.check_out === today);
 
-  // Robust room matching across room_id, source_room_id, joined room object, and unit_no
-  const matchesRoom = (item, targetProp) => {
-    if (!targetProp) return true;
-    if (!item) return false;
-    const t = String(targetProp).trim().toUpperCase();
-    const r = item.room_id ? String(item.room_id).trim().toUpperCase() : '';
-    const sr = item.source_room_id ? String(item.source_room_id).trim().toUpperCase() : '';
-    const ro = item.rooms?.room_id ? String(item.rooms.room_id).trim().toUpperCase() : '';
-    const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : '';
-    return r === t || sr === t || ro === t || (un && un === t);
-  };
+    // Shifts detection
+    const shiftGuests = new Set();
+    rawCheckins.forEach(ci => {
+      if (ci.parent_booking_id || ci.stay_group_id) {
+        const matching = rawCheckouts.find(co =>
+          (co.guest_name === ci.guest_name ||
+            co.booking_id === ci.parent_booking_id ||
+            co.stay_group_id === ci.stay_group_id) &&
+          co.room_id !== ci.room_id
+        );
+        if (matching) shiftGuests.add(ci.guest_name);
+      }
+    });
 
-  const allBookingsRaw = bookings || [];
-  const allBookings = globalProp ? allBookingsRaw.filter(b => matchesRoom(b, globalProp)) : allBookingsRaw;
-  const pendingWebsiteBookings = allBookings.filter(x => !x.is_cancelled && x.verification_status === 'pending');
-  window._pendingCount = pendingWebsiteBookings.length;
-  
-  const allFlatsRaw = flats || [];
-  const allFlats = globalProp ? allFlatsRaw.filter(f => matchesRoom(f, globalProp)) : allFlatsRaw;
-  
-  const allPayments = payments || [];
-  const bookingIdsForProp = new Set(allBookings.map(b => b.booking_id));
-  const propPayments = globalProp ? allPayments.filter(p => bookingIdsForProp.has(p.booking_id)) : allPayments;
+    const realCheckins = rawCheckins.filter(x => !shiftGuests.has(x.guest_name));
+    const realCheckouts = rawCheckouts.filter(x => !shiftGuests.has(x.guest_name));
 
-  const filteredTasks = globalProp ? (tasks || []).filter(t => matchesRoom(t, globalProp)) : (tasks || []);
-  const filteredMaint = globalProp ? (maint || []).filter(m => matchesRoom(m, globalProp)) : (maint || []);
+    // Property KPIs
+    const bookedNow = allFlats.filter(x => x.status === 'Booked');
+    const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
+    const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
+    const maintUnits = allFlats.filter(x => x.status === 'Blocked-Maintenance');
+    const totalProps = allFlats.length;
 
-  // Today's check-ins/outs
-  const rawCheckins = allBookings.filter(x => x.check_in === today);
-  const rawCheckouts = allBookings.filter(x => x.check_out === today);
+    // Financial KPIs
+    const paidMap = {};
+    propPayments.forEach(p => {
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    });
 
-  // Shifts detection
-  const shiftGuests = new Set();
-  rawCheckins.forEach(ci => {
-    if (ci.parent_booking_id || ci.stay_group_id) {
-      const matching = rawCheckouts.find(co =>
-        (co.guest_name === ci.guest_name ||
-        co.booking_id === ci.parent_booking_id ||
-        co.stay_group_id === ci.stay_group_id) &&
-        co.room_id !== ci.room_id
-      );
-      if (matching) shiftGuests.add(ci.guest_name);
+    const todayCheckinBookings = allBookings.filter(b => b.check_in === today);
+    const todayRevenue = todayCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const todayCollected = todayCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
+    const todayPending = todayRevenue - todayCollected;
+
+    const todayPaymentsReceived = propPayments
+      .filter(p => p.payment_date === today)
+      .reduce((s, p) => s + (p.amount || 0), 0);
+
+    const monthCheckinBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      return ci >= monthStart && ci <= monthEnd && !b.is_cancelled;
+    });
+    const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
+
+    const pendingBalance = monthCheckinBookings.reduce((s, b) => {
+      const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
+      return s + (due > 0 ? due : 0);
+    }, 0);
+
+    // --- HOMEYHUTS / TUHH VACATION RENTAL ANALYTICS CALCULATIONS ---
+    const totalBookedNights = monthCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+    const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : (monthRevenue > 0 ? Math.round(monthRevenue / Math.max(1, monthCheckinBookings.length)) : 0);
+    const totalAvailRoomNights = Math.max(1, totalProps * periodDays);
+    const hhRevPar = Math.round(monthRevenue / totalAvailRoomNights);
+    const hhEstExpenses = Math.round(monthRevenue * 0.38);
+    const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
+    const periodOccupancyPct = totalAvailRoomNights > 0 ? Math.min(100, Math.round((totalBookedNights / totalAvailRoomNights) * 100)) : 0;
+
+    // Previous Period Dynamic Comparison Calculation
+    const prevPeriodCheckinBookings = allBookings.filter(b => {
+      const ci = b.check_in || '';
+      return ci >= prevPeriodStart && ci <= prevPeriodEnd && !b.is_cancelled;
+    });
+    const prevRevenue = prevPeriodCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const prevBookedNights = prevPeriodCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+    const prevAdr = prevBookedNights > 0 ? Math.round(prevRevenue / prevBookedNights) : 0;
+    const prevAvailRoomNights = Math.max(1, totalProps * periodDays);
+    const prevRevPar = Math.round(prevRevenue / prevAvailRoomNights);
+    const prevNetOpIncome = Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
+    const prevOccPct = Math.min(100, Math.round((prevBookedNights / prevAvailRoomNights) * 100));
+
+    const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+100' : '0.0');
+    const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+100' : '0.0');
+    const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : '0.0';
+    const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : '0.0';
+    const occDiffPts = (periodOccupancyPct - prevOccPct).toFixed(0);
+
+    function formatDeltaTag(val, isPts = false) {
+      const num = parseFloat(val);
+      const isPos = num >= 0;
+      const sign = isPos ? '+' : '';
+      const cls = isPos ? 'positive' : 'negative';
+      const icon = isPos ? 'ti-arrow-up-right' : 'ti-arrow-down-right';
+      const unit = isPts ? ' pts' : '%';
+      return `<span class="hh-kpi-change-tag ${cls}"><i class="ti ${icon}"></i> ${sign}${Math.abs(num)}${unit}</span>`;
     }
-  });
 
-  const realCheckins = rawCheckins.filter(x => !shiftGuests.has(x.guest_name));
-  const realCheckouts = rawCheckouts.filter(x => !shiftGuests.has(x.guest_name));
-
-  // Property KPIs
-  const bookedNow = allFlats.filter(x => x.status === 'Booked');
-  const freeClean = allFlats.filter(x => x.status === 'Free' && x.cleaning_status === 'Clean');
-  const dirty = allFlats.filter(x => x.cleaning_status === 'Dirty' && x.status !== 'Blocked-Maintenance');
-  const maintUnits = allFlats.filter(x => x.status === 'Blocked-Maintenance');
-  const totalProps = allFlats.length;
-
-  // Financial KPIs
-  const paidMap = {};
-  propPayments.forEach(p => {
-    paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
-  });
-
-  const todayCheckinBookings = allBookings.filter(b => b.check_in === today);
-  const todayRevenue = todayCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const todayCollected = todayCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
-  const todayPending = todayRevenue - todayCollected;
-
-  const todayPaymentsReceived = propPayments
-    .filter(p => p.payment_date === today)
-    .reduce((s, p) => s + (p.amount || 0), 0);
-
-  const monthCheckinBookings = allBookings.filter(b => {
-    const ci = b.check_in || '';
-    return ci >= monthStart && ci <= monthEnd && !b.is_cancelled;
-  });
-  const monthRevenue = monthCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const monthCollected = monthCheckinBookings.reduce((s, b) => s + (paidMap[b.booking_id] || 0), 0);
-
-  const pendingBalance = monthCheckinBookings.reduce((s, b) => {
-    const due = (b.total_amount || 0) - (paidMap[b.booking_id] || 0);
-    return s + (due > 0 ? due : 0);
-  }, 0);
-
-  // --- HOMEYHUTS / TUHH VACATION RENTAL ANALYTICS CALCULATIONS ---
-  const totalBookedNights = monthCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
-  const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : (monthRevenue > 0 ? Math.round(monthRevenue / Math.max(1, monthCheckinBookings.length)) : 0);
-  const totalAvailRoomNights = Math.max(1, totalProps * periodDays);
-  const hhRevPar = Math.round(monthRevenue / totalAvailRoomNights);
-  const hhEstExpenses = Math.round(monthRevenue * 0.38);
-  const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
-  const periodOccupancyPct = totalAvailRoomNights > 0 ? Math.min(100, Math.round((totalBookedNights / totalAvailRoomNights) * 100)) : 0;
-
-  // Previous Period Dynamic Comparison Calculation
-  const prevPeriodCheckinBookings = allBookings.filter(b => {
-    const ci = b.check_in || '';
-    return ci >= prevPeriodStart && ci <= prevPeriodEnd && !b.is_cancelled;
-  });
-  const prevRevenue = prevPeriodCheckinBookings.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const prevBookedNights = prevPeriodCheckinBookings.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
-  const prevAdr = prevBookedNights > 0 ? Math.round(prevRevenue / prevBookedNights) : 0;
-  const prevAvailRoomNights = Math.max(1, totalProps * periodDays);
-  const prevRevPar = Math.round(prevRevenue / prevAvailRoomNights);
-  const prevNetOpIncome = Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
-  const prevOccPct = Math.min(100, Math.round((prevBookedNights / prevAvailRoomNights) * 100));
-
-  const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+100' : '0.0');
-  const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+100' : '0.0');
-  const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : '0.0';
-  const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : '0.0';
-  const occDiffPts = (periodOccupancyPct - prevOccPct).toFixed(0);
-
-  function formatDeltaTag(val, isPts = false) {
-    const num = parseFloat(val);
-    const isPos = num >= 0;
-    const sign = isPos ? '+' : '';
-    const cls = isPos ? 'positive' : 'negative';
-    const icon = isPos ? 'ti-arrow-up-right' : 'ti-arrow-down-right';
-    const unit = isPts ? ' pts' : '%';
-    return `<span class="hh-kpi-change-tag ${cls}"><i class="ti ${icon}"></i> ${sign}${Math.abs(num)}${unit}</span>`;
-  }
-
-  function sparklineSvg(isPos, color) {
-    const stroke = color || (isPos ? '#10B981' : '#EF4444');
-    const fill = isPos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
-    if (isPos) {
-      return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+    function sparklineSvg(isPos, color) {
+      const stroke = color || (isPos ? '#10B981' : '#EF4444');
+      const fill = isPos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+      if (isPos) {
+        return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
         <path d="M0 24 Q 25 18, 50 12 T 100 4" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
         <path d="M0 24 Q 25 18, 50 12 T 100 4 L 100 28 L 0 28 Z" fill="${fill}"/>
       </svg>`;
-    } else {
-      return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
+      } else {
+        return `<svg viewBox="0 0 100 28" class="hh-kpi-sparkline">
         <path d="M0 8 Q 25 14, 50 18 T 100 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round"/>
         <path d="M0 8 Q 25 14, 50 18 T 100 24 L 100 28 L 0 28 Z" fill="${fill}"/>
       </svg>`;
+      }
     }
-  }
 
-  // Channel Breakdown — 100% Real-Time Database Calculation (Zero Fake/Estimated Fallbacks)
-  const directBks = monthCheckinBookings.filter(b => {
-    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-    return src ? src.type === 'direct' : (!b.booking_mode?.includes('Airbnb') && !b.booking_mode?.includes('Booking.com') && !b.booking_mode?.includes('Agoda'));
-  });
-  const directRev = directBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    // Channel Breakdown — 100% Real-Time Database Calculation (Zero Fake/Estimated Fallbacks)
+    const directBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'direct' : (!b.booking_mode?.includes('Airbnb') && !b.booking_mode?.includes('Booking.com') && !b.booking_mode?.includes('Agoda'));
+    });
+    const directRev = directBks.reduce((s, b) => s + (b.total_amount || 0), 0);
 
-  const abBks = monthCheckinBookings.filter(b => {
-    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-    return src ? src.type === 'airbnb' : b.booking_mode?.includes('Airbnb');
-  });
-  const abRev = abBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const abBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'airbnb' : b.booking_mode?.includes('Airbnb');
+    });
+    const abRev = abBks.reduce((s, b) => s + (b.total_amount || 0), 0);
 
-  const bcomBks = monthCheckinBookings.filter(b => {
-    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-    return src ? src.type === 'booking_com' : b.booking_mode?.includes('Booking.com');
-  });
-  const bcomRev = bcomBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const bcomBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? src.type === 'booking_com' : b.booking_mode?.includes('Booking.com');
+    });
+    const bcomRev = bcomBks.reduce((s, b) => s + (b.total_amount || 0), 0);
 
-  const agodaBks = monthCheckinBookings.filter(b => {
-    const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-    return src ? (src.type === 'agoda' || src.type === 'online_other') : (b.booking_mode?.includes('Agoda') || b.booking_mode?.includes('MakeMyTrip'));
-  });
-  const agodaRev = agodaBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const agodaBks = monthCheckinBookings.filter(b => {
+      const src = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
+      return src ? (src.type === 'agoda' || src.type === 'online_other') : (b.booking_mode?.includes('Agoda') || b.booking_mode?.includes('MakeMyTrip'));
+    });
+    const agodaRev = agodaBks.reduce((s, b) => s + (b.total_amount || 0), 0);
 
-  const totalChanRev = (directRev + abRev + bcomRev + agodaRev) || 1;
-  const directPct = Math.round((directRev / totalChanRev) * 100);
-  const abPct = Math.round((abRev / totalChanRev) * 100);
-  const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
-  const agodaPct = Math.round((agodaRev / totalChanRev) * 100);
+    const totalChanRev = (directRev + abRev + bcomRev + agodaRev) || 1;
+    const directPct = Math.round((directRev / totalChanRev) * 100);
+    const abPct = Math.round((abRev / totalChanRev) * 100);
+    const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
+    const agodaPct = Math.round((agodaRev / totalChanRev) * 100);
 
-  // Properties Leaderboard
-  const ROOM_SLUG_MAP = {
-    'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
-    'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
-    'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
-    'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
-    'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
-    'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
-    'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
-    'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
-    'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
-  };
+    // Properties Leaderboard
+    const ROOM_SLUG_MAP = {
+      'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
+      'GOM-201': 'the-dark-blue', 'GOM-202': 'the-brown',
+      'GOM-301': 'the-light-green', 'GOM-401': 'the-nawabi-stay',
+      'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+      'VIL-104': 'the-green-house', 'VIL-103': 'the-pink-house',
+      'VIL-105': 'the-yellow-house', 'VIL-106': 'green-forest',
+      'VIL-108': 'pink-paradise', 'LUL-402': 'celebrity-garden',
+      'VIL-101': 'gomti-grand-villa', 'VIL-102': 'royal-white-house',
+      'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
+    };
 
-  const propRankingList = allFlats.map(fl => {
-    const rId = fl.room_id;
-    const rBks = monthCheckinBookings.filter(b => b.room_id === rId);
-    const rRev = rBks.reduce((s, b) => s + (b.total_amount || 0), 0);
-    const rNights = rBks.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
-    const rOcc = Math.min(100, Math.round((rNights / lastDay) * 100));
-    const rNet = Math.round(rRev * 0.62);
-    const rName = propLabel(fl.rooms) || fl.room_id || 'Unit';
-    const slug = fl.rooms?.slug || ROOM_SLUG_MAP[rId] || '';
-    const thumb = slug ? `assets/properties/${slug}/cover.jpg` : '';
+    const propRankingList = allFlats.map(fl => {
+      const rId = fl.room_id;
+      const rBks = monthCheckinBookings.filter(b => b.room_id === rId);
+      const rRev = rBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const rNights = rBks.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+      const rOcc = Math.min(100, Math.round((rNights / lastDay) * 100));
+      const rNet = Math.round(rRev * 0.62);
+      const rName = propLabel(fl.rooms) || fl.room_id || 'Unit';
+      const slug = fl.rooms?.slug || ROOM_SLUG_MAP[rId] || '';
+      const thumb = slug ? `assets/properties/${slug}/cover.jpg` : '';
 
-    return { rId, rName, rRev, rOcc, rNet, thumb, unit: fl.rooms?.unit_no || fl.unit_no || '' };
-  });
+      return { rId, rName, rRev, rOcc, rNet, thumb, unit: fl.rooms?.unit_no || fl.unit_no || '' };
+    });
 
-  window._hhPropRanking = propRankingList;
-  window._hhSortBy = window._hhSortBy || 'revenue';
+    window._hhPropRanking = propRankingList;
+    window._hhSortBy = window._hhSortBy || 'revenue';
 
-  window.toggleHHSort = function(mode) {
-    window._hhSortBy = mode;
-    const tbody = document.getElementById('hhLeaderboardBody');
-    if (!tbody || !window._hhPropRanking) return;
-    const sorted = [...window._hhPropRanking].sort((a, b) => mode === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
-    tbody.innerHTML = sorted.map(p => `
+    window.toggleHHSort = function (mode) {
+      window._hhSortBy = mode;
+      const tbody = document.getElementById('hhLeaderboardBody');
+      if (!tbody || !window._hhPropRanking) return;
+      const sorted = [...window._hhPropRanking].sort((a, b) => mode === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
+      tbody.innerHTML = sorted.map(p => `
       <tr>
         <td class="hh-prop-cell-name">
           ${p.thumb ? `<img src="${p.thumb}" alt="${p.rName}" style="width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">` : `<div style="width:34px;height:34px;border-radius:8px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">${p.unit}</div>`}
@@ -645,300 +645,300 @@ async function renderDashboard() {
       </tr>
     `).join('');
 
-    const btnRev = document.getElementById('btnHHSortRev');
-    const btnProfit = document.getElementById('btnHHSortProfit');
-    if (btnRev && btnProfit) {
-      if (mode === 'revenue') {
-        btnRev.classList.add('active');
-        btnProfit.classList.remove('active');
-      } else {
-        btnProfit.classList.add('active');
-        btnRev.classList.remove('active');
+      const btnRev = document.getElementById('btnHHSortRev');
+      const btnProfit = document.getElementById('btnHHSortProfit');
+      if (btnRev && btnProfit) {
+        if (mode === 'revenue') {
+          btnRev.classList.add('active');
+          btnProfit.classList.remove('active');
+        } else {
+          btnProfit.classList.add('active');
+          btnRev.classList.remove('active');
+        }
       }
-    }
-  };
+    };
 
-  window.setDashboardPeriod = function(period) {
-    window._dashPeriod = period;
-    if (period !== 'custom') window._dashCustomMonth = '';
-    if (typeof window.renderExecutiveDashboard === 'function') {
-      window.renderExecutiveDashboard();
-    } else if (typeof window.renderDashboard === 'function') {
-      window.renderDashboard();
-    }
-  };
+    window.setDashboardPeriod = function (period) {
+      window._dashPeriod = period;
+      if (period !== 'custom') window._dashCustomMonth = '';
+      if (typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+      } else if (typeof window.renderDashboard === 'function') {
+        window.renderDashboard();
+      }
+    };
 
-  window.setDashboardCustomMonth = function(monthVal) {
-    if (!monthVal) return;
-    window._dashPeriod = 'custom';
-    window._dashCustomMonth = monthVal;
-    if (typeof window.renderExecutiveDashboard === 'function') {
-      window.renderExecutiveDashboard();
-    } else if (typeof window.renderDashboard === 'function') {
-      window.renderDashboard();
-    }
-  };
+    window.setDashboardCustomMonth = function (monthVal) {
+      if (!monthVal) return;
+      window._dashPeriod = 'custom';
+      window._dashCustomMonth = monthVal;
+      if (typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+      } else if (typeof window.renderDashboard === 'function') {
+        window.renderDashboard();
+      }
+    };
 
-  window.downloadHomeyhutsExcel = function() {
-    const list = window._hhPropRanking || [];
-    let csv = '\uFEFFProperty,Unit,Net Revenue,Occupancy %,Net Operating Income\n';
-    list.forEach(p => {
-      csv += `"${p.rName}","${p.unit}",${p.rRev},${p.rOcc}%,${p.rNet}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
-    link.click();
-  };
+    window.downloadHomeyhutsExcel = function () {
+      const list = window._hhPropRanking || [];
+      let csv = '\uFEFFProperty,Unit,Net Revenue,Occupancy %,Net Operating Income\n';
+      list.forEach(p => {
+        csv += `"${p.rName}","${p.unit}",${p.rRev},${p.rOcc}%,${p.rNet}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `TUHH_Analytics_Report_${periodMode}_${today}.csv`;
+      link.click();
+    };
   window.downloadTuhhAnalyticsExcel = window.downloadHomeyhutsExcel;
 
 
-  const monthBookings = monthCheckinBookings.length;
+    const monthBookings = monthCheckinBookings.length;
 
-  const upcoming7 = allBookings
-    .filter(b => b.check_in > today && b.check_in <= day7)
-    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+    const upcoming7 = allBookings
+      .filter(b => b.check_in > today && b.check_in <= day7)
+      .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
 
-  // Active stays
-  const activeNow = allBookings.filter(b => b.check_in <= today && (b.check_out > today || !b.check_out));
+    // Active stays
+    const activeNow = allBookings.filter(b => b.check_in <= today && (b.check_out > today || !b.check_out));
 
-  // Attendance today
-  const presentToday = (attendance || []).filter(a => a.status === 'Present').length;
-  const totalEmps = (emps || []).length;
+    // Attendance today
+    const presentToday = (attendance || []).filter(a => a.status === 'Present').length;
+    const totalEmps = (emps || []).length;
 
-  // Pending tasks
-  const urgentTasks = filteredTasks.filter(t => t.priority === 'Urgent').length;
-  const maintPending = filteredMaint.length;
+    // Pending tasks
+    const urgentTasks = filteredTasks.filter(t => t.priority === 'Urgent').length;
+    const maintPending = filteredMaint.length;
 
-  // Occupancy %
-  const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
+    // Occupancy %
+    const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
 
-  // Extended Stays & Shifts
-  const today30 = new Date(); today30.setDate(today30.getDate() - 30);
-  const today30Str = today30.toISOString().slice(0, 10);
-  const extendedStays = allBookings.filter(b =>
-    b.parent_booking_id &&
-    b.check_in >= today30Str &&
-    (b.check_out >= today || !b.check_out)
-  ).sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
-  const extendedWithParent = extendedStays.map(ext => {
-    const parent = allBookings.find(pb => pb.booking_id === ext.parent_booking_id);
-    return { ext, parent };
-  });
-
-  const allShifts = [];
-  allBookings.filter(b => b.parent_booking_id && b.check_in >= today30Str)
-    .forEach(ext => {
+    // Extended Stays & Shifts
+    const today30 = new Date(); today30.setDate(today30.getDate() - 30);
+    const today30Str = today30.toISOString().slice(0, 10);
+    const extendedStays = allBookings.filter(b =>
+      b.parent_booking_id &&
+      b.check_in >= today30Str &&
+      (b.check_out >= today || !b.check_out)
+    ).sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
+    const extendedWithParent = extendedStays.map(ext => {
       const parent = allBookings.find(pb => pb.booking_id === ext.parent_booking_id);
-      if (parent && parent.room_id !== ext.room_id) {
-        allShifts.push({
-          guest: ext.guest_name,
-          fromRoom: propLabel(parent.rooms) || parent.room_id,
-          toRoom: propLabel(ext.rooms) || ext.room_id,
-          shiftDate: ext.check_in,
-          phone: ext.phone
-        });
+      return { ext, parent };
+    });
+
+    const allShifts = [];
+    allBookings.filter(b => b.parent_booking_id && b.check_in >= today30Str)
+      .forEach(ext => {
+        const parent = allBookings.find(pb => pb.booking_id === ext.parent_booking_id);
+        if (parent && parent.room_id !== ext.room_id) {
+          allShifts.push({
+            guest: ext.guest_name,
+            fromRoom: propLabel(parent.rooms) || parent.room_id,
+            toRoom: propLabel(ext.rooms) || ext.room_id,
+            shiftDate: ext.check_in,
+            phone: ext.phone
+          });
+        }
+      });
+
+    const bName = b => `${propLabel(b.rooms) || b.room_id || '-'}`;
+    const fName = fl => `${propLabel(fl.rooms) || fl.room_id || '-'}`;
+
+    const upcomingReservations = allBookings
+      .filter(b => b.check_in > today)
+      .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
+
+    const past7Days = dateAdd(today, -7);
+    const checkoutFollowups = allBookings
+      .filter(b => b.check_out && b.check_out >= past7Days && b.check_out < today)
+      .slice(0, 4);
+
+    const totalTodayReservations = realCheckouts.length + realCheckins.length + activeNow.length;
+    window._airbnbTodayCount = totalTodayReservations;
+    window._airbnbUpcomingCount = upcomingReservations.length;
+
+    window.switchAirbnbFeedTab = function (tab) {
+      window._airbnbFeedTab = tab;
+      const todayList = document.getElementById('airbnbFeedTodayList');
+      const upcomingList = document.getElementById('airbnbFeedUpcomingList');
+      const heading = document.getElementById('airbnbFeedHeading');
+      const btnToday = document.getElementById('airbnbTabBtnToday');
+      const btnUpcoming = document.getElementById('airbnbTabBtnUpcoming');
+
+      if (tab === 'today') {
+        if (todayList) todayList.style.display = 'flex';
+        if (upcomingList) upcomingList.style.display = 'none';
+        if (heading) heading.textContent = `You have ${window._airbnbTodayCount || 0} reservations`;
+        if (btnToday) btnToday.classList.add('active');
+        if (btnUpcoming) btnUpcoming.classList.remove('active');
+      } else {
+        if (todayList) todayList.style.display = 'none';
+        if (upcomingList) upcomingList.style.display = 'flex';
+        if (heading) heading.textContent = `You have ${window._airbnbUpcomingCount || 0} upcoming reservations`;
+        if (btnToday) btnToday.classList.remove('active');
+        if (btnUpcoming) btnUpcoming.classList.add('active');
       }
-    });
+    };
 
-  const bName = b => `${propLabel(b.rooms) || b.room_id || '-'}`;
-  const fName = fl => `${propLabel(fl.rooms) || fl.room_id || '-'}`;
+    window._dashboardPaidMap = paidMap;
+    const formatAirbnbDateRange = window.formatAirbnbDateRange;
+    const getAirbnbGuestNarrative = window.getAirbnbGuestNarrative;
+    const getAirbnbPropertySubtitle = window.getAirbnbPropertySubtitle;
+    const renderAirbnbOverlappingMedia = window.renderAirbnbOverlappingMedia;
+    const renderAirbnbResCard = window.renderAirbnbResCard;
+    const renderAirbnbGuestItem = window.renderAirbnbGuestItem;
 
-  const upcomingReservations = allBookings
-    .filter(b => b.check_in > today)
-    .sort((a, b) => (a.check_in || '').localeCompare(b.check_in || ''));
-
-  const past7Days = dateAdd(today, -7);
-  const checkoutFollowups = allBookings
-    .filter(b => b.check_out && b.check_out >= past7Days && b.check_out < today)
-    .slice(0, 4);
-
-  const totalTodayReservations = realCheckouts.length + realCheckins.length + activeNow.length;
-  window._airbnbTodayCount = totalTodayReservations;
-  window._airbnbUpcomingCount = upcomingReservations.length;
-
-  window.switchAirbnbFeedTab = function(tab) {
-    window._airbnbFeedTab = tab;
-    const todayList = document.getElementById('airbnbFeedTodayList');
-    const upcomingList = document.getElementById('airbnbFeedUpcomingList');
-    const heading = document.getElementById('airbnbFeedHeading');
-    const btnToday = document.getElementById('airbnbTabBtnToday');
-    const btnUpcoming = document.getElementById('airbnbTabBtnUpcoming');
-
-    if (tab === 'today') {
-      if (todayList) todayList.style.display = 'flex';
-      if (upcomingList) upcomingList.style.display = 'none';
-      if (heading) heading.textContent = `You have ${window._airbnbTodayCount || 0} reservations`;
-      if (btnToday) btnToday.classList.add('active');
-      if (btnUpcoming) btnUpcoming.classList.remove('active');
+    // Time-aware greeting (handles midnight/late night correctly)
+    const hour = new Date().getHours();
+    let greeting, greetEmoji;
+    if (hour >= 0 && hour < 5) {
+      greeting = 'Good Night'; greetEmoji = '🌙';      // midnight – 4:59 AM
+    } else if (hour < 12) {
+      greeting = 'Good Morning'; greetEmoji = '🌅';    // 5 AM – 11:59 AM
+    } else if (hour < 17) {
+      greeting = 'Good Afternoon'; greetEmoji = '☀️';  // 12 PM – 4:59 PM
     } else {
-      if (todayList) todayList.style.display = 'none';
-      if (upcomingList) upcomingList.style.display = 'flex';
-      if (heading) heading.textContent = `You have ${window._airbnbUpcomingCount || 0} upcoming reservations`;
-      if (btnToday) btnToday.classList.remove('active');
-      if (btnUpcoming) btnUpcoming.classList.add('active');
+      greeting = 'Good Evening'; greetEmoji = '🌆';    // 5 PM – 11:59 PM
     }
-  };
+    const userName = SESSION.name || (SESSION.role ? (SESSION.role.charAt(0).toUpperCase() + SESSION.role.slice(1)) : 'Host');
 
-  window._dashboardPaidMap = paidMap;
-  const formatAirbnbDateRange = window.formatAirbnbDateRange;
-  const getAirbnbGuestNarrative = window.getAirbnbGuestNarrative;
-  const getAirbnbPropertySubtitle = window.getAirbnbPropertySubtitle;
-  const renderAirbnbOverlappingMedia = window.renderAirbnbOverlappingMedia;
-  const renderAirbnbResCard = window.renderAirbnbResCard;
-  const renderAirbnbGuestItem = window.renderAirbnbGuestItem;
+    // WhatsApp Tasks Computation
+    const tomorrow = dateAdd(today, 1);
+    const yesterday = dateAdd(today, -1);
 
-  // Time-aware greeting (handles midnight/late night correctly)
-  const hour = new Date().getHours();
-  let greeting, greetEmoji;
-  if (hour >= 0 && hour < 5) {
-    greeting = 'Good Night'; greetEmoji = '🌙';      // midnight – 4:59 AM
-  } else if (hour < 12) {
-    greeting = 'Good Morning'; greetEmoji = '🌅';    // 5 AM – 11:59 AM
-  } else if (hour < 17) {
-    greeting = 'Good Afternoon'; greetEmoji = '☀️';  // 12 PM – 4:59 PM
-  } else {
-    greeting = 'Good Evening'; greetEmoji = '🌆';    // 5 PM – 11:59 PM
-  }
-  const userName = SESSION.name || (SESSION.role ? (SESSION.role.charAt(0).toUpperCase() + SESSION.role.slice(1)) : 'Host');
-
-  // WhatsApp Tasks Computation
-  const tomorrow = dateAdd(today, 1);
-  const yesterday = dateAdd(today, -1);
-
-  const checkinReminders = allBookings.filter(b => b.check_in === tomorrow && b.phone);
-  const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
-  const arrivingSoonWA = allBookings.filter(b => {
-    if (!b.phone || b.check_in !== today) return false;
-    const t = (b.check_in_time || '14:00').toString();
-    let mins = 14 * 60;
-    const m24 = t.match(/^(\d{1,2}):(\d{2})/);
-    if (m24) mins = parseInt(m24[1]) * 60 + parseInt(m24[2]);
-    const diff = mins - nowMinutes;
-    return diff >= -30 && diff <= 120;
-  });
-
-  const checkoutReminders = allBookings.filter(b => {
-    if (!b.phone || !b.check_out) return false;
-    return b.check_out === today && b.check_in <= today;
-  });
-
-  const sevenDaysAgo = dateAdd(today, -7);
-  const reviewRequests = allBookings.filter(b => {
-    if (!b.phone || !b.check_out) return false;
-    return b.check_out >= sevenDaysAgo && b.check_out < today;
-  });
-
-  const noIdBookings = allBookings.filter(b => {
-    if (!b.phone) return false;
-    if (b.check_in > today || b.check_out < today) return false;
-    const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
-    return !hasId;
-  });
-
-  const totalWATasks = checkinReminders.length + arrivingSoonWA.length + checkoutReminders.length + reviewRequests.length + noIdBookings.length;
-  const { lateCheckouts, arrivingSoon } = computeAttention(realCheckins, realCheckouts);
-  const totalAttention = lateCheckouts.length + arrivingSoon.length;
-
-  // ═══════════════════════════════════════════════════════════
-  // 🌟 AIRBNB HOST "TODAY" FOLLOW-UPS GENERATOR (Matches Airbnb Screenshot)
-  // ═══════════════════════════════════════════════════════════
-  const airbnbFollowupList = [];
-
-  // 1. Checkouts within last 14 days without host review
-  const fourteenDaysAgo = dateAdd(today, -14);
-  const checkoutReviewsPending = allBookings.filter(b => {
-    if (b.is_cancelled || !b.check_out) return false;
-    return b.check_out >= fourteenDaysAgo && b.check_out < today && !b.host_review_completed;
-  }).sort((a, b) => (b.check_out || '').localeCompare(a.check_out || ''));
-
-  checkoutReviewsPending.forEach(b => {
-    const dOut = new Date(b.check_out + 'T00:00:00');
-    const dNow = new Date(today + 'T00:00:00');
-    const elapsedDays = Math.max(0, Math.round((dNow - dOut) / (1000 * 60 * 60 * 24)));
-    const daysLeft = Math.max(1, 14 - elapsedDays);
-    const guestFirstName = (b.guest_name || 'Guest').trim().split(' ')[0];
-
-    airbnbFollowupList.push({
-      type: 'review',
-      bookingId: b.booking_id,
-      booking: b,
-      daysBadge: `${daysLeft} days left`,
-      title: `Leave ${escapeHtml(guestFirstName)} a review`,
-      subtitle: window.getAirbnbPropertySubtitle(b),
-      actionLabel: 'Review',
-      priority: 1
+    const checkinReminders = allBookings.filter(b => b.check_in === tomorrow && b.phone);
+    const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+    const arrivingSoonWA = allBookings.filter(b => {
+      if (!b.phone || b.check_in !== today) return false;
+      const t = (b.check_in_time || '14:00').toString();
+      let mins = 14 * 60;
+      const m24 = t.match(/^(\d{1,2}):(\d{2})/);
+      if (m24) mins = parseInt(m24[1]) * 60 + parseInt(m24[2]);
+      const diff = mins - nowMinutes;
+      return diff >= -30 && diff <= 120;
     });
-  });
 
-  // 2. Missing ID proofs for in-house or arriving guests
-  const idFollowups = allBookings.filter(b => {
-    if (b.is_cancelled || (b.guest_name || '').toLowerCase().includes('blocked')) return false;
-    const isTodayArrival = (b.check_in === today);
-    const isInHouse = (b.check_in <= today && (b.check_out > today || !b.check_out));
-    if (!isTodayArrival && !isInHouse) return false;
-    const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
-    return !hasId;
-  });
-
-  idFollowups.forEach(b => {
-    airbnbFollowupList.push({
-      type: 'id',
-      bookingId: b.booking_id,
-      booking: b,
-      daysBadge: 'Action needed',
-      title: `Upload ID proof for ${escapeHtml(b.guest_name || 'Guest')}`,
-      subtitle: window.getAirbnbPropertySubtitle(b),
-      actionLabel: 'Upload ID',
-      priority: 2
+    const checkoutReminders = allBookings.filter(b => {
+      if (!b.phone || !b.check_out) return false;
+      return b.check_out === today && b.check_in <= today;
     });
-  });
 
-  // 3. Balance payment collections
-  const dueFollowups = allBookings.filter(b => {
-    if (b.is_cancelled) return false;
-    const isTodayStay = (b.check_in === today || b.check_out === today || (b.check_in < today && b.check_out > today));
-    if (!isTodayStay) return false;
-    const tot = b.total_amount || 0;
-    const pd = paidMap[b.booking_id] || 0;
-    return (tot - pd) > 0.99;
-  });
-
-  dueFollowups.forEach(b => {
-    const tot = b.total_amount || 0;
-    const pd = paidMap[b.booking_id] || 0;
-    const bal = Math.round(tot - pd);
-    airbnbFollowupList.push({
-      type: 'balance',
-      bookingId: b.booking_id,
-      booking: b,
-      daysBadge: 'Payment pending',
-      title: `Collect ₹${bal.toLocaleString('en-IN')} balance from ${escapeHtml(b.guest_name || 'Guest')}`,
-      subtitle: window.getAirbnbPropertySubtitle(b),
-      actionLabel: 'Collect',
-      priority: 3
+    const sevenDaysAgo = dateAdd(today, -7);
+    const reviewRequests = allBookings.filter(b => {
+      if (!b.phone || !b.check_out) return false;
+      return b.check_out >= sevenDaysAgo && b.check_out < today;
     });
-  });
 
-  // Sort: reviews first (by days left), then IDs, then balance
-  airbnbFollowupList.sort((a, b) => a.priority - b.priority);
-  window._airbnbFollowupsTotal = airbnbFollowupList.length;
+    const noIdBookings = allBookings.filter(b => {
+      if (!b.phone) return false;
+      if (b.check_in > today || b.check_out < today) return false;
+      const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+      return !hasId;
+    });
 
-  window.toggleAllFollowups = function() {
-    const list = document.getElementById('airbnbFollowupsExpandedList');
-    const btn = document.getElementById('btnToggleAllFollowups');
-    if (!list || !btn) return;
-    const isHidden = list.style.display === 'none' || !list.style.display;
-    list.style.display = isHidden ? 'flex' : 'none';
-    btn.innerHTML = isHidden
-      ? `<span>Show less &uarr;</span>`
-      : `<span>Show all ${window._airbnbFollowupsTotal || ''} follow-ups &darr;</span>`;
-  };
+    const totalWATasks = checkinReminders.length + arrivingSoonWA.length + checkoutReminders.length + reviewRequests.length + noIdBookings.length;
+    const { lateCheckouts, arrivingSoon } = computeAttention(realCheckins, realCheckouts);
+    const totalAttention = lateCheckouts.length + arrivingSoon.length;
 
-  const renderFollowupCard = (item) => {
-    const b = item.booking;
-    return `
+    // ═══════════════════════════════════════════════════════════
+    // 🌟 AIRBNB HOST "TODAY" FOLLOW-UPS GENERATOR (Matches Airbnb Screenshot)
+    // ═══════════════════════════════════════════════════════════
+    const airbnbFollowupList = [];
+
+    // 1. Checkouts within last 14 days without host review
+    const fourteenDaysAgo = dateAdd(today, -14);
+    const checkoutReviewsPending = allBookings.filter(b => {
+      if (b.is_cancelled || !b.check_out) return false;
+      return b.check_out >= fourteenDaysAgo && b.check_out < today && !b.host_review_completed;
+    }).sort((a, b) => (b.check_out || '').localeCompare(a.check_out || ''));
+
+    checkoutReviewsPending.forEach(b => {
+      const dOut = new Date(b.check_out + 'T00:00:00');
+      const dNow = new Date(today + 'T00:00:00');
+      const elapsedDays = Math.max(0, Math.round((dNow - dOut) / (1000 * 60 * 60 * 24)));
+      const daysLeft = Math.max(1, 14 - elapsedDays);
+      const guestFirstName = (b.guest_name || 'Guest').trim().split(' ')[0];
+
+      airbnbFollowupList.push({
+        type: 'review',
+        bookingId: b.booking_id,
+        booking: b,
+        daysBadge: `${daysLeft} days left`,
+        title: `Leave ${escapeHtml(guestFirstName)} a review`,
+        subtitle: window.getAirbnbPropertySubtitle(b),
+        actionLabel: 'Review',
+        priority: 1
+      });
+    });
+
+    // 2. Missing ID proofs for in-house or arriving guests
+    const idFollowups = allBookings.filter(b => {
+      if (b.is_cancelled || (b.guest_name || '').toLowerCase().includes('blocked')) return false;
+      const isTodayArrival = (b.check_in === today);
+      const isInHouse = (b.check_in <= today && (b.check_out > today || !b.check_out));
+      if (!isTodayArrival && !isInHouse) return false;
+      const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
+      return !hasId;
+    });
+
+    idFollowups.forEach(b => {
+      airbnbFollowupList.push({
+        type: 'id',
+        bookingId: b.booking_id,
+        booking: b,
+        daysBadge: 'Action needed',
+        title: `Upload ID proof for ${escapeHtml(b.guest_name || 'Guest')}`,
+        subtitle: window.getAirbnbPropertySubtitle(b),
+        actionLabel: 'Upload ID',
+        priority: 2
+      });
+    });
+
+    // 3. Balance payment collections
+    const dueFollowups = allBookings.filter(b => {
+      if (b.is_cancelled) return false;
+      const isTodayStay = (b.check_in === today || b.check_out === today || (b.check_in < today && b.check_out > today));
+      if (!isTodayStay) return false;
+      const tot = b.total_amount || 0;
+      const pd = paidMap[b.booking_id] || 0;
+      return (tot - pd) > 0.99;
+    });
+
+    dueFollowups.forEach(b => {
+      const tot = b.total_amount || 0;
+      const pd = paidMap[b.booking_id] || 0;
+      const bal = Math.round(tot - pd);
+      airbnbFollowupList.push({
+        type: 'balance',
+        bookingId: b.booking_id,
+        booking: b,
+        daysBadge: 'Payment pending',
+        title: `Collect ₹${bal.toLocaleString('en-IN')} balance from ${escapeHtml(b.guest_name || 'Guest')}`,
+        subtitle: window.getAirbnbPropertySubtitle(b),
+        actionLabel: 'Collect',
+        priority: 3
+      });
+    });
+
+    // Sort: reviews first (by days left), then IDs, then balance
+    airbnbFollowupList.sort((a, b) => a.priority - b.priority);
+    window._airbnbFollowupsTotal = airbnbFollowupList.length;
+
+    window.toggleAllFollowups = function () {
+      const list = document.getElementById('airbnbFollowupsExpandedList');
+      const btn = document.getElementById('btnToggleAllFollowups');
+      if (!list || !btn) return;
+      const isHidden = list.style.display === 'none' || !list.style.display;
+      list.style.display = isHidden ? 'flex' : 'none';
+      btn.innerHTML = isHidden
+        ? `<span>Show less &uarr;</span>`
+        : `<span>Show all ${window._airbnbFollowupsTotal || ''} follow-ups &darr;</span>`;
+    };
+
+    const renderFollowupCard = (item) => {
+      const b = item.booking;
+      return `
       <div class="airbnb-followup-row" onclick="openBookingFromDashboard('${item.bookingId}')" style="background:#ffffff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.03);transition:all 0.15s ease;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:11.5px;color:#717171;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:6px;">
@@ -957,9 +957,9 @@ async function renderDashboard() {
         </div>
       </div>
     `;
-  };
+    };
 
-  renderShell(`
+    renderShell(`
     <style id="dash-custom-styles">
       .dash-wrap { max-width: 1360px; margin: 0 auto; padding: 0 4px; }
       .dash-hero {
@@ -1578,7 +1578,7 @@ async function renderDashboard() {
 
     <div class="dash-wrap">
       ${updateNoticeHTML()}
-      ${['owner','admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
+      ${['owner', 'admin'].includes(SESSION.role) ? syncInfoHTML() : ''}
       ${pendingWebsiteBookings.length > 0 ? `
         <div class="website-pending-alert-banner" onclick="navigate('pendingApprovals')" style="cursor:pointer;background:linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);border:2px solid #F59E0B;border-radius:14px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 14px rgba(245,158,11,0.18);">
           <div style="display:flex;align-items:center;gap:14px;">
@@ -1629,7 +1629,7 @@ async function renderDashboard() {
           <div style="margin:0 0 16px;background:#FFF5F4;border:1px solid #FECACA;padding:9px 14px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#991B1B;">
               <span>🏛️</span>
-              <span>Filtered: <strong>${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id||'').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</strong></span>
+              <span>Filtered: <strong>${escapeHtml((window._globalRoomsList || []).find(r => (r.room_id || '').toUpperCase() === globalProp.toUpperCase())?.nickname || globalProp)}</strong></span>
             </div>
             <button type="button" onclick="window.handleGlobalPropertyFilterChange('')" style="background:#fff;border:1px solid #FECACA;color:#EA3829;font-weight:800;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;">
               Show All ✕
@@ -1768,7 +1768,7 @@ async function renderDashboard() {
 // ═══════════════════════════════════════════════════════════
 // 📊 EXECUTIVE FINANCIAL DASHBOARD (HOMEYHUTS ANALYTICS ENGINE)
 // ═══════════════════════════════════════════════════════════
-window.renderExecutiveDashboard = async function() {
+window.renderExecutiveDashboard = async function () {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
   renderShell(`<div class="loading">📊 Crunching executive business intelligence...</div>`, 'analytics');
 
@@ -1790,7 +1790,7 @@ window.renderExecutiveDashboard = async function() {
       periodDays = 7;
       const sD = new Date(periodStart + 'T00:00:00');
       const eD = new Date(periodEnd + 'T00:00:00');
-      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', {month:'short'})} – ${eD.getDate()} ${eD.toLocaleString('en-IN', {month:'short'})}`;
+      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', { month: 'short' })} – ${eD.getDate()} ${eD.toLocaleString('en-IN', { month: 'short' })}`;
     } else if (periodMode === 'last_month') {
       const lmDate = new Date(currY, currM - 1, 1);
       const lmY = lmDate.getFullYear();
@@ -1805,7 +1805,7 @@ window.renderExecutiveDashboard = async function() {
       prevPeriodStart = `${p2Y}-${p2M}-01`;
       prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
       periodDays = lmLastDay;
-      periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', {month:'short'})} ${lmY}`;
+      periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', { month: 'short' })} ${lmY}`;
     } else if (periodMode === 'this_year') {
       periodStart = `${currY}-01-01`;
       periodEnd = `${currY}-12-31`;
@@ -1828,7 +1828,7 @@ window.renderExecutiveDashboard = async function() {
       prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
       periodDays = cLastDay;
       const cDate = new Date(cYear, cMonth - 1, 1);
-      periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', {month:'short'})} ${cYear}`;
+      periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', { month: 'short' })} ${cYear}`;
     } else {
       // Default 'this_month'
       const curLastDay = new Date(currY, currM + 1, 0).getDate();
@@ -1842,7 +1842,7 @@ window.renderExecutiveDashboard = async function() {
       prevPeriodStart = `${pmY}-${pmM}-01`;
       prevPeriodEnd = `${pmY}-${pmM}-${String(pmLastDay).padStart(2, '0')}`;
       periodDays = curLastDay;
-      periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', {month:'short'})} ${currY}`;
+      periodDisplayLabel = `1 – ${curLastDay} ${now.toLocaleString('en-IN', { month: 'short' })} ${currY}`;
     }
 
     const [
@@ -1980,13 +1980,13 @@ window.renderExecutiveDashboard = async function() {
     // Properties Leaderboard
     const ROOM_SLUG_MAP = {
       'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
-      'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
-      'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
+      'GOM-201': 'the-dark-blue', 'GOM-202': 'the-brown',
+      'GOM-301': 'the-light-green', 'GOM-401': 'the-nawabi-stay',
       'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
-      'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
-      'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
-      'VIL-108': 'pink-paradise',  'LUL-402': 'celebrity-garden',
-      'VIL-101': 'gomti-grand-villa','VIL-102': 'royal-white-house',
+      'VIL-104': 'the-green-house', 'VIL-103': 'the-pink-house',
+      'VIL-105': 'the-yellow-house', 'VIL-106': 'green-forest',
+      'VIL-108': 'pink-paradise', 'LUL-402': 'celebrity-garden',
+      'VIL-101': 'gomti-grand-villa', 'VIL-102': 'royal-white-house',
       'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
     };
 
@@ -2012,7 +2012,7 @@ window.renderExecutiveDashboard = async function() {
     const topEarner = sortedByRev[0] || { rName: 'The Tehzeeb Nest', rRev: 85200, rOcc: 86, rId: 'Flat 402' };
     const topOpportunity = sortedByOcc.find(p => p.rOcc > 0) || sortedByOcc[0] || { rName: 'Gomti Grand Villa', rRev: 42000, rOcc: 38, rId: 'VIL-101' };
 
-    window.downloadHomeyhutsExcel = function() {
+    window.downloadHomeyhutsExcel = function () {
       const list = window._hhPropRanking || [];
       let csv = '\uFEFFProperty,Unit,Net Revenue,Occupancy %,Net Operating Income\n';
       list.forEach(p => {
@@ -2226,7 +2226,7 @@ window.renderExecutiveDashboard = async function() {
                       </tr>
                     </thead>
                     <tbody id="hhLeaderboardBody">
-                      ${propRankingList.sort((a,b) => b.rRev - a.rRev).map((p, idx) => `
+                      ${propRankingList.sort((a, b) => b.rRev - a.rRev).map((p, idx) => `
                         <tr>
                           <td class="hh-prop-cell-name">
                             ${p.thumb ? `<img src="${p.thumb}" alt="${p.rName}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:#F1F5F9;color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">${p.unit || p.rId}</div>`}
@@ -2642,7 +2642,7 @@ async function showPendingIdModal(days) {
     if (b.check_out < fromDate) return false;
     const hasId = (b.id_proof_photo_paths || b.id_proof_photo_path || '').split(',').filter(Boolean).length > 0;
     return !hasId;
-  }).sort((a,b) => (b.check_in || '').localeCompare(a.check_in || ''));
+  }).sort((a, b) => (b.check_in || '').localeCompare(a.check_in || ''));
 
   window._pendingIdCache = filtered;
 
@@ -2662,29 +2662,29 @@ async function showPendingIdModal(days) {
   const rowsHtml = filtered.length === 0
     ? '<div style="padding:30px;text-align:center;color:#999;">✅ No pending IDs</div>'
     : '<table style="width:100%;font-size:12px;border-collapse:collapse;">' +
-      '<thead style="background:#F9FAFB;position:sticky;top:0;">' +
-      '<tr>' +
-      '<th style="padding:8px;text-align:left;">Booking ID</th>' +
-      '<th style="padding:8px;text-align:left;">Guest</th>' +
-      '<th style="padding:8px;text-align:left;">Flat</th>' +
-      '<th style="padding:8px;text-align:left;">Check-in</th>' +
-      '<th style="padding:8px;text-align:left;">Check-out</th>' +
-      '<th style="padding:8px;text-align:left;">Phone</th>' +
-      '<th style="padding:8px;text-align:left;">Vehicle</th>' +
-      '</tr></thead><tbody>' +
-      filtered.map(b => {
-        const veh = b.has_vehicle ? ((b.vehicle_name || '') + ' ' + (b.vehicle_number || '')).trim() : '';
-        return '<tr style="border-top:1px solid var(--border);">' +
-          '<td style="padding:8px;font-family:monospace;font-size:11px;">' + b.booking_id + '</td>' +
-          '<td style="padding:8px;"><strong>' + (b.guest_name || '-') + '</strong></td>' +
-          '<td style="padding:8px;">' + (b.rooms?.nickname || b.room_id || '-') + '</td>' +
-          '<td style="padding:8px;font-size:11px;">' + (b.check_in || '-') + '</td>' +
-          '<td style="padding:8px;font-size:11px;">' + (b.check_out || '-') + '</td>' +
-          '<td style="padding:8px;font-size:11px;">' + (b.phone || '-') + '</td>' +
-          '<td style="padding:8px;font-size:11px;">' + (veh || '-') + '</td>' +
-          '</tr>';
-      }).join('') +
-      '</tbody></table>';
+    '<thead style="background:#F9FAFB;position:sticky;top:0;">' +
+    '<tr>' +
+    '<th style="padding:8px;text-align:left;">Booking ID</th>' +
+    '<th style="padding:8px;text-align:left;">Guest</th>' +
+    '<th style="padding:8px;text-align:left;">Flat</th>' +
+    '<th style="padding:8px;text-align:left;">Check-in</th>' +
+    '<th style="padding:8px;text-align:left;">Check-out</th>' +
+    '<th style="padding:8px;text-align:left;">Phone</th>' +
+    '<th style="padding:8px;text-align:left;">Vehicle</th>' +
+    '</tr></thead><tbody>' +
+    filtered.map(b => {
+      const veh = b.has_vehicle ? ((b.vehicle_name || '') + ' ' + (b.vehicle_number || '')).trim() : '';
+      return '<tr style="border-top:1px solid var(--border);">' +
+        '<td style="padding:8px;font-family:monospace;font-size:11px;">' + b.booking_id + '</td>' +
+        '<td style="padding:8px;"><strong>' + (b.guest_name || '-') + '</strong></td>' +
+        '<td style="padding:8px;">' + (b.rooms?.nickname || b.room_id || '-') + '</td>' +
+        '<td style="padding:8px;font-size:11px;">' + (b.check_in || '-') + '</td>' +
+        '<td style="padding:8px;font-size:11px;">' + (b.check_out || '-') + '</td>' +
+        '<td style="padding:8px;font-size:11px;">' + (b.phone || '-') + '</td>' +
+        '<td style="padding:8px;font-size:11px;">' + (veh || '-') + '</td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table>';
 
   const optionsHtml = rangeOptions.map(o =>
     '<option value="' + o.val + '"' + (o.val === daysBack ? ' selected' : '') + '>' + o.label + '</option>'
@@ -2692,18 +2692,18 @@ async function showPendingIdModal(days) {
 
   modal.innerHTML =
     '<div class="modal-box" style="max-width:900px;">' +
-      '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
-      '<h2>🪪 ID Pending (' + filtered.length + ')</h2>' +
-      '<div class="sub">Guests without ID proof · Excludes cancelled & (Friends)</div>' +
-      '<div style="margin:16px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
-        '<label style="font-size:12px;font-weight:600;">Date Range:</label>' +
-        '<select onchange="this.closest(\'.modal-overlay\').remove();showPendingIdModal(parseInt(this.value))" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;">' +
-          optionsHtml +
-        '</select>' +
-        '<button class="btn-sm" style="background:#25D366;color:#fff;" onclick="shareIdPendingWhatsApp(' + daysBack + ')">📱 Share on WhatsApp</button>' +
-        '<button class="btn-sm outline" onclick="copyIdPendingText(' + daysBack + ')">📋 Copy Text</button>' +
-      '</div>' +
-      '<div style="max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">' + rowsHtml + '</div>' +
+    '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>' +
+    '<h2>🪪 ID Pending (' + filtered.length + ')</h2>' +
+    '<div class="sub">Guests without ID proof · Excludes cancelled & (Friends)</div>' +
+    '<div style="margin:16px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+    '<label style="font-size:12px;font-weight:600;">Date Range:</label>' +
+    '<select onchange="this.closest(\'.modal-overlay\').remove();showPendingIdModal(parseInt(this.value))" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;">' +
+    optionsHtml +
+    '</select>' +
+    '<button class="btn-sm" style="background:#25D366;color:#fff;" onclick="shareIdPendingWhatsApp(' + daysBack + ')">📱 Share on WhatsApp</button>' +
+    '<button class="btn-sm outline" onclick="copyIdPendingText(' + daysBack + ')">📋 Copy Text</button>' +
+    '</div>' +
+    '<div style="max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">' + rowsHtml + '</div>' +
     '</div>';
   document.body.appendChild(modal);
 }
@@ -2715,7 +2715,7 @@ function buildIdPendingMessage(daysBack) {
   const rangeLabel = daysBack === 0 ? 'Currently Staying' : ('Last ' + daysBack + ' days');
 
   let msg = '*🪪 ID PENDING REPORT*' + NL;
-  msg += '*' + rangeLabel + ' · ' + new Date(today).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) + '*' + NL;
+  msg += '*' + rangeLabel + ' · ' + new Date(today).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + '*' + NL;
   msg += '━━━━━━━━━━━━━━━━━' + NL + NL;
 
   if (list.length === 0) {
@@ -2782,22 +2782,22 @@ async function showActiveUsersModal() {
       <div class="sub">Active in last 2 minutes</div>
       <div style="margin-top:16px;">
         ${users.length === 0 ? '<div class="sub">No one online right now</div>' :
-          users.map(u => {
-            const secAgo = Math.round((Date.now() - new Date(u.last_seen).getTime()) / 1000);
-            const timeStr = secAgo < 60 ? `${secAgo}s ago` : `${Math.floor(secAgo/60)}m ago`;
-            return `
+      users.map(u => {
+        const secAgo = Math.round((Date.now() - new Date(u.last_seen).getTime()) / 1000);
+        const timeStr = secAgo < 60 ? `${secAgo}s ago` : `${Math.floor(secAgo / 60)}m ago`;
+        return `
               <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#F0FFF4;border:1px solid #00A699;border-radius:10px;margin-bottom:8px;">
                 <span style="width:12px;height:12px;background:#00A699;border-radius:50%;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
                 <div style="flex:1;">
                   <strong>${u.display_name || 'User'}</strong>
                   <div style="font-size:12px;color:var(--muted);">${(({
-                    'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',
-                    'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer'
-                  })[u.user_id] || u.role)} · ${timeStr}</div>
+            'c6343844-a307-4668-9b16-1947a0c0f8fa': 'Manager',
+            'e3717cbd-da9a-495e-a940-2995021e8ca2': 'Developer'
+          })[u.user_id] || u.role)} · ${timeStr}</div>
                 </div>
               </div>
             `;
-          }).join('')}
+      }).join('')}
       </div>
     </div>
   `;
@@ -2812,43 +2812,43 @@ async function loadLaundryReminders() {
   try {
     const { data: payments } = await sb.from('laundry_payments')
       .select('id, amount, payment_date, claim_date, claim_status, record_id');
-    
+
     if (!payments || payments.length === 0) return;
-    
+
     const today = new Date();
     const daysAgo = (dateStr) => {
       if (!dateStr) return 0;
       return Math.floor((today - new Date(dateStr)) / (1000 * 60 * 60 * 24));
     };
-    
+
     // Unclaimed > 7 days
-    const oldUnclaimed = payments.filter(p => 
-      (p.claim_status || 'not_claimed') === 'not_claimed' && 
+    const oldUnclaimed = payments.filter(p =>
+      (p.claim_status || 'not_claimed') === 'not_claimed' &&
       daysAgo(p.payment_date) > 7
     );
-    
+
     // Claimed but not received > 15 days
-    const oldClaimed = payments.filter(p => 
-      p.claim_status === 'claimed' && 
-      p.claim_date && 
+    const oldClaimed = payments.filter(p =>
+      p.claim_status === 'claimed' &&
+      p.claim_date &&
       daysAgo(p.claim_date) > 15
     );
-    
+
     if (oldUnclaimed.length === 0 && oldClaimed.length === 0) return;
-    
+
     const unclaimedAmt = oldUnclaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
     const claimedAmt = oldClaimed.reduce((s, p) => s + Number(p.amount || 0), 0);
-    
+
     // Find the Attention card
     const targetCard = document.getElementById('dashAttentionCard') || document.querySelector('.dash-attention-card');
     if (!targetCard) return;
-    
+
     const contentDiv = document.getElementById('dashAttentionContent') || targetCard.querySelector('div[style*="max-height"]');
     if (!contentDiv) return;
-    
+
     // Build reminder HTML
     let html = '';
-    
+
     if (oldUnclaimed.length > 0) {
       const oldest = Math.max(...oldUnclaimed.map(p => daysAgo(p.payment_date)));
       html += `
@@ -2860,7 +2860,7 @@ async function loadLaundryReminders() {
           </div>
         </div>`;
     }
-    
+
     if (oldClaimed.length > 0) {
       const oldest = Math.max(...oldClaimed.map(p => daysAgo(p.claim_date)));
       html += `
@@ -2872,23 +2872,23 @@ async function loadLaundryReminders() {
           </div>
         </div>`;
     }
-    
+
     contentDiv.insertAdjacentHTML('beforeend', html);
-    
+
     const allTrackDiv = contentDiv.querySelector('.sub');
     if (allTrackDiv && allTrackDiv.textContent.includes('All check-ins and check-outs')) {
       allTrackDiv.style.display = 'none';
     }
-    
+
     targetCard.style.borderLeftColor = 'var(--orange, #F97316)';
     targetCard.style.background = '#FFF7ED';
-    
+
     const statNum = targetCard.querySelector('.stat-num');
     if (statNum) {
       const currentNum = parseInt(statNum.textContent) || 0;
       statNum.textContent = currentNum + oldUnclaimed.length + oldClaimed.length;
     }
-    
+
   } catch (e) {
     console.warn('Laundry reminders load failed:', e);
   }
@@ -2910,7 +2910,7 @@ window._laundryReminderInterval = setInterval(() => {
 // ═══════════════════════════════════════════════════════════
 // 🏛️ HOMEYHUTS / AIRBNB PROPERTY FILTER DIALOG
 // ═══════════════════════════════════════════════════════════
-window.openPropertyFilterDialog = function() {
+window.openPropertyFilterDialog = function () {
   document.getElementById('propFilterModal')?.remove();
   const rooms = window._globalRoomsList || [];
   const current = (window.getGlobalSelectedProperty() || '').trim().toUpperCase();
@@ -2919,7 +2919,7 @@ window.openPropertyFilterDialog = function() {
   modal.id = 'propFilterModal';
   modal.className = 'modal-backdrop active';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:999999;padding:16px;';
-  
+
   modal.innerHTML = `
     <div style="background:#ffffff;border-radius:24px;max-width:500px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 60px -15px rgba(0,0,0,0.3);overflow:hidden;border:1px solid #f1f5f9;animation:popIn 0.2s cubic-bezier(0.16,1,0.3,1);">
       <div style="padding:18px 22px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
@@ -2947,8 +2947,8 @@ window.openPropertyFilterDialog = function() {
         </div>
 
         ${rooms.map(r => {
-          const isSel = (r.room_id || '').toUpperCase() === current;
-          return `
+    const isSel = (r.room_id || '').toUpperCase() === current;
+    return `
             <div class="prop-filter-item ${isSel ? 'selected' : ''}" data-query="${escapeHtml((r.nickname || '') + ' ' + (r.unit_no || '') + ' ' + (r.room_id || '')).toLowerCase()}" onclick="window.selectPropertyFromDialog('${r.room_id}')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:14px;cursor:pointer;border:1.5px solid ${isSel ? '#EA3829' : '#f1f5f9'};background:${isSel ? '#FFF1F2' : '#ffffff'};transition:all 0.15s ease;">
               <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:38px;height:38px;border-radius:12px;background:${isSel ? '#FFE4E6' : '#FFF7F5'};color:#EA3829;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;">🏛️</div>
@@ -2960,7 +2960,7 @@ window.openPropertyFilterDialog = function() {
               ${isSel ? `<span style="color:#EA3829;font-weight:900;font-size:18px;">✓</span>` : ''}
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   `;
@@ -2969,7 +2969,7 @@ window.openPropertyFilterDialog = function() {
   document.getElementById('propFilterSearch')?.focus();
 };
 
-window.filterPropListInDialog = function(query) {
+window.filterPropListInDialog = function (query) {
   const q = (query || '').trim().toLowerCase();
   const items = document.querySelectorAll('#propFilterList .prop-filter-item[data-query]');
   items.forEach(it => {
@@ -2978,7 +2978,7 @@ window.filterPropListInDialog = function(query) {
   });
 };
 
-window.selectPropertyFromDialog = function(roomId) {
+window.selectPropertyFromDialog = function (roomId) {
   document.getElementById('propFilterModal')?.remove();
   window.handleGlobalPropertyFilterChange(roomId);
 };
@@ -3012,7 +3012,7 @@ function initExecutiveDashboardCharts(data) {
     // Calculate monthly collected revenue from payments
     const revData = [0, 0, 0, 0, 0, 0];
     const expData = [0, 0, 0, 0, 0, 0];
-    
+
     (data.propPayments || []).forEach(p => {
       if (!p.payment_date) return;
       const pDate = new Date(p.payment_date);
@@ -3080,7 +3080,7 @@ function initExecutiveDashboardCharts(data) {
           },
           tooltip: {
             callbacks: {
-              label: function(context) {
+              label: function (context) {
                 return ' ' + context.dataset.label + ': ₹' + Number(context.raw).toLocaleString('en-IN');
               }
             }
@@ -3096,7 +3096,7 @@ function initExecutiveDashboardCharts(data) {
             ticks: {
               font: { size: 11 },
               color: '#64748B',
-              callback: function(val) {
+              callback: function (val) {
                 return '₹' + (val >= 1000 ? (val / 1000) + 'k' : val);
               }
             }
