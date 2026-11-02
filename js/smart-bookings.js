@@ -385,16 +385,11 @@ async function renderSmartManageBookings(forceRefresh = false) {
 
   const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
   const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
-  // Real in-house stays: check_in <= today AND checkout is strictly in the future (or open-ended without checkout date)
-  const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
+  // Real continuing in-house stays: check_in < today AND checkout is strictly in the future (or open-ended without checkout date)
+  const inHouseCount = activeBookings.filter(b => b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
 
-  // Active reservations for Today: Departures today + Arrivals today + Ongoing stays spanning today
-  const todayCount = activeBookings.filter(b => {
-    const isArrival = b.check_in === today;
-    const isDeparture = b.check_out === today;
-    const isStaying = b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false));
-    return isArrival || isDeparture || isStaying;
-  }).length;
+  // Active reservations for Today: Departures today + Arrivals today + Continuing in-house stays
+  const todayCount = arrivalsCount + departuresCount + inHouseCount;
 
   const upcomingCount = activeBookings.filter(b => b.check_in > today).length;
   
@@ -436,6 +431,38 @@ async function renderSmartManageBookings(forceRefresh = false) {
   // Determine hero heading like Airbnb
   let heroTitle = window.getSbkHeroTitle(filtered.length, sq, tab);
 
+  // Sync global counts for top hub subnav tabs
+  window._sbkTodayCount = todayCount;
+  window._sbkPendingCount = pendingApprovalsCount;
+  try {
+    const todaySubTab = document.querySelector('.hub-subnav-tab[onclick*="bookings"]');
+    if (todaySubTab) {
+      let bBadge = todaySubTab.querySelector('.hub-tab-badge');
+      if (!bBadge) {
+        bBadge = document.createElement('span');
+        bBadge.className = 'hub-tab-badge';
+        bBadge.style.cssText = 'background:rgba(255,255,255,0.28);color:#ffffff;font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;';
+        todaySubTab.appendChild(bBadge);
+      }
+      bBadge.textContent = todayCount;
+    }
+    const aprSubTab = document.querySelector('.hub-subnav-tab[onclick*="pendingApprovals"]');
+    if (aprSubTab) {
+      let aBadge = aprSubTab.querySelector('.hub-tab-badge');
+      if (pendingApprovalsCount > 0) {
+        if (!aBadge) {
+          aBadge = document.createElement('span');
+          aBadge.className = 'hub-tab-badge';
+          aBadge.style.cssText = 'background:#F59E0B;color:#ffffff;font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;';
+          aprSubTab.appendChild(aBadge);
+        }
+        aBadge.textContent = pendingApprovalsCount;
+      } else if (aBadge) {
+        aBadge.remove();
+      }
+    }
+  } catch(e) {}
+
   // Render View HTML
   const html = `
     <div class="airbnb-host-wrap">
@@ -457,33 +484,48 @@ async function renderSmartManageBookings(forceRefresh = false) {
           </button>
         </div>
       ` : ''}
-      <!-- Centered 3 Primary Hub Tabs: Today | Calendar | Approvals -->
-      <div class="airbnb-header-bar">
-        <div class="airbnb-pills-center" id="sbkPillsRow">
-          <button class="airbnb-pill ${tab === 'today' ? 'active' : ''}" onclick="window.setBookingTab('today')" id="sbkTabToday">
-            📅 Today <span class="airbnb-pill-num">${todayCount}</span>
-          </button>
-          <button class="airbnb-pill ${tab === 'calendar' ? 'active' : ''}" onclick="window.setBookingTab('calendar')" id="sbkTabCalendar">
-            🗓️ Calendar
-          </button>
-          <button class="airbnb-pill ${tab === 'approvals' || tab === 'pending' ? 'active' : ''}" onclick="window.setBookingTab('approvals')" id="sbkTabApprovals" style="${pendingApprovalsCount > 0 ? 'background:#FEF3C7;color:#92400E;border-color:#F59E0B;font-weight:700;' : ''}">
-            🟡 Approvals <span class="airbnb-pill-num" style="${pendingApprovalsCount > 0 ? 'background:#F59E0B;color:#fff;' : ''}">${pendingApprovalsCount}</span>
-          </button>
+      <!-- Executive Reservations Header: Title Left, Unified Search & Actions Toolbar Right -->
+      <div class="sbk-streamlined-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:8px 0 12px 0;padding-bottom:12px;border-bottom:1px solid #E2E8F0;">
+        <div style="min-width:200px;">
+          <h2 style="font-size:18.5px;font-weight:800;color:#0F172A;margin:0;letter-spacing:-0.2px;" id="sbkHeroHeading">
+            ${heroTitle}
+          </h2>
+          <div id="sbkHeroSubheading" style="font-size:12.5px;color:#64748B;margin-top:3px;font-weight:500;">
+            ${tab === 'today' && !sq ? `${departuresCount} check-outs • ${arrivalsCount} check-ins • ${inHouseCount} in-house` : `Showing ${filtered.length} stay${filtered.length === 1 ? '' : 's'}`}
+          </div>
         </div>
 
-        <div class="airbnb-header-actions">
-          <button type="button" class="airbnb-filter-trigger" onclick="window.renderSmartManageBookings(true)" title="Refresh bookings from server" style="gap:4px;">
-            <span>🔄</span>
-            <span class="airbnb-filter-text">Refresh</span>
-          </button>
-          <button class="airbnb-filter-trigger ${window._sbkState.showFilters ? 'active' : ''}" onclick="window.toggleAirbnbFilter()" title="Filter Bookings">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+        <!-- Integrated Unified Search & Actions Toolbar -->
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:260px;justify-content:flex-end;flex-wrap:nowrap;">
+          <!-- Live Search Input -->
+          <div style="display:flex;align-items:center;gap:8px;background:#ffffff;border:1.5px solid #CBD5E1;border-radius:24px;padding:6px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);flex:1;max-width:340px;min-width:140px;">
+            <span style="font-size:14px;color:#94A3B8;">🔍</span>
+            <input type="text" id="sbkLiveSearch" placeholder="Search guest, phone, unit..."
+              value="${escapeHtml(window._sbkState.searchQuery)}"
+              style="border:none;outline:none;font-size:13px;color:#0F172A;width:100%;background:transparent;"
+              oninput="window.handleSearchInput(this.value)"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
+            ${window._sbkState.searchQuery ? `
+              <button type="button" onclick="window.clearSearch();" style="border:none;background:transparent;cursor:pointer;color:#94A3B8;font-size:12px;padding:2px 4px;font-weight:700;" title="Clear search">✕</button>
+            ` : ''}
+          </div>
+
+          <!-- Filter Trigger Button -->
+          <button type="button" class="airbnb-filter-trigger ${window._sbkState.showFilters ? 'active' : ''}" onclick="window.toggleAirbnbFilter()" title="Filter Bookings" style="display:inline-flex;align-items:center;gap:5px;background:${window._sbkState.showFilters ? '#EFF6FF' : '#ffffff'};border:1.5px solid ${window._sbkState.showFilters ? '#2563EB' : '#CBD5E1'};border-radius:22px;padding:7px 12px;cursor:pointer;font-weight:700;font-size:12.5px;color:${window._sbkState.showFilters ? '#2563EB' : '#0F172A'};flex-shrink:0;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
             </svg>
             <span class="airbnb-filter-text">Filter</span>
-            ${activeFilterCount > 0 ? `<span class="airbnb-pill-num">${activeFilterCount}</span>` : ''}
+            ${activeFilterCount > 0 ? `<span class="airbnb-pill-num" style="background:#2563EB;color:#fff;padding:1px 6px;border-radius:10px;font-size:10.5px;">${activeFilterCount}</span>` : ''}
           </button>
 
+          <!-- Refresh Button -->
+          <button type="button" class="airbnb-filter-trigger" onclick="window.renderSmartManageBookings(true)" title="Refresh bookings from server" style="display:inline-flex;align-items:center;gap:4px;background:#ffffff;border:1.5px solid #CBD5E1;border-radius:22px;padding:7px 11px;cursor:pointer;font-size:13.5px;color:#475569;flex-shrink:0;">
+            <span>🔄</span>
+            <span class="airbnb-filter-text">Refresh</span>
+          </button>
+
+          <!-- Desktop View Switcher -->
           <div class="airbnb-view-switch" role="group" aria-label="View Mode">
             <button type="button" class="airbnb-view-btn ${window._sbkState.viewMode === 'airbnb' ? 'active' : ''}" onclick="window.toggleViewMode('airbnb')" title="Airbnb Style View">
               <span>🏠</span> <span>Airbnb</span>
@@ -536,31 +578,6 @@ async function renderSmartManageBookings(forceRefresh = false) {
           </div>
         </div>
       ` : ''}
-
-      <!-- Streamlined Executive Header: Title & Subtitle Left, Search Right -->
-      <div class="sbk-streamlined-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:12px 0 16px 0;padding-bottom:12px;border-bottom:1px solid #E2E8F0;">
-        <div>
-          <h2 style="font-size:18px;font-weight:800;color:#0F172A;margin:0;letter-spacing:-0.2px;" id="sbkHeroHeading">
-            ${heroTitle}
-          </h2>
-          <div id="sbkHeroSubheading" style="font-size:12.5px;color:#64748B;margin-top:2px;font-weight:500;">
-            ${tab === 'today' && !sq ? `${departuresCount} check-outs • ${arrivalsCount} check-ins • ${Math.max(0, inHouseCount - arrivalsCount)} in-house` : `Showing ${filtered.length} stay${filtered.length === 1 ? '' : 's'}`}
-          </div>
-        </div>
-
-        <!-- Integrated Search Bar -->
-        <div style="display:flex;align-items:center;gap:8px;background:#ffffff;border:1.5px solid #CBD5E1;border-radius:24px;padding:5px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.04);max-width:360px;flex:1;min-width:220px;">
-          <span style="font-size:14px;color:#94A3B8;">🔍</span>
-          <input type="text" id="sbkLiveSearch" placeholder="Search guest, phone, unit..."
-            value="${escapeHtml(window._sbkState.searchQuery)}"
-            style="border:none;outline:none;font-size:13px;color:#0F172A;width:100%;background:transparent;"
-            oninput="window.handleSearchInput(this.value)"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();window.handleManualSearch();}" />
-          ${window._sbkState.searchQuery ? `
-            <button type="button" onclick="window.clearSearch();" style="border:none;background:transparent;cursor:pointer;color:#94A3B8;font-size:12px;padding:2px 4px;font-weight:700;" title="Clear search">✕</button>
-          ` : ''}
-        </div>
-      </div>
 
       ${tab === 'today' && !sq ? `
         <!-- Today Operational Quick Jump Chips -->
@@ -2030,10 +2047,10 @@ window.renderSmartBookingsResultsOnly = function() {
       }
       const arrivalsCount = activeBookings.filter(b => b.check_in === today).length;
       const departuresCount = activeBookings.filter(b => b.check_out === today && b.checkout_confirmed !== false).length;
-      const inHouseCount = activeBookings.filter(b => b.check_in <= today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
+      const inHouseCount = activeBookings.filter(b => b.check_in < today && (b.check_out > today || (!b.check_out && b.checkout_confirmed === false))).length;
       subHeading.innerHTML = `
-        <div style="font-size:13.5px;color:#64748B;text-align:center;margin:-12px 0 22px 0;font-weight:500;">
-          ${departuresCount} check-out${departuresCount === 1 ? '' : 's'} • ${arrivalsCount} check-in${arrivalsCount === 1 ? '' : 's'} • ${Math.max(0, inHouseCount - arrivalsCount)} continuing stay${Math.max(0, inHouseCount - arrivalsCount) === 1 ? '' : 's'}
+        <div style="font-size:12.5px;color:#64748B;margin-top:3px;font-weight:500;">
+          ${departuresCount} check-out${departuresCount === 1 ? '' : 's'} • ${arrivalsCount} check-in${arrivalsCount === 1 ? '' : 's'} • ${inHouseCount} in-house
         </div>`;
     } else {
       subHeading.innerHTML = '';

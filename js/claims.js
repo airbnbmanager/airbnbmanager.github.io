@@ -1054,6 +1054,7 @@ window.showUhhsStatementModal = async function() {
     const totalInflow = ledger ? Number(ledger.totalInflow || 0) : 0;
     const totalOutflow = ledger ? Number(ledger.totalOutflow || 0) : 0;
     const netBalance = ledger ? Number(ledger.netBalance || 0) : 0;
+    const openingBalance = ledger ? Number(ledger.openingBalance || 0) : 0;
 
     // Immediately synchronize Claims Manager Top Banner with exact same numbers
     const bEl = document.getElementById('claims-od-banner-bal');
@@ -1103,19 +1104,25 @@ window.showUhhsStatementModal = async function() {
 
         <!-- SCROLLABLE BODY -->
         <div style="padding:12px 16px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;flex:1;">
-          <!-- 3-COL KPI SUMMARY ROW -->
-          <div class="uhhs-od-kpi-row" style="display:flex;flex-direction:row;gap:8px;margin-bottom:12px;width:100%;">
-            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
+          <!-- KPI SUMMARY ROW (Transparent Opening Bal + Inflow - Outflow = Net Balance) -->
+          <div class="uhhs-od-kpi-row" style="display:flex;flex-direction:row;gap:6px;margin-bottom:12px;width:100%;flex-wrap:wrap;">
+            ${openingBalance !== 0 ? `
+              <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;text-align:center;">
+                <div class="kpi-label" style="font-size:9.5px;color:#1D4ED8;font-weight:700;">OPENING BAL (B/F)</div>
+                <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:#2563EB;margin-top:2px;">₹${openingBalance.toLocaleString('en-IN')}</div>
+              </div>
+            ` : ''}
+            <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
               <div class="kpi-label" style="font-size:9.5px;color:#166534;font-weight:700;">TOTAL DEPOSITED (+)</div>
-              <div class="kpi-val" style="font-size:15px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
+              <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:#059669;margin-top:2px;">₹${totalInflow.toLocaleString('en-IN')}</div>
             </div>
-            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
+            <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:#FEF2F2;border:1px solid #FECDD3;border-radius:8px;text-align:center;">
               <div class="kpi-label" style="font-size:9.5px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
-              <div class="kpi-val" style="font-size:15px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
+              <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
             </div>
-            <div class="uhhs-od-kpi-card" style="flex:1 1 0;min-width:0;padding:8px 6px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1px solid ${netBalance>=0?'#A7F3D0':'#FDA4AF'};border-radius:8px;text-align:center;">
-              <div class="kpi-label" style="font-size:9.5px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:700;">RUNNING BALANCE</div>
-              <div class="kpi-val" style="font-size:15px;font-weight:800;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+            <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1.5px solid ${netBalance>=0?'#10B981':'#EF4444'};border-radius:8px;text-align:center;">
+              <div class="kpi-label" style="font-size:9.5px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:800;">NET RUNNING BAL</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:900;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
@@ -1136,7 +1143,7 @@ window.showUhhsStatementModal = async function() {
                 ${txns.map(t => `
                   <tr style="border-bottom:1px solid #E2E8F0;">
                     <td style="padding:8px 10px;white-space:nowrap;color:#475569;font-weight:600;">${t.date || '-'}</td>
-                    <td style="padding:8px 10px;white-space:nowrap;"><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isDep?'#DCFCE7':'#FEE2E2'};color:${t.isDep?'#15803D':'#B91C1C'};">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                    <td style="padding:8px 10px;white-space:nowrap;"><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isOpening?'#EFF6FF':(t.isDep?'#DCFCE7':'#FEE2E2')};color:${t.isOpening?'#1D4ED8':(t.isDep?'#15803D':'#B91C1C')};">${t.isOpening ? '💼 OPENING BAL' : (t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE')}</span></td>
                     <td style="padding:8px 10px;min-width:240px;max-width:none !important;white-space:normal !important;word-break:break-word !important;color:#1E293B;line-height:1.35;">${t.desc}</td>
                     <td style="padding:8px 10px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;min-width:115px;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
                     <td style="padding:8px 10px;text-align:center;white-space:nowrap;min-width:135px;">

@@ -1550,10 +1550,19 @@ function renderShell(content, activePage = 'dashboard') {
         <div class="hub-subnav-strip">
           <div class="hub-subnav-scroll">
             ${visibleTabs.map(tab => {
-              const isTabActive = (activePage === tab.id) || (tab.id === 'reports' && (activePage === 'calendar' || activePage === 'reports'));
+              const isTabActive = (activePage === tab.id) || (tab.id === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) || (tab.id === 'reports' && (activePage === 'calendar' || activePage === 'reports'));
+              let badgeHtml = '';
+              if (tab.id === 'bookings' && window._sbkTodayCount != null) {
+                badgeHtml = ` <span class="hub-tab-badge" style="background:${isTabActive ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.06)'};color:${isTabActive ? '#ffffff' : '#0F172A'};font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;">${window._sbkTodayCount}</span>`;
+              } else if (tab.id === 'pendingApprovals') {
+                const pCnt = (window._sbkPendingCount != null) ? window._sbkPendingCount : ((window._allBookings || []).filter(b => b.verification_status === 'pending').length);
+                if (pCnt > 0) {
+                  badgeHtml = ` <span class="hub-tab-badge" style="background:#F59E0B;color:#ffffff;font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:700;">${pCnt}</span>`;
+                }
+              }
               return `
               <button type="button" class="hub-subnav-tab ${isTabActive ? 'active' : ''}" onclick="${tab.externalUrl ? 'window.open(\'' + tab.externalUrl + '\',\'_blank\')' : 'navigate(\'' + tab.id + '\')'}">
-                ${tab.label}
+                ${tab.label}${badgeHtml}
               </button>
             `;}).join('')}
           </div>

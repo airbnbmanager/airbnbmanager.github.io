@@ -7631,6 +7631,15 @@ textarea:focus {
     word-break: break-word;
   }
 
+  .sbk-streamlined-bar {
+    gap: 8px !important;
+    margin: 4px 0 10px 0 !important;
+    padding-bottom: 10px !important;
+  }
+  .sbk-streamlined-bar > div:last-child {
+    width: 100% !important;
+  }
+
   .airbnb-search-bar {
     max-width: 100%;
     margin: 0 auto 18px auto;
