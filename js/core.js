@@ -1571,7 +1571,7 @@ function renderShell(content, activePage = 'dashboard') {
     }
   }
 
-  const footerHtml = (activePage === 'bookings' || activePage === 'reports' || activePage === 'calendar' || activePage === 'expenses' || activePage === 'airbnb-sync' || activePage === 'rooms' || activePage === 'flats' || activePage === 'showcase-admin' || (typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer')))) ? '' : `
+  const footerHtml = (activePage === 'bookings' || activePage === 'reports' || activePage === 'calendar' || activePage === 'expenses' || activePage === 'airbnb-sync' || activePage === 'rooms' || activePage === 'flats' || activePage === 'showcase-admin' || activePage === 'employees' || activePage === 'attendance' || activePage === 'tasks' || activePage === 'employee-ledger' || activePage === 'att-summary' || (typeof content === 'string' && (content.includes('Developed by Praveen Singh') || content.includes('report-doc') || content.includes('report-official-footer')))) ? '' : `
     <footer class="app-official-system-footer">
       <div class="footer-legal">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
       <div class="footer-meta">

@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════
 
 window.EMPLOYEE_LEDGER = {
-  
+
   // Get days in month + days elapsed till today
   getMonthInfo(monthStr) {
     const [year, month] = monthStr.split('-').map(Number);
@@ -49,18 +49,18 @@ window.EMPLOYEE_LEDGER = {
     if (savedMonth !== null && !isNaN(Number(savedMonth)) && Number(savedMonth) >= 0) {
       return Number(savedMonth);
     }
-    
+
     // 2. Count turnarounds logged in tuhh_cleaner_turnovers for this month
     try {
       const logs = JSON.parse(localStorage.getItem('tuhh_cleaner_turnovers') || '[]');
       const monthLogs = logs.filter(l => (l.cleaner_id === empId || (l.cleaner_name && l.cleaner_name.toLowerCase().includes('kanchan'))) && (!curMonth || l.month === curMonth || (l.date && l.date.startsWith(curMonth))));
       if (monthLogs.length > 0) return monthLogs.length;
     } catch(e) {}
-    
+
     // 3. Fallback to general saved count for employee
     const generalSaved = Number(localStorage.getItem('tuhh_cleaner_flats_' + empId));
     if (generalSaved > 0) return generalSaved;
-    
+
     // 4. Default baseline for Kanchan / active cleaner: 100 flats
     return 100;
   },
@@ -79,7 +79,7 @@ window.EMPLOYEE_LEDGER = {
     const isCleaner = this.isPerFlatStaff(emp);
     const assignedRooms = (emp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
     const curMonth = monthStr || new Date().toISOString().slice(0, 7);
-    
+
     // Rate: Default ₹133 per flat cleaned (User standard: ₹133/flat, e.g. 100 flats = ₹13,300)
     const savedRate = Number(localStorage.getItem('tuhh_cleaner_rate_' + emp.emp_id));
     let ratePerFlat = 133;
@@ -110,7 +110,7 @@ window.EMPLOYEE_LEDGER = {
     const { daysInMonth, daysElapsed } = this.getMonthInfo(monthStr);
     const monthStart = monthStr + '-01';
     const monthEnd = monthStr + '-' + String(daysInMonth).padStart(2, '0');
-    
+
     // Get attendance for month
     let attendance = [];
     try {
@@ -123,13 +123,13 @@ window.EMPLOYEE_LEDGER = {
     } catch(e) {
       console.warn('Attendance fetch warning:', e);
     }
-    
+
     const present = attendance.filter(a => a.status === 'Present').length;
     const half = attendance.filter(a => a.status === 'Half Day').length;
     const absent = attendance.filter(a => a.status === 'Absent').length;
     const workedDays = present + (half * 0.5);
     const hasAttendance = attendance.length > 0;
-    
+
     let earned = 0;
     let breakdown = '';
     let calculationType = 'fixed_monthly';
@@ -173,16 +173,16 @@ window.EMPLOYEE_LEDGER = {
         breakdown = `Fixed ₹${monthlySalary.toLocaleString('en-IN')}/mo (Full Month)`;
       }
     }
-    
-    return { 
-      earned, 
-      present, 
-      half, 
-      absent, 
-      workedDays, 
+
+    return {
+      earned,
+      present,
+      half,
+      absent,
+      workedDays,
       hasAttendance,
-      breakdown, 
-      daysInMonth, 
+      breakdown,
+      daysInMonth,
       daysElapsed,
       calculationType,
       flatConfig
@@ -195,14 +195,14 @@ window.EMPLOYEE_LEDGER = {
     const [y, m] = monthStr.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate();
     const monthEnd = monthStr + '-' + String(lastDay).padStart(2, '0');
-    
+
     try {
       const { data } = await sb.from('salary_tracker')
         .select('salary_paid')
         .eq('emp_id', empId)
         .gte('payment_date', monthStart)
         .lte('payment_date', monthEnd);
-      
+
       return (data || []).reduce((s, r) => s + Number(r.salary_paid || 0), 0);
     } catch(e) {
       console.warn('Salary paid fetch error:', e);
@@ -215,7 +215,7 @@ window.EMPLOYEE_LEDGER = {
     const [y, m] = monthStr.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate();
     const monthEnd = monthStr + '-' + String(lastDay).padStart(2, '0');
-    
+
     try {
       // Fetch all advances given up to month end that are NOT yet deducted
       const { data } = await sb.from('advance_tracker')
@@ -223,7 +223,7 @@ window.EMPLOYEE_LEDGER = {
         .eq('emp_id', empId)
         .lte('date_given', monthEnd)
         .eq('is_deducted', false);
-      
+
       const advances = (data || []).map(a => {
         const advAmt = Number(a.advance_amount || 0);
         const repAmt = Number(a.repaid_amount || 0);
@@ -251,7 +251,7 @@ window.EMPLOYEE_LEDGER = {
         .select('salary_due, salary_paid')
         .eq('emp_id', empId)
         .lt('payment_date', monthStart);
-      
+
       const totalDue = (data || []).reduce((s, r) => s + Number(r.salary_due || 0), 0);
       const totalPaid = (data || []).reduce((s, r) => s + Number(r.salary_paid || 0), 0);
       return totalDue - totalPaid;
@@ -269,27 +269,27 @@ window.renderEmployeeLedger = async function() {
     renderShell('<div class="card"><div class="error">❌ Access denied</div></div>', 'employee-ledger');
     return;
   }
-  
+
   // Selected month (default: current)
   const now = new Date();
   const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
   const selectedMonth = window._empLedgerMonth || currentMonth;
   // Filter toggle: 'all' or 'advance_only'
   const filterMode = window._empLedgerFilter || 'all';
-  
+
   renderShell('<div class="loading">Loading employee ledger & payroll...</div>', 'employee-ledger');
-  
+
   // Fetch active employees
   const { data: emps, error: empErr } = await sb.from('employees')
     .select('*')
     .eq('status', 'Active')
     .order('name');
-  
+
   if (empErr || !emps || emps.length === 0) {
     renderShell('<div class="card"><h1>📒 Employee Ledger</h1><div class="sub">No active employees found</div></div>', 'employee-ledger');
     return;
   }
-  
+
   // Build ledger data for each employee
   const ledger = [];
   for (const emp of emps) {
@@ -299,7 +299,7 @@ window.renderEmployeeLedger = async function() {
     const opening = await EMPLOYEE_LEDGER.getOpeningBalance(emp.emp_id, selectedMonth);
     const advanceTotal = advances.reduce((s, a) => s + a.pending_amount, 0);
     const netPayable = opening + earnedData.earned - paid - advanceTotal;
-    
+
     ledger.push({
       ...emp,
       earnedData,
@@ -311,7 +311,7 @@ window.renderEmployeeLedger = async function() {
       netPayable
     });
   }
-  
+
   // Sort: employees with advance first or highest payable
   ledger.sort((a, b) => {
     if (filterMode === 'advance_only') {
@@ -319,11 +319,11 @@ window.renderEmployeeLedger = async function() {
     }
     return b.netPayable - a.netPayable;
   });
-  
+
   // Filter by user preference
   const advanceOnlyList = ledger.filter(e => e.advanceTotal > 0);
   const displayList = filterMode === 'advance_only' ? advanceOnlyList : ledger;
-  
+
   // Month options (last 6 months + next 1)
   const monthOptions = [];
   for (let i = -6; i <= 0; i++) {
@@ -332,10 +332,10 @@ window.renderEmployeeLedger = async function() {
     const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
     monthOptions.push({ val, label });
   }
-  
+
   const totalPayable = ledger.reduce((s, e) => s + Math.max(e.netPayable, 0), 0);
   const totalAdvanceOut = ledger.reduce((s, e) => s + e.advanceTotal, 0);
-  
+
   // Build HTML
   let html = `
     <div class="card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-radius: 14px;">
@@ -347,20 +347,20 @@ window.renderEmployeeLedger = async function() {
           </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button onclick="window.giveAdvanceModal('','')" 
+          <button onclick="window.giveAdvanceModal('','')"
                   style="padding:9px 16px; background:#D97706; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(217,119,6,0.3);">
             🎁 Give Advance
           </button>
         </div>
       </div>
-      
+
       <!-- Controls Bar: Month + Filter Pills -->
       <div style="display:flex; gap:14px; align-items:center; justify-content:space-between; margin-top:16px; flex-wrap:wrap; background:#F9FAFB; padding:12px; border-radius:10px; border:1px solid #E5E7EB;">
         <div style="display:flex; gap:10px; align-items:center;">
           <label style="font-size:13px; font-weight:700; color:#374151;">📅 Month:</label>
-          <select onchange="window._empLedgerMonth=this.value;renderEmployeeLedger();" 
+          <select onchange="window._empLedgerMonth=this.value;renderEmployeeLedger();"
                   style="padding:8px 14px; border:1.5px solid #D1D5DB; border-radius:8px; font-size:14px; font-weight:700; background:#fff; cursor:pointer;">
-            ${monthOptions.map(m => 
+            ${monthOptions.map(m =>
               '<option value="' + m.val + '"' + (m.val === selectedMonth ? ' selected' : '') + '>' + m.label + '</option>'
             ).join('')}
           </select>
@@ -368,26 +368,26 @@ window.renderEmployeeLedger = async function() {
 
         <!-- Filter Pills: All Staff vs Only Advance Taken -->
         <div style="display:flex; gap:8px; align-items:center; background:#E5E7EB; padding:3px; border-radius:8px;">
-          <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();" 
+          <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();"
                   style="padding:6px 14px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; ${filterMode === 'all' ? 'background:#fff; color:#111827; box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'background:transparent; color:#6B7280;'}">
             👥 All Staff (${ledger.length})
           </button>
-          <button onclick="window._empLedgerFilter='advance_only';renderEmployeeLedger();" 
+          <button onclick="window._empLedgerFilter='advance_only';renderEmployeeLedger();"
                   style="padding:6px 14px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; ${filterMode === 'advance_only' ? 'background:#DC2626; color:#fff; box-shadow:0 2px 6px rgba(220,38,38,0.3);' : 'background:transparent; color:#991B1B;'}">
             🎁 Advance Taken Only (${advanceOnlyList.length})
           </button>
         </div>
       </div>
-      
+
       <!-- Metric Cards -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin-top:14px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:8px; margin-top:14px;">
         <div style="padding:14px 16px; background:#FEF3C7; border-left:4px solid #D97706; border-radius:10px;">
           <div style="font-size:11px; color:#92400E; font-weight:700; letter-spacing:0.5px;">💰 TOTAL SALARY PAYABLE</div>
           <div style="font-size:24px; font-weight:900; color:#D97706; margin-top:4px;">₹${totalPayable.toLocaleString('en-IN')}</div>
           <div style="font-size:11px; color:#B45309; margin-top:2px;">Net payable across active staff</div>
         </div>
-        
-        <div onclick="window._empLedgerFilter='advance_only';renderEmployeeLedger();" 
+
+        <div onclick="window._empLedgerFilter='advance_only';renderEmployeeLedger();"
              style="padding:14px 16px; background:#FEE2E2; border-left:4px solid #DC2626; border-radius:10px; cursor:pointer; transition:transform 0.15s;"
              title="Click to view employees with advance">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -436,8 +436,8 @@ window.renderEmployeeLedger = async function() {
           </div>
         </div>
 
-        <div style="margin-top:12px; overflow-x:auto;">
-          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <div style="margin-top:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+          <table style="width:100%; min-width:680px; border-collapse:collapse; font-size:13px;">
             <thead>
               <tr style="background:#FEE2E2; text-align:left;">
                 <th style="padding:8px 12px; border-radius:6px 0 0 6px;">Employee</th>
@@ -502,7 +502,7 @@ window.renderEmployeeLedger = async function() {
         <span style="font-size:13px; font-weight:700; color:#991B1B;">
           🔍 Showing only employees with active advance (${displayList.length})
         </span>
-        <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();" 
+        <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();"
                 style="background:none; border:none; color:#DC2626; font-weight:700; font-size:13px; cursor:pointer; text-decoration:underline;">
           Show All Employees ✕
         </button>
@@ -519,7 +519,7 @@ window.renderEmployeeLedger = async function() {
         <div style="font-size:32px;">🎉</div>
         <div style="font-size:16px; font-weight:700; color:#111827; margin-top:8px;">No Pending Advances!</div>
         <div style="font-size:13px; color:#6B7280; margin-top:4px;">No active employees have taken advance for this period.</div>
-        <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();" 
+        <button onclick="window._empLedgerFilter='all';renderEmployeeLedger();"
                 style="margin-top:14px; padding:8px 16px; background:#2563EB; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;">
           View All Employees
         </button>
@@ -534,7 +534,7 @@ window.renderEmployeeLedger = async function() {
     const status = bal > 0 ? 'COMPANY OWES' : (bal < 0 ? 'EMPLOYEE OWES' : 'SETTLED');
     const isCleaner = emp.earnedData.calculationType === 'per_flat';
     const flatCfg = emp.earnedData.flatConfig || {};
-    
+
     html += `
       <div class="card" style="margin-top:14px; border-left:5px solid ${emp.advanceTotal > 0 ? '#DC2626' : balColor}; border-radius:12px; box-shadow:0 3px 12px rgba(0,0,0,0.04);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
@@ -556,7 +556,7 @@ window.renderEmployeeLedger = async function() {
                 </span>
               ` : ''}
             </div>
-            
+
             <div style="font-size:12px; color:#6B7280; margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span>Role: <strong>${escapeHtml(emp.role || 'Staff')}</strong></span>
               <span>•</span>
@@ -585,7 +585,7 @@ window.renderEmployeeLedger = async function() {
             <div style="font-size:11px; color:${balColor}; font-weight:600;">Net Payable</div>
           </div>
         </div>
-        
+
         <!-- PROMINENT ADVANCE BOX (If advance taken) -->
         ${emp.advanceTotal > 0 ? `
           <div style="margin-top:12px; padding:12px 14px; background:#FFF1F2; border:1.5px solid #FCA5A5; border-radius:10px;">
@@ -597,7 +597,7 @@ window.renderEmployeeLedger = async function() {
                 ₹${emp.advanceTotal.toLocaleString('en-IN')}
               </span>
             </div>
-            
+
             <div style="background:#fff; border-radius:8px; padding:8px 12px; border:1px solid #FECDD3;">
               ${emp.advances.map(a => `
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px dashed #FEE2E2;">
@@ -636,31 +636,31 @@ window.renderEmployeeLedger = async function() {
             </span>
           </div>
           ` : ''}
-          
+
           <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #E5E7EB;">
             <span style="font-size:13px; color:#059669; font-weight:600;">💵 Salary earned (${emp.earnedData.breakdown})</span>
             <span style="font-size:14px; font-weight:800; color:#059669;">+₹${emp.earnedData.earned.toLocaleString('en-IN')}</span>
           </div>
-          
+
           ${emp.paid > 0 ? `
           <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #E5E7EB;">
             <span style="font-size:13px; color:#DC2626;">💸 Salary paid this month</span>
             <span style="font-size:14px; font-weight:700; color:#DC2626;">-₹${emp.paid.toLocaleString('en-IN')}</span>
           </div>
           ` : ''}
-          
+
           ${emp.advanceTotal > 0 ? `
           <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #E5E7EB;">
             <span style="font-size:13px; color:#DC2626; font-weight:700;">🎁 Advance deducted (${emp.advances.length} entries)</span>
             <span style="font-size:14px; font-weight:800; color:#DC2626;">-₹${emp.advanceTotal.toLocaleString('en-IN')}</span>
           </div>
           ` : ''}
-          
+
           <div style="display:flex; justify-content:space-between; padding:8px 0 4px; border-top:2px solid #E5E7EB; margin-top:6px;">
             <span style="font-size:14px; font-weight:800; color:#111827;">💰 Net Payable</span>
             <span style="font-size:17px; font-weight:900; color:${balColor};">₹${bal.toLocaleString('en-IN')}</span>
           </div>
-          
+
           <div style="font-size:11px; color:#6B7280; margin-top:6px;">
             ${emp.earnedData.hasAttendance ? `
               📋 Attendance: ✅ ${emp.earnedData.present} Present · 🕐 ${emp.earnedData.half} Half Day · ❌ ${emp.earnedData.absent} Absent
@@ -669,18 +669,18 @@ window.renderEmployeeLedger = async function() {
             `}
           </div>
         </div>
-        
+
         <!-- Action buttons -->
         <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button onclick="window.paySalaryModal('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}',${bal})" 
+          <button onclick="window.paySalaryModal('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}',${bal})"
                   style="flex:1; min-width:140px; padding:10px; background:#059669; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">
             💵 Pay Salary
           </button>
-          <button onclick="window.giveAdvanceModal('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}')" 
+          <button onclick="window.giveAdvanceModal('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}')"
                   style="flex:1; min-width:140px; padding:10px; background:#D97706; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">
             🎁 Give Advance
           </button>
-          <button onclick="window.viewEmpHistory('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}')" 
+          <button onclick="window.viewEmpHistory('${emp.emp_id}','${escapeHtml(emp.name).replace(/'/g,"\\'")}')"
                   style="padding:10px 14px; background:#4B5563; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">
             📊 History
           </button>
@@ -688,7 +688,7 @@ window.renderEmployeeLedger = async function() {
       </div>
     `;
   }
-  
+
   renderShell(html, 'employee-ledger');
 };
 
@@ -700,13 +700,13 @@ window.setPerFlatRateModal = function(empId, empName, isCleaner, currentRate, cu
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="max-width:520px; border-radius:14px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2 style="margin:0 0 4px; font-size:19px; font-weight:800; color:#111827;">⚙️ Salary &amp; Rate Settings</h2>
       <div style="font-size:13px; color:#6B7280; margin-bottom:16px;">Configure calculation mode for <strong>${escapeHtml(empName)}</strong></div>
-      
+
       <div class="form-group" style="margin-bottom:14px;">
         <label style="font-size:13px; font-weight:700; color:#374151; display:block; margin-bottom:6px;">Calculation Type *</label>
         <select id="setCalcType" onchange="window.toggleRateModalFields()" style="width:100%; padding:9px 12px; border:1.5px solid #D1D5DB; border-radius:8px; font-size:14px; font-weight:600;">
@@ -719,7 +719,7 @@ window.setPerFlatRateModal = function(empId, empName, isCleaner, currentRate, cu
       <div id="perFlatFields" style="display:${isCleaner ? 'block' : 'none'}; background:#EEF2FF; padding:14px; border-radius:10px; border:1px solid #C7D2FE; margin-bottom:14px;">
         <div class="form-group" style="margin-bottom:12px;">
           <label style="font-size:12px; font-weight:700; color:#3730A3;">Per-Flat Monthly Rate ₹ *</label>
-          <input id="setFlatMonthlyRate" type="number" value="${currentRate || 4000}" 
+          <input id="setFlatMonthlyRate" type="number" value="${currentRate || 4000}"
                  oninput="window.calcDailyRateHelper()"
                  style="width:100%; padding:8px 12px; border:1px solid #A5B4FC; border-radius:6px; font-size:15px; font-weight:700;" />
           <div id="dailyRateHelper" style="font-size:12px; color:#4338CA; margin-top:4px; font-weight:600;">
@@ -729,7 +729,7 @@ window.setPerFlatRateModal = function(empId, empName, isCleaner, currentRate, cu
 
         <div class="form-group" style="margin-bottom:6px;">
           <label style="font-size:12px; font-weight:700; color:#3730A3;">Assigned Flats Count *</label>
-          <input id="setFlatsCount" type="number" value="${currentFlats || 1}" 
+          <input id="setFlatsCount" type="number" value="${currentFlats || 1}"
                  oninput="window.calcDailyRateHelper()"
                  style="width:100%; padding:8px 12px; border:1px solid #A5B4FC; border-radius:6px; font-size:15px; font-weight:700;" />
         </div>
@@ -751,7 +751,7 @@ window.setPerFlatRateModal = function(empId, empName, isCleaner, currentRate, cu
         </div>
       </div>
 
-      <button onclick="window.savePerFlatRate('${empId}')" 
+      <button onclick="window.savePerFlatRate('${empId}')"
               style="width:100%; padding:12px; background:#2563EB; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:15px; cursor:pointer;">
         💾 Save &amp; Apply Rate
       </button>
@@ -780,7 +780,7 @@ window.calcDailyRateHelper = function() {
   const flats = parseInt(document.getElementById('setFlatsCount')?.value) || 1;
   const dailyHelper = document.getElementById('dailyRateHelper');
   const totalHelper = document.getElementById('monthlyTotalHelper');
-  
+
   if (dailyHelper) {
     dailyHelper.innerHTML = `💡 Daily rate = ₹${(rate / 30).toFixed(1)}/day per flat (₹${rate} / 30)`;
   }
@@ -791,18 +791,18 @@ window.calcDailyRateHelper = function() {
 
 window.savePerFlatRate = async function(empId) {
   const type = document.getElementById('setCalcType').value;
-  
+
   if (type === 'per_flat') {
     const rate = parseFloat(document.getElementById('setFlatMonthlyRate').value) || 4000;
     const flats = parseInt(document.getElementById('setFlatsCount').value) || 1;
     const dailyRate = Math.round(rate / 30);
     const totalMonthly = rate * flats;
-    
+
     // Save to localStorage
     localStorage.setItem('tuhh_emp_type_' + empId, 'per_flat');
     localStorage.setItem('tuhh_cleaner_rate_' + empId, String(rate));
     localStorage.setItem('tuhh_cleaner_flats_' + empId, String(flats));
-    
+
     // Update Supabase
     try {
       await sb.from('employees').update({
@@ -818,7 +818,7 @@ window.savePerFlatRate = async function(empId) {
     localStorage.setItem('tuhh_emp_type_' + empId, 'monthly');
     localStorage.removeItem('tuhh_cleaner_rate_' + empId);
     localStorage.removeItem('tuhh_cleaner_flats_' + empId);
-    
+
     try {
       await sb.from('employees').update({
         employee_type: 'Monthly',
@@ -843,7 +843,7 @@ window.paySalaryModal = function(empId, empName, suggestedAmount) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="max-width:500px; border-radius:14px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
@@ -852,12 +852,12 @@ window.paySalaryModal = function(empId, empName, suggestedAmount) {
         <div style="font-size:12px; color:#92400E; font-weight:600;">💡 Suggested Net Payable:</div>
         <div style="font-size:24px; font-weight:900; color:#D97706; margin-top:2px;">₹${suggestedAmount.toLocaleString('en-IN')}</div>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Amount ₹ *</label>
         <input id="paySalAmt" type="number" value="${suggestedAmount > 0 ? suggestedAmount : ''}" placeholder="Enter amount" />
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Payment Mode *</label>
         <select id="paySalMode">
@@ -866,7 +866,7 @@ window.paySalaryModal = function(empId, empName, suggestedAmount) {
           <option value="Bank">Bank Transfer (NEFT/IMPS)</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Paid By *</label>
         <select id="paySalBy">
@@ -874,7 +874,7 @@ window.paySalaryModal = function(empId, empName, suggestedAmount) {
           <option value="Praveen">🔵 Praveen Singh (Personal)</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Payment Date *</label>
         <input id="paySalDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
@@ -886,13 +886,13 @@ window.paySalaryModal = function(empId, empName, suggestedAmount) {
           <span>Auto-deduct &amp; settle outstanding advances for this employee</span>
         </label>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Notes (optional)</label>
         <input id="paySalNotes" placeholder="e.g. September Salary settlement" />
       </div>
-      
-      <button onclick="window.savePaySalary('${empId}','${escapeHtml(empName).replace(/'/g,"\\'")}')" 
+
+      <button onclick="window.savePaySalary('${empId}','${escapeHtml(empName).replace(/'/g,"\\'")}')"
               style="width:100%; padding:12px; background:#059669; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:15px; cursor:pointer;">
         💾 Save Salary Payment
       </button>
@@ -908,11 +908,11 @@ window.savePaySalary = async function(empId, empName) {
   const date = document.getElementById('paySalDate').value;
   const notes = document.getElementById('paySalNotes').value.trim();
   const settleAdvances = document.getElementById('autoSettleAdvCheck')?.checked;
-  
+
   if (amt <= 0) { alert('⚠️ Valid amount required'); return; }
-  
+
   const monthStr = date.slice(0, 7);
-  
+
   // 1. Save salary payment
   const { error } = await sb.from('salary_tracker').insert({
     emp_id: empId,
@@ -924,7 +924,7 @@ window.savePaySalary = async function(empId, empName) {
     paid_by: paidBy,
     notes: notes || null
   });
-  
+
   if (error) { alert('❌ Error saving salary: ' + error.message); return; }
 
   // 2. If settle advances checked, mark pending advances as deducted
@@ -934,7 +934,7 @@ window.savePaySalary = async function(empId, empName) {
         .select('*')
         .eq('emp_id', empId)
         .eq('is_deducted', false);
-      
+
       if (pendingAdvs && pendingAdvs.length > 0) {
         for (const adv of pendingAdvs) {
           await sb.from('advance_tracker').update({
@@ -949,7 +949,7 @@ window.savePaySalary = async function(empId, empName) {
       console.warn('Could not auto-settle advances:', e);
     }
   }
-  
+
   document.querySelector('.modal-overlay')?.remove();
   if (window.fsn?.success) fsn.success('Payment Saved', '✅ ₹' + amt.toLocaleString('en-IN') + ' paid to ' + empName);
   renderEmployeeLedger();
@@ -976,7 +976,7 @@ window.giveAdvanceModal = async function(empId, empName) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  
+
   modal.innerHTML = `
     <div class="modal-box" style="max-width:500px; border-radius:14px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
@@ -986,7 +986,7 @@ window.giveAdvanceModal = async function(empId, empName) {
       </div>
 
       ${empSelectHtml}
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Amount ₹ *</label>
         <input id="advAmt" type="number" placeholder="Enter amount" autofocus />
@@ -999,12 +999,12 @@ window.giveAdvanceModal = async function(empId, empName) {
           `).join('')}
         </div>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Reason *</label>
         <input id="advReason" placeholder="e.g. Medicine, Petrol, Emergency, Biryani, Room Rent" />
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Payment Mode *</label>
         <select id="advMode">
@@ -1013,7 +1013,7 @@ window.giveAdvanceModal = async function(empId, empName) {
           <option value="Bank">Bank Transfer</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Given By *</label>
         <select id="advBy">
@@ -1021,13 +1021,13 @@ window.giveAdvanceModal = async function(empId, empName) {
           <option value="UHHS-OD">🔵 Praveen Singh (Personal)</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight:700;">Date *</label>
         <input id="advDate" type="date" value="${new Date().toISOString().slice(0,10)}" />
       </div>
-      
-      <button onclick="window.saveGiveAdvance('${empId}','${escapeHtml(empName).replace(/'/g,"\\'")}')" 
+
+      <button onclick="window.saveGiveAdvance('${empId}','${escapeHtml(empName).replace(/'/g,"\\'")}')"
               style="width:100%; padding:12px; background:#D97706; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:15px; cursor:pointer;">
         💾 Save Advance
       </button>
@@ -1039,7 +1039,7 @@ window.giveAdvanceModal = async function(empId, empName) {
 window.saveGiveAdvance = async function(empId, empName) {
   let finalEmpId = empId;
   let finalEmpName = empName;
-  
+
   if (!finalEmpId) {
     const sel = document.getElementById('advEmpSelect');
     finalEmpId = sel?.value;
@@ -1051,11 +1051,11 @@ window.saveGiveAdvance = async function(empId, empName) {
   const mode = document.getElementById('advMode').value;
   const paidBy = document.getElementById('advBy').value;
   const date = document.getElementById('advDate').value;
-  
+
   if (amt <= 0) { alert('⚠️ Valid advance amount required'); return; }
   if (!reason) { alert('⚠️ Advance reason required'); return; }
   if (!finalEmpId) { alert('⚠️ Please select an employee'); return; }
-  
+
   const { error } = await sb.from('advance_tracker').insert({
     emp_id: finalEmpId,
     date_given: date,
@@ -1066,9 +1066,9 @@ window.saveGiveAdvance = async function(empId, empName) {
     paid_by: paidBy,
     is_deducted: false
   });
-  
+
   if (error) { alert('❌ Error saving advance: ' + error.message); return; }
-  
+
   document.querySelector('.modal-overlay')?.remove();
   if (window.fsn?.success) fsn.success('Advance Recorded', '✅ ₹' + amt.toLocaleString('en-IN') + ' advance to ' + finalEmpName);
   renderEmployeeLedger();
@@ -1082,17 +1082,17 @@ window.viewEmpHistory = async function(empId, empName) {
     sb.from('salary_tracker').select('*').eq('emp_id', empId).order('payment_date', { ascending: false }),
     sb.from('advance_tracker').select('*').eq('emp_id', empId).order('date_given', { ascending: false })
   ]);
-  
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  
+
   let html = `
     <div class="modal-box" style="max-width:720px; max-height:85vh; overflow-y:auto; border-radius:14px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2 style="margin:0 0 4px; font-size:20px; font-weight:800; color:#111827;">📊 History — ${escapeHtml(empName)}</h2>
       <div style="font-size:12px; color:#6B7280; margin-bottom:14px;">Complete salary payments &amp; advance transaction ledger</div>
-      
+
       <!-- Salary Payments -->
       <div style="margin-top:14px;">
         <div style="font-weight:800; font-size:14px; color:#059669; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
@@ -1100,7 +1100,7 @@ window.viewEmpHistory = async function(empId, empName) {
         </div>
         ${(salaries || []).length === 0 ? '<div style="color:#9CA3AF; font-size:12px; padding:10px; background:#F9FAFB; border-radius:8px;">No salary payment records found</div>' :
           '<div style="overflow-x:auto;"><table style="width:100%; font-size:12px; border-collapse:collapse;"><thead><tr style="background:#F3F4F6;"><th style="text-align:left; padding:8px;">Date</th><th style="text-align:right; padding:8px;">Amount</th><th style="padding:8px;">Mode</th><th style="padding:8px;">Paid By</th><th style="padding:8px; text-align:left;">Notes</th></tr></thead><tbody>' +
-          (salaries || []).map(s => 
+          (salaries || []).map(s =>
             '<tr style="border-bottom:1px solid #E5E7EB;">' +
             '<td style="padding:8px; font-weight:600;">' + (s.payment_date || s.month) + '</td>' +
             '<td style="text-align:right; color:#059669; font-weight:800; padding:8px;">₹' + Number(s.salary_paid).toLocaleString('en-IN') + '</td>' +
@@ -1111,7 +1111,7 @@ window.viewEmpHistory = async function(empId, empName) {
           ).join('') + '</tbody></table></div>'
         }
       </div>
-      
+
       <!-- Advances -->
       <div style="margin-top:22px;">
         <div style="font-weight:800; font-size:14px; color:#D97706; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
@@ -1161,7 +1161,7 @@ window.editCleanerFlatsModal = function(empId, empName, currentFlats, ratePerFla
   modal.innerHTML = `
     <div class="modal-box" style="max-width:440px;padding:24px;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,0.2);">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      
+
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
         <span style="font-size:26px;">🧹</span>
         <div>
@@ -1187,7 +1187,7 @@ window.editCleanerFlatsModal = function(empId, empName, currentFlats, ratePerFla
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">
         <span style="font-size:11px;color:#64748B;font-weight:700;align-self:center;margin-right:2px;">Presets:</span>
         ${[10, 25, 50, 75, 100, 150, 200].map(cnt => `
-          <button type="button" onclick="setPresetFlats(${cnt}, ${curRate})" 
+          <button type="button" onclick="setPresetFlats(${cnt}, ${curRate})"
                   style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;">
             ${cnt}
           </button>
@@ -1209,7 +1209,7 @@ window.editCleanerFlatsModal = function(empId, empName, currentFlats, ratePerFla
         <button type="button" class="secondary" onclick="this.closest('.modal-overlay').remove()" style="flex:1;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">
           Cancel
         </button>
-        <button type="button" onclick="saveManualCleanerFlats('${empId}', '${monthStr}', ${curRate})" 
+        <button type="button" onclick="saveManualCleanerFlats('${empId}', '${monthStr}', ${curRate})"
                 style="flex:2;background:#4F46E5;color:#fff;border:none;padding:10px;border-radius:8px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 3px 8px rgba(79,70,229,0.3);">
           💾 Save & Update Salary
         </button>

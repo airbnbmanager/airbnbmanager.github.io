@@ -63,7 +63,7 @@ function getEmpRoleBadge(role) {
   const r = String(role || 'Other').trim();
   const lower = r.toLowerCase();
   let bg = '#F1F5F9', color = '#475569', border = '#CBD5E1', icon = '👤';
-  
+
   if (lower.includes('manager')) {
     bg = '#EFF6FF'; color = '#1D4ED8'; border = '#BFDBFE'; icon = '👑';
   } else if (lower.includes('caretaker') || lower.includes('care taker')) {
@@ -116,7 +116,7 @@ async function renderManageEmployees() {
     const curAssigned = (praveenEmp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
     if (curAssigned.length < rooms.length) {
       praveenEmp.assigned_rooms = allRoomIds;
-      sb.from('employees').update({ assigned_rooms: allRoomIds }).eq('emp_id', praveenEmp.emp_id).catch(() => {});
+      try { sb.from('employees').update({ assigned_rooms: allRoomIds }).eq('emp_id', praveenEmp.emp_id).then(() => {}, () => {}); } catch(e) {}
     }
   }
 
@@ -244,10 +244,10 @@ async function renderManageEmployees() {
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center;">
         <!-- Live Search -->
         <div style="flex:1;min-width:240px;position:relative;">
-          <input 
-            type="text" 
+          <input
+            type="text"
             id="empSearchInput"
-            placeholder="🔍 Search staff by name, phone, role, property..." 
+            placeholder="🔍 Search staff by name, phone, role, property..."
             value="${escapeHtml(window._empSearchQuery || '')}"
             oninput="window._empSearchQuery=this.value;window.debounceFilterEmployees && window.debounceFilterEmployees()"
             style="width:100%;padding:9px 12px 9px 34px;border-radius:10px;font-size:13px;"
@@ -332,7 +332,7 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
                     </h3>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
                       ${getEmpRoleBadge(e.role)}
-                      ${(e.shift === 'night') 
+                      ${(e.shift === 'night')
                         ? `<span class="badge" style="background:#312E81;color:#E0E7FF;font-size:10px;padding:2px 7px;">🌙 Night (9PM–9AM)</span>`
                         : ((e.shift === 'full')
                           ? `<span class="badge" style="background:#065F46;color:#D1FAE5;font-size:10px;padding:2px 7px;">🔄 24x7 Duty</span>`
@@ -402,7 +402,7 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
                   <span style="font-weight:600;">Joined:</span> ${e.joining_date ? new Date(e.joining_date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : 'Not set'}
                 </div>
                 <div>
-                  <span style="font-weight:600;">ID Proof:</span> 
+                  <span style="font-weight:600;">ID Proof:</span>
                   ${e.id_proof_type ? `<span style="font-weight:700;color:var(--text);">${e.id_proof_type}</span>` : 'None'}
                 </div>
                 ${e.emergency_contact ? `
@@ -614,7 +614,7 @@ window.toggleAllEmpRooms = function(mode) {
     else if (mode === 'none') cb.checked = false;
     else if (mode === 'gomti') cb.checked = cb.value.startsWith('GOM') || cb.value.startsWith('LUL');
     else if (mode === 'villas') cb.checked = cb.value.startsWith('VIL');
-    
+
     const pill = document.getElementById('prop_pill_' + cb.value);
     if (pill) {
       if (cb.checked) {
@@ -866,7 +866,7 @@ async function renderAddEmp() {
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:8px;">
           ${(rooms || []).map(r => `
-            <div 
+            <div
               id="prop_pill_${r.room_id}"
               onclick="toggleEmpRoomPill('${r.room_id}')"
               style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card-bg,#fff);border:1px solid var(--border,#CBD5E1);border-radius:8px;cursor:pointer;user-select:none;transition:all 0.15s;"
@@ -971,9 +971,9 @@ async function saveEmp() {
   if (errEl) errEl.innerHTML = '';
 
   const name = document.getElementById('eName')?.value?.trim();
-  if (!name) { 
+  if (!name) {
     if (errEl) errEl.innerHTML = '<div class="error">Name is required</div>';
-    return; 
+    return;
   }
 
   if (_btn) { _btn.disabled = true; _btn.textContent = '⏳ Saving staff member...'; }
@@ -986,7 +986,7 @@ async function saveEmp() {
   if (window._empIdFrontBlob) {
     if (_btn) _btn.textContent = '⏳ Uploading ID Front photo...';
     if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading Front ID Photo...</div>';
-    
+
     const path = `employees/${empId}_front_${Date.now()}.jpg`;
     const res = await robustUploadEmpId(path, window._empIdFrontBlob);
     if (res.success) {
@@ -1003,7 +1003,7 @@ async function saveEmp() {
   if (window._empIdBackBlob) {
     if (_btn) _btn.textContent = '⏳ Uploading ID Back photo...';
     if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading Back ID Photo...</div>';
-    
+
     const path = `employees/${empId}_back_${Date.now()}.jpg`;
     const res = await robustUploadEmpId(path, window._empIdBackBlob);
     if (res.success) {
@@ -1057,7 +1057,7 @@ async function saveEmp() {
     if (errEl) errEl.innerHTML = `<div class="error">${error.message}</div>`;
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Staff Member'; }
     if (progEl) progEl.innerHTML = '';
-    return; 
+    return;
   }
 
   // 🔄 Auto-propagate Caretaker assignment to rooms table (Zero Manual Entry)
@@ -1080,7 +1080,7 @@ async function saveEmp() {
       console.warn('Auto room caretaker sync warning:', roomSyncErr);
     }
   }
-  
+
   window._empIdFrontBlob = null;
   window._empIdBackBlob = null;
 
@@ -1218,7 +1218,7 @@ async function editEmp(id) {
           ${(rooms || []).map(r => {
             const isAssigned = assignedArr.includes(r.room_id);
             return `
-              <div 
+              <div
                 id="prop_pill_${r.room_id}"
                 onclick="toggleEmpRoomPill('${r.room_id}')"
                 style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:${isAssigned ? 'var(--primary,#4F46E5)' : 'var(--card-bg,#fff)'};color:${isAssigned ? '#fff' : 'var(--text,#1E293B)'};border:1px solid ${isAssigned ? 'var(--primary,#4F46E5)' : 'var(--border,#CBD5E1)'};border-radius:8px;cursor:pointer;user-select:none;transition:all 0.15s;"
@@ -1276,7 +1276,7 @@ async function editEmp(id) {
           <!-- Front Photo -->
           <div class="form-group" style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border,#E2E8F0);">
             <label style="font-weight:700;display:block;margin-bottom:8px;">📄 Front Side Photo</label>
-            
+
             ${currentFrontUrl ? `
               <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#F1F5F9;border-radius:8px;margin-bottom:8px;">
                 <img src="${currentFrontUrl}" style="width:55px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #CBD5E1;cursor:pointer;" onclick="window.open('${currentFrontUrl}','_blank')" title="Click to view full image" />
@@ -1353,9 +1353,9 @@ async function updEmp(id) {
   if (errEl) errEl.innerHTML = '';
 
   const name = document.getElementById('eName')?.value?.trim();
-  if (!name) { 
+  if (!name) {
     if (errEl) errEl.innerHTML = '<div class="error">Name is required</div>';
-    return; 
+    return;
   }
 
   if (_btn) { _btn.disabled = true; _btn.textContent = '⏳ Updating staff member...'; }
@@ -1391,7 +1391,7 @@ async function updEmp(id) {
   if (window._empIdFrontBlob) {
     if (_btn) _btn.textContent = '⏳ Uploading ID Front photo...';
     if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading New Front ID Photo...</div>';
-    
+
     const path = `employees/${id}_front_${Date.now()}.jpg`;
     const res = await robustUploadEmpId(path, window._empIdFrontBlob);
     if (res.success) {
@@ -1408,7 +1408,7 @@ async function updEmp(id) {
   if (window._empIdBackBlob) {
     if (_btn) _btn.textContent = '⏳ Uploading ID Back photo...';
     if (progEl) progEl.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border-radius:8px;color:#1D4ED8;font-size:12px;font-weight:600;margin-bottom:10px;">📤 Uploading New Back ID Photo...</div>';
-    
+
     const path = `employees/${id}_back_${Date.now()}.jpg`;
     const res = await robustUploadEmpId(path, window._empIdBackBlob);
     if (res.success) {
@@ -1506,14 +1506,14 @@ async function renderEmployeeTasks(viewMode) {
     const allTasks = tasks || [];
     const empMap = {};
     const empPhoneMap = {};
-    (emps || []).forEach(e => { 
-      empMap[e.emp_id] = e.name; 
+    (emps || []).forEach(e => {
+      empMap[e.emp_id] = e.name;
       empPhoneMap[e.emp_id] = e.phone;
     });
 
     const roomMap = {};
-    (rooms || []).forEach(r => { 
-      roomMap[r.room_id] = r.nickname || r.unit_no || r.property_name || r.room_id; 
+    (rooms || []).forEach(r => {
+      roomMap[r.room_id] = r.nickname || r.unit_no || r.property_name || r.room_id;
     });
 
     // Store globally for quick access
@@ -1827,34 +1827,52 @@ async function renderEmployeeTasks(viewMode) {
       <style>
         .task-kpi-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+          gap: 6px;
           margin-bottom: 12px;
         }
         .task-kpi-card {
           background: #fff;
-          border-radius: 12px;
-          padding: 12px;
+          border-radius: 10px;
+          padding: 8px 6px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.06);
           border: 1px solid var(--border);
           cursor: pointer;
           transition: transform 0.1s, box-shadow 0.1s;
+          text-align: center;
         }
         .task-kpi-card:hover {
           transform: translateY(-1px);
           box-shadow: 0 3px 8px rgba(0,0,0,0.1);
         }
         .task-kpi-num {
-          font-size: 20px;
+          font-size: clamp(16px, 3.6vw, 20px);
           font-weight: 800;
-          line-height: 1.2;
+          line-height: 1.1;
         }
         .task-kpi-label {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
           color: var(--muted);
           text-transform: uppercase;
           margin-top: 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        @media (max-width: 640px) {
+          .task-kpi-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 5px;
+          }
+          .task-filter-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 6px !important;
+            width: 100% !important;
+            margin-top: 6px !important;
+            margin-left: 0 !important;
+          }
         }
         @media (max-width: 768px) {
           .tasks-desktop-table { display: none !important; }
@@ -1911,7 +1929,7 @@ async function renderEmployeeTasks(viewMode) {
             <button class="${viewMode==='byDate'?'':'secondary'} btn-sm" onclick="renderEmployeeTasks('byDate')">📅 By Date</button>
           </div>
 
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto;">
+          <div class="task-filter-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto;">
             <!-- Status Dropdown Filter -->
             <select onchange="window._taskStatusFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
               <option value="ALL" ${statusFilter==='ALL'?'selected':''}>All Statuses</option>
@@ -1944,8 +1962,8 @@ async function renderEmployeeTasks(viewMode) {
 
       <!-- MAIN CONTENT VIEW -->
       <div class="card" style="padding:12px;border-radius:14px;">
-        ${viewMode === 'byDate' 
-          ? byDateHTML 
+        ${viewMode === 'byDate'
+          ? byDateHTML
           : viewMode === 'byEmployee'
             ? `<div class="table-wrap"><table>${byEmpHTML}</table></div>`
             : `
@@ -2009,7 +2027,7 @@ window.shareTaskWhatsApp = function(taskId) {
   const propName = room.nickname || room.unit_no || room.property_name || 'General/All Properties';
   const cleanPhone = (emp.phone || '').replace(/[^0-9]/g, '');
 
-  const msg = 
+  const msg =
 `🔔 *Task Assigned — The Unique Haven Homes*
 ━━━━━━━━━━━━━━━━━━
 👤 *Staff Member:* ${empName}
@@ -2229,22 +2247,42 @@ async function renderAttendance(selectedDate) {
       <div class="sub">${(emps || []).length} active employees</div>
     </div>
 
-    <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Role</th><th>Status</th>${isO ? '<th>Mark</th>' : ''}</tr></thead>
-      <tbody>${(emps || []).map(e => {
-        const st = am[e.emp_id] || 'Not Marked';
-        return `<tr>
-          <td><strong>${e.name}</strong></td>
-          <td style="font-size:12px;">${e.role || '-'}</td>
-          <td><span class="badge ${st === 'Present' ? 'green' : st === 'Absent' ? 'red' : st === 'Half Day' ? 'yellow' : 'yellow'}">${st}</span></td>
-          ${isO ? `<td class="table-actions">
-            <button class="btn-sm green-btn" onclick="markAtt('${e.emp_id}','Present','${attDate}')">✅ P</button>
-            <button class="btn-sm danger" onclick="markAtt('${e.emp_id}','Absent','${attDate}')">❌ A</button>
-            <button class="btn-sm secondary" onclick="markAtt('${e.emp_id}','Half Day','${attDate}')">½</button>
-          </td>` : ''}
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div></div>
+    <div class="card" style="padding:14px;border-radius:12px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${(emps || []).map(e => {
+          const st = am[e.emp_id] || 'Not Marked';
+          const isPresent = st === 'Present';
+          const isAbsent = st === 'Absent';
+          const isHalf = st === 'Half Day';
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border:1px solid #E2E8F0;border-radius:10px;background:#fff;transition:all 0.15s;">
+              <div style="flex:1;min-width:130px;">
+                <div style="font-weight:800;font-size:14px;color:#0F172A;">${escapeHtml(e.name)}</div>
+                <div style="font-size:11.5px;color:#64748B;display:flex;align-items:center;gap:6px;margin-top:2px;">
+                  <span>${escapeHtml(e.role || 'Staff')}</span>
+                  <span class="badge ${isPresent ? 'green' : isAbsent ? 'red' : isHalf ? 'yellow' : 'yellow'}" style="font-size:10px;padding:1px 6px;">
+                    ${st}
+                  </span>
+                </div>
+              </div>
+              ${isO ? `
+                <div style="display:flex;gap:4px;align-items:center;">
+                  <button class="btn-sm" onclick="markAtt('${e.emp_id}','Present','${attDate}')" style="padding:6px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;border:1.5px solid ${isPresent ? '#10B981' : '#CBD5E1'};background:${isPresent ? '#10B981' : '#F8FAFC'};color:${isPresent ? '#fff' : '#065F46'};box-shadow:${isPresent ? '0 2px 6px rgba(16,185,129,0.3)' : 'none'};">
+                    ✅ P
+                  </button>
+                  <button class="btn-sm" onclick="markAtt('${e.emp_id}','Absent','${attDate}')" style="padding:6px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;border:1.5px solid ${isAbsent ? '#DC2626' : '#CBD5E1'};background:${isAbsent ? '#DC2626' : '#F8FAFC'};color:${isAbsent ? '#fff' : '#991B1B'};box-shadow:${isAbsent ? '0 2px 6px rgba(220,38,38,0.3)' : 'none'};">
+                    ❌ A
+                  </button>
+                  <button class="btn-sm" onclick="markAtt('${e.emp_id}','Half Day','${attDate}')" style="padding:6px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;border:1.5px solid ${isHalf ? '#D97706' : '#CBD5E1'};background:${isHalf ? '#D97706' : '#F8FAFC'};color:${isHalf ? '#fff' : '#92400E'};box-shadow:${isHalf ? '0 2px 6px rgba(217,119,6,0.3)' : 'none'};">
+                    ½
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
   `, 'attendance');
 }
 
@@ -2873,8 +2911,8 @@ window.shareAdvancesWhatsApp = async function(targetEmpId = null) {
 
   const phone = empMeta?.phone ? String(empMeta.phone).replace(/\D/g, '') : '';
   const fullPhone = phone.length === 10 ? '91' + phone : phone;
-  const waUrl = fullPhone 
-    ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}` 
+  const waUrl = fullPhone
+    ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(waUrl, '_blank');
 };
@@ -2911,7 +2949,7 @@ window.printAdvancesReport = async function(targetEmpId = null) {
 
   const fromDate = targetEmpId ? '' : (window._advTrackerFilter?.fromDate || '');
   const toDate = targetEmpId ? '' : (window._advTrackerFilter?.toDate || '');
-  
+
   const fmtD = dStr => {
     if (!dStr) return '';
     try {
@@ -2960,7 +2998,7 @@ window.printAdvancesReport = async function(targetEmpId = null) {
 
   const html = `
     <div style="width:100%;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;line-height:1.35;">
-      
+
       <!-- HEADER -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0F766E;padding-bottom:10px;margin-bottom:10px;">
         <div style="flex:1;">
