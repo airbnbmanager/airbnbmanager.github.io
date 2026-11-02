@@ -1622,12 +1622,15 @@ function renderShell(content, activePage = 'dashboard') {
       else a.classList.remove('active', 'active-hub');
     });
 
-    // 4. Update mobile bottom nav (HomeyHuts / Airbnb 4-tab capsule pill)
+    // 4. Update mobile bottom nav (HomeyHuts / Airbnb 5-tab capsule pill)
     document.querySelectorAll('#pwa-bottom-nav .pwa-nav-item, .bottom-nav a').forEach(btn => {
       const p = btn.dataset.page;
       const isAct = (activePage === p) ||
         (p === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) ||
-        (p === 'bookings' && activePage === 'bookings') ||
+        (p === 'bookings' && (activePage === 'bookings' || activePage === 'calendar' || activePage === 'reports' || activePage === 'pendingApprovals')) ||
+        (p === 'flats' && (activePage === 'flats' || activePage === 'properties' || activePage === 'rooms')) ||
+        (p === 'employees' && (activePage === 'employees' || activePage === 'tasks' || activePage === 'attendance' || activePage === 'employee-ledger' || activePage === 'task-and-housekeeping')) ||
+        (p === 'expenses' && activePage === 'expenses') ||
         (p === 'dashboard' && activePage === 'dashboard') ||
         (p === 'menu' && activePage === 'menu');
       if (isAct) btn.classList.add('active');

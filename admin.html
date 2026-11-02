@@ -63,7 +63,7 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=409"></script>
+  <script src="js/core.js?v=410"></script>
   <script src="js/notifications.js?v=362"></script>
   <script src="js/dashboard.js?v=401"></script>
   <script src="js/daily-report.js?v=362"></script>
@@ -138,7 +138,7 @@
     });
   </script>
 
-  <!-- 📱 Executive SaaS Mobile Bottom Navigation Bar (Bookings, Properties, Employees, Expenses) -->
+  <!-- 📱 Executive SaaS Mobile Bottom Navigation Bar (Bookings, Properties, Employees, Expenses, Menu) -->
   <nav id="pwa-bottom-nav" class="pwa-bottom-nav">
     <button type="button" class="pwa-nav-item active" data-page="bookings" onclick="navigate('bookings')">
       <span class="pwa-nav-icon"><i class="ti ti-calendar-check"></i></span>
@@ -156,6 +156,10 @@
     <button type="button" class="pwa-nav-item" data-page="expenses" onclick="navigate('expenses')">
       <span class="pwa-nav-icon"><i class="ti ti-receipt-2"></i></span>
       <span class="pwa-nav-label">Expenses</span>
+    </button>
+    <button type="button" class="pwa-nav-item" data-page="menu" onclick="navigate('menu')">
+      <span class="pwa-nav-icon"><i class="ti ti-menu-2"></i></span>
+      <span class="pwa-nav-label">Menu</span>
     </button>
   </nav>
 
