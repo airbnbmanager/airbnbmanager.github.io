@@ -116,7 +116,13 @@ async function renderManageEmployees() {
     const curAssigned = (praveenEmp.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
     if (curAssigned.length < rooms.length) {
       praveenEmp.assigned_rooms = allRoomIds;
-      try { sb.from('employees').update({ assigned_rooms: allRoomIds }).eq('emp_id', praveenEmp.emp_id).then(() => {}, () => {}); } catch(e) {}
+      (async () => {
+        try {
+          if (window.sb) {
+            await sb.from('employees').update({ assigned_rooms: allRoomIds }).eq('emp_id', praveenEmp.emp_id);
+          }
+        } catch(e) {}
+      })();
     }
   }
 

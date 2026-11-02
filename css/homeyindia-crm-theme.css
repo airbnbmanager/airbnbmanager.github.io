@@ -2507,10 +2507,6 @@ html, body {
   text-overflow: ellipsis;
   margin-top: 1px;
 }
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 2px;
-}
 
 .hh-gantt-amount {
   font-weight: 800;
@@ -3996,4 +3992,47 @@ html, body {
 #uhhPrintCardInner th:last-child {
   text-align: right !important;
   white-space: nowrap !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   📱 STRICT RESPONSIVE NAVIGATION ENGINE (DESKTOP VS MOBILE)
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+  .pwa-bottom-nav,
+  #pwa-bottom-nav,
+  .bottom-nav,
+  #pwa-install-bar,
+  .pwa-bottom-nav [data-page="menu"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    bottom: -9999px !important;
+    opacity: 0 !important;
+    z-index: -9999 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .pwa-bottom-nav,
+  #pwa-bottom-nav {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(226, 232, 240, 0.9) !important;
+    z-index: 99999 !important;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08) !important;
+  }
 }

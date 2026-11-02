@@ -90,23 +90,23 @@ async function renderMaintenanceLog() {
       </div>
     </div>
 
-    <!-- RESPONSIVE FILTER GRID -->
+    <!-- RESPONSIVE FILTER GRID (Mobile 2x2 Clean Grid, Desktop 4-in-a-row) -->
     <div class="card" style="margin-bottom:12px;padding:12px 14px;">
       <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.4px;">🔍 Filter Maintenance Issues</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
-        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintMonth=this.value;renderMaintenanceLog()">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintMonth=this.value;renderMaintenanceLog()">
           <option value="All" ${monthFilter==='All'?'selected':''}>📅 All Months</option>
           ${months.map(m => `<option value="${m}" ${monthFilter===m?'selected':''}>${m}</option>`).join('')}
         </select>
-        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintStatus=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintStatus=this.value;renderMaintenanceLog()">
           <option value="All" ${statusFilter==='All'?'selected':''}>📊 All Status</option>
           ${MAINT_STATUSES.map(s => `<option value="${s}" ${statusFilter===s?'selected':''}>${s}</option>`).join('')}
         </select>
-        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintProp=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintProp=this.value;renderMaintenanceLog()">
           <option value="All" ${propFilter==='All'?'selected':''}>🏠 All Properties</option>
           ${(rooms || []).map(r => `<option value="${r.room_id}" ${propFilter===r.room_id?'selected':''}>${r.nickname || r.unit_no}</option>`).join('')}
         </select>
-        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;" onchange="window._maintPriority=this.value;renderMaintenanceLog()">
+        <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintPriority=this.value;renderMaintenanceLog()">
           <option value="All" ${priorityFilter==='All'?'selected':''}>⚡ All Priority</option>
           ${MAINT_PRIORITIES.map(p => `<option value="${p}" ${priorityFilter===p?'selected':''}>${p}</option>`).join('')}
         </select>

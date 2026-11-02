@@ -1661,22 +1661,28 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
       </div>
 
       <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table class="uhh-report-table">
+        <table class="uhh-report-table" style="width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;">
+          <colgroup>
+            <col style="width:90px;">
+            <col style="width:110px;">
+            <col style="width:auto;">
+            <col style="width:125px;">
+          </colgroup>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th style="text-align:right;">Amount (₹)</th>
+              <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Date</th>
+              <th style="padding:8px 10px;text-align:left;white-space:nowrap;">Type</th>
+              <th style="padding:8px 10px;text-align:left;">Description</th>
+              <th style="padding:8px 10px;text-align:right;white-space:nowrap;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
             ${txns.map(t => `
               <tr>
-                <td>${t.date || '-'}</td>
-                <td><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
-                <td>${escapeHtml(t.desc)}</td>
-                <td style="text-align:right;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
+                <td style="padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.date || '-'}</td>
+                <td style="padding:8px 10px;white-space:nowrap;"><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
+                <td style="padding:8px 10px;white-space:normal;word-break:break-word;line-height:1.4;">${escapeHtml(t.desc)}</td>
+                <td style="padding:8px 10px;text-align:right;white-space:nowrap;font-weight:700;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -2149,22 +2155,24 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
     '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
     '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">' +
-    '<table class="uhh-report-table"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
+    '<table class="uhh-report-table" style="width:100%;min-width:760px;border-collapse:collapse;table-layout:fixed;">' +
+    '<colgroup><col style="width:36px;"><col style="width:90px;"><col style="width:95px;"><col style="width:auto;"><col style="width:150px;"><col style="width:105px;"><col style="width:120px;"></colgroup>' +
+    '<thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (compItems.length === 0
       ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748B;">No COMPANY-paid expenses found in this date range.</td></tr>'
       : compItems.map((item, idx) =>
           '<tr>' +
-          '<td style="color:#64748B;">' + (idx+1) + '</td>' +
-          '<td>' + (item.dateStr||'-') + '</td>' +
-          '<td>' + (item.moduleLabel||'-') + '</td>' +
-          '<td>' + esc(item.description) + '</td>' +
-          '<td style="color:#475569;">' + esc(item.vendorOrStaff) + '</td>' +
-          '<td style="text-align:center;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
-          '<td style="text-align:right;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
+          '<td style="color:#64748B;white-space:nowrap;">' + (idx+1) + '</td>' +
+          '<td style="white-space:nowrap;">' + (item.dateStr||'-') + '</td>' +
+          '<td style="white-space:nowrap;">' + (item.moduleLabel||'-') + '</td>' +
+          '<td style="white-space:normal;word-break:break-word;line-height:1.4;">' + esc(item.description) + '</td>' +
+          '<td style="color:#475569;white-space:normal;word-break:break-word;">' + esc(item.vendorOrStaff) + '</td>' +
+          '<td style="text-align:center;white-space:nowrap;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
+          '<td style="text-align:right;white-space:nowrap;font-weight:700;color:#EA580C;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
           '</tr>'
         ).join('') +
         '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
-        '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
+        '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;white-space:nowrap;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
     ) +
     '</tbody></table></div>' +
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
