@@ -3,12 +3,33 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://uniquehavenhomesstay.com/</loc>
-    <lastmod>2026-09-22</lastmod>
+    <lastmod>2026-11-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://uniquehavenhomesstay.com/assets/logo.png</image:loc>
       <image:title>The Unique Haven Homes - Luxury Homestays Lucknow</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/tuhh-office-board-contact.jpg</image:loc>
+      <image:title>The Unique Haven Homes Pvt Ltd Gate Signboard - Prop. Shahenshah 9450055554 Prop. Firoz Ahmad 8299600709</image:title>
+      <image:caption>Official office and gate contact board of The Unique Haven Homes Pvt Ltd, Blossom Skyline Lucknow with direct owner phone numbers</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/blossom-skyline.html</loc>
+    <lastmod>2026-11-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/tuhh-office-board-contact.jpg</image:loc>
+      <image:title>Blossom Skyline Lucknow Gate Board &amp; Owner Contact - Prop. Shahenshah 9450055554 Prop. Firoz Ahmad 8299600709</image:title>
+      <image:caption>Official Gate Signboard for Blossom Skyline by The Unique Haven Homes Pvt Ltd with direct contact numbers</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://uniquehavenhomesstay.com/assets/properties/blossom-skyline/cover.jpg</image:loc>
+      <image:title>Blossom Skyline - Luxury Homestay Lucknow</image:title>
+      <image:caption>Blossom Skyline premium serviced apartment and homestay in Lucknow by The Unique Haven Homes</image:caption>
     </image:image>
   </url>
   <url>
