@@ -358,45 +358,55 @@ window.GST_ENGINE = (function() {
         </div>
       </div>
 
-      <!-- 3. SERVICES TABLE (8 Columns) -->
-      <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:left;">
+      <!-- 3. SERVICES TABLE (8 Columns with fixed percentage/nowrap alignment) -->
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:10px;text-align:left;">
+        <colgroup>
+          <col style="width:36px;">
+          <col style="width:auto;">
+          <col style="width:84px;">
+          <col style="width:84px;">
+          <col style="width:48px;">
+          <col style="width:80px;">
+          <col style="width:72px;">
+          <col style="width:88px;">
+        </colgroup>
         <thead>
           <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;font-size:9.5px;text-align:center;">
-            <th style="padding:5px 4px;border-right:1px solid #000;width:38px;">S.NO.</th>
-            <th style="padding:5px 6px;border-right:1px solid #000;text-align:left;">SERVICES</th>
-            <th style="padding:5px 4px;border-right:1px solid #000;width:75px;">CHECK OUT</th>
-            <th style="padding:5px 4px;border-right:1px solid #000;width:75px;">CHECK IN</th>
-            <th style="padding:5px 4px;border-right:1px solid #000;width:50px;">QTY.</th>
-            <th style="padding:5px 6px;border-right:1px solid #000;width:75px;text-align:right;">RATE</th>
-            <th style="padding:5px 4px;border-right:1px solid #000;width:68px;text-align:right;">${isGST ? 'TAX' : 'TAX / GST'}</th>
-            <th style="padding:5px 6px;width:85px;text-align:right;">AMOUNT</th>
+            <th style="padding:5px 2px;border-right:1px solid #000;white-space:nowrap;">S.NO.</th>
+            <th style="padding:5px 6px;border-right:1px solid #000;text-align:left;">SERVICES &amp; DETAILS</th>
+            <th style="padding:5px 2px;border-right:1px solid #000;white-space:nowrap;">CHECK IN</th>
+            <th style="padding:5px 2px;border-right:1px solid #000;white-space:nowrap;">CHECK OUT</th>
+            <th style="padding:5px 2px;border-right:1px solid #000;white-space:nowrap;">QTY.</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;text-align:right;white-space:nowrap;">RATE</th>
+            <th style="padding:5px 4px;border-right:1px solid #000;text-align:right;white-space:nowrap;">${isGST ? 'TAX' : 'TAX / GST'}</th>
+            <th style="padding:5px 6px;text-align:right;white-space:nowrap;">AMOUNT</th>
           </tr>
         </thead>
         <tbody>
           <!-- Item Row 1 -->
           <tr style="vertical-align:top;font-size:10px;">
-            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;font-weight:700;">1</td>
-            <td style="padding:6px 6px;border-right:1px solid #000;">
+            <td style="padding:6px 2px;border-right:1px solid #000;text-align:center;font-weight:700;">1</td>
+            <td style="padding:6px 6px;border-right:1px solid #000;word-wrap:break-word;">
               <div style="font-weight:700;color:#000;">Room Type</div>
               <div style="color:#222;font-size:9.5px;margin-top:1px;">${escapeHtml(serviceDesc)}</div>
               <div style="color:#555;font-size:8.5px;margin-top:2px;">Booking Ref: ${escapeHtml(inv.booking_id || '-')}</div>
             </td>
-            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;">${checkOutFmt}</td>
-            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;">${checkInFmt}</td>
-            <td style="padding:6px 4px;border-right:1px solid #000;text-align:center;font-weight:700;">${inv.nights || 1} DAY</td>
-            <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${ratePerNight.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="padding:6px 4px;border-right:1px solid #000;text-align:right;">
+            <td style="padding:6px 2px;border-right:1px solid #000;text-align:center;white-space:nowrap;font-size:9.5px;">${checkInFmt}</td>
+            <td style="padding:6px 2px;border-right:1px solid #000;text-align:center;white-space:nowrap;font-size:9.5px;">${checkOutFmt}</td>
+            <td style="padding:6px 2px;border-right:1px solid #000;text-align:center;font-weight:700;white-space:nowrap;font-size:9.5px;">${inv.nights || 1} DAY</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:right;white-space:nowrap;font-size:9.5px;">${ratePerNight.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:6px 4px;border-right:1px solid #000;text-align:right;white-space:nowrap;">
               ${isGST 
-                ? `${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}<br/><span style="font-size:8.5px;color:#555;">(${gstRateNum}%)</span>`
-                : `<span style="color:#059669;font-weight:700;">₹ 0.00</span><br/><span style="font-size:8.5px;color:#64748B;">(0% Non-GST)</span>`}
+                ? `<span style="font-size:9.5px;">${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</span><br/><span style="font-size:8.5px;color:#555;">(${gstRateNum}%)</span>`
+                : `<span style="color:#059669;font-weight:700;font-size:9.5px;">₹ 0.00</span><br/><span style="font-size:8.5px;color:#64748B;">(0% Non-GST)</span>`}
             </td>
-            <td style="padding:6px 6px;text-align:right;font-weight:800;">
+            <td style="padding:6px 6px;text-align:right;font-weight:800;white-space:nowrap;font-size:9.5px;">
               ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}
             </td>
           </tr>
 
           <!-- Spacer Row to replicate physical pre-printed form height -->
-          <tr style="height:110px;">
+          <tr style="height:100px;">
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
@@ -410,12 +420,12 @@ window.GST_ENGINE = (function() {
           <!-- TOTAL ROW -->
           <tr style="border-top:1px solid #000;border-bottom:1px solid #000;font-weight:800;font-size:10px;background:#fafafa;">
             <td colspan="4" style="padding:5px 8px;border-right:1px solid #000;text-align:right;letter-spacing:0.5px;">TOTAL</td>
-            <td style="padding:5px 4px;border-right:1px solid #000;text-align:center;">${inv.nights || 1}</td>
+            <td style="padding:5px 2px;border-right:1px solid #000;text-align:center;white-space:nowrap;">${inv.nights || 1}</td>
             <td style="padding:5px 4px;border-right:1px solid #000;"></td>
-            <td style="padding:5px 4px;border-right:1px solid #000;text-align:right;">
+            <td style="padding:5px 4px;border-right:1px solid #000;text-align:right;white-space:nowrap;">
               ${isGST ? '₹ ' + taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}) : '₹ 0.00'}
             </td>
-            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;white-space:nowrap;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
           </tr>
 
           <!-- RECEIVED AMOUNT ROW -->
@@ -424,7 +434,7 @@ window.GST_ENGINE = (function() {
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
-            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;white-space:nowrap;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
           </tr>
 
           <!-- BALANCE AMOUNT ROW -->
@@ -433,59 +443,75 @@ window.GST_ENGINE = (function() {
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
             <td style="border-right:1px solid #000;"></td>
-            <td style="padding:5px 6px;text-align:right;font-weight:900;">₹ 0</td>
+            <td style="padding:5px 6px;text-align:right;font-weight:900;white-space:nowrap;">₹ 0</td>
           </tr>
         </tbody>
       </table>
 
       <!-- 4. TAX BREAKDOWN (IF GST) OR SETTLEMENT SUMMARY (IF WITHOUT GST) -->
       ${isGST ? `
-        <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:center;">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;text-align:center;">
+          <colgroup>
+            <col style="width:18%;">
+            <col style="width:22%;">
+            <col style="width:10%;">
+            <col style="width:15%;">
+            <col style="width:10%;">
+            <col style="width:15%;">
+            <col style="width:10%;">
+          </colgroup>
           <thead>
             <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
-              <th rowspan="2" style="padding:5px 4px;border-right:1px solid #000;width:90px;">HSN/SAC</th>
-              <th rowspan="2" style="padding:5px 6px;border-right:1px solid #000;width:110px;text-align:right;">Taxable Value</th>
-              <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">CGST</th>
-              <th colspan="2" style="padding:3px 4px;border-right:1px solid #000;">SGST</th>
-              <th rowspan="2" style="padding:5px 6px;text-align:right;width:115px;">Total Tax Amount</th>
+              <th rowspan="2" style="padding:4px 3px;border-right:1px solid #000;white-space:nowrap;">HSN/SAC</th>
+              <th rowspan="2" style="padding:4px 5px;border-right:1px solid #000;text-align:right;white-space:nowrap;">Taxable Value</th>
+              <th colspan="2" style="padding:3px 3px;border-right:1px solid #000;white-space:nowrap;">CGST</th>
+              <th colspan="2" style="padding:3px 3px;border-right:1px solid #000;white-space:nowrap;">SGST</th>
+              <th rowspan="2" style="padding:4px 5px;text-align:right;white-space:nowrap;">Total Tax</th>
             </tr>
             <tr style="border-bottom:1.5px solid #000;background:#f5f5f5;font-weight:800;">
-              <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
-              <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
-              <th style="padding:3px 4px;border-right:1px solid #000;width:55px;">Rate</th>
-              <th style="padding:3px 4px;border-right:1px solid #000;width:75px;text-align:right;">Amount</th>
+              <th style="padding:2px 3px;border-right:1px solid #000;white-space:nowrap;">Rate</th>
+              <th style="padding:2px 3px;border-right:1px solid #000;text-align:right;white-space:nowrap;">Amount</th>
+              <th style="padding:2px 3px;border-right:1px solid #000;white-space:nowrap;">Rate</th>
+              <th style="padding:2px 3px;border-right:1px solid #000;text-align:right;white-space:nowrap;">Amount</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="padding:6px 4px;border-right:1px solid #000;">${CO.sac}</td>
-              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${taxableNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-              <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
-              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${cgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-              <td style="padding:6px 4px;border-right:1px solid #000;">${halfRate}%</td>
-              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;">${sgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-              <td style="padding:6px 6px;text-align:right;font-weight:800;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 3px;border-right:1px solid #000;white-space:nowrap;">${CO.sac}</td>
+              <td style="padding:6px 5px;border-right:1px solid #000;text-align:right;white-space:nowrap;">${taxableNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 3px;border-right:1px solid #000;white-space:nowrap;">${halfRate}%</td>
+              <td style="padding:6px 5px;border-right:1px solid #000;text-align:right;white-space:nowrap;">${cgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 3px;border-right:1px solid #000;white-space:nowrap;">${halfRate}%</td>
+              <td style="padding:6px 5px;border-right:1px solid #000;text-align:right;white-space:nowrap;">${sgstNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 5px;text-align:right;font-weight:800;white-space:nowrap;">₹ ${taxAmtNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             </tr>
           </tbody>
         </table>
       ` : `
-        <table style="width:100%;border-collapse:collapse;font-size:9.5px;text-align:left;">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;text-align:left;">
+          <colgroup>
+            <col style="width:34%;">
+            <col style="width:17%;">
+            <col style="width:16%;">
+            <col style="width:17%;">
+            <col style="width:16%;">
+          </colgroup>
           <thead>
             <tr style="border-bottom:1px solid #000;background:#f5f5f5;font-weight:800;">
-              <th style="padding:5px 8px;border-right:1px solid #000;">TARIFF / STAY CLASSIFICATION</th>
-              <th style="padding:5px 8px;border-right:1px solid #000;text-align:right;width:115px;">TOTAL STAY CHARGES</th>
-              <th style="padding:5px 8px;border-right:1px solid #000;text-align:right;width:115px;">TAXES / GST</th>
-              <th style="padding:5px 8px;border-right:1px solid #000;text-align:center;width:125px;">SETTLEMENT STATUS</th>
-              <th style="padding:5px 8px;text-align:right;width:120px;">NET AMOUNT PAID</th>
+              <th style="padding:5px 6px;border-right:1px solid #000;white-space:nowrap;">TARIFF / STAY CLASSIFICATION</th>
+              <th style="padding:5px 6px;border-right:1px solid #000;text-align:right;white-space:nowrap;">STAY CHARGES</th>
+              <th style="padding:5px 6px;border-right:1px solid #000;text-align:right;white-space:nowrap;">TAXES / GST</th>
+              <th style="padding:5px 6px;border-right:1px solid #000;text-align:center;white-space:nowrap;">STATUS</th>
+              <th style="padding:5px 6px;text-align:right;white-space:nowrap;">NET PAID</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="padding:6px 8px;border-right:1px solid #000;font-weight:700;">Direct Guest Accommodation (Non-GST Supply)</td>
-              <td style="padding:6px 8px;border-right:1px solid #000;text-align:right;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-              <td style="padding:6px 8px;border-right:1px solid #000;text-align:right;color:#059669;font-weight:700;">₹ 0.00 (0% - No GST)</td>
-              <td style="padding:6px 8px;border-right:1px solid #000;text-align:center;font-weight:800;color:#059669;">✔ PAID IN FULL</td>
-              <td style="padding:6px 8px;text-align:right;font-weight:900;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;font-weight:700;">Direct Guest Accommodation (Non-GST)</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;white-space:nowrap;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:right;color:#059669;font-weight:700;white-space:nowrap;">₹ 0.00 (0%)</td>
+              <td style="padding:6px 6px;border-right:1px solid #000;text-align:center;font-weight:800;color:#059669;white-space:nowrap;">✔ PAID IN FULL</td>
+              <td style="padding:6px 6px;text-align:right;font-weight:900;white-space:nowrap;">₹ ${totalNum.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             </tr>
           </tbody>
         </table>
@@ -502,19 +528,19 @@ window.GST_ENGINE = (function() {
         
         <!-- Left: Bank Details -->
         <div style="flex:1.2;padding:8px 10px;border-right:1.5px solid #000;font-size:10px;line-height:1.6;">
-          <div style="font-weight:900;font-size:11px;color:#000;margin-bottom:4px;">Bank Details</div>
+          <div style="font-weight:900;font-size:11px;color:#000;margin-bottom:4px;letter-spacing:0.3px;">Bank Details</div>
           <table style="font-size:10px;border-collapse:collapse;width:100%;">
             <tr><td style="color:#444;width:95px;padding:1px 0;">Name:</td><td style="font-weight:800;color:#000;">${CO.name}</td></tr>
-            <tr><td style="color:#444;padding:1px 0;">IFSC Code:</td><td style="font-weight:800;color:#000;font-family:monospace;">SBIN0018189</td></tr>
-            <tr><td style="color:#444;padding:1px 0;">Account No:</td><td style="font-weight:800;color:#000;font-family:monospace;">20292764916</td></tr>
-            <tr><td style="color:#444;padding:1px 0;">Bank:</td><td style="font-weight:700;color:#000;">State Bank of India ,Takrohi, Lucknow</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">IFSC Code:</td><td style="font-weight:800;color:#000;font-family:monospace;letter-spacing:0.5px;">SBIN0018189</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">Account No:</td><td style="font-weight:800;color:#000;font-family:monospace;letter-spacing:0.5px;">20292764916</td></tr>
+            <tr><td style="color:#444;padding:1px 0;">Bank:</td><td style="font-weight:700;color:#000;">State Bank of India, Takrohi, Lucknow</td></tr>
             <tr><td style="color:#444;padding:1px 0;">UPI / PhonePe:</td><td style="font-weight:700;color:#000;">8299600709</td></tr>
           </table>
         </div>
 
         <!-- Right: Authorised Signatory with Official Seal/Stamp -->
         <div style="flex:1;padding:8px 10px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;position:relative;min-height:90px;">
-          <img src="${stampSrc}" alt="Company Stamp" style="position:absolute;top:4px;right:25px;width:130px;height:65px;object-fit:contain;pointer-events:none;opacity:0.9;" onerror="this.style.display='none';"/>
+          <img src="${stampSrc}" alt="Company Stamp" style="position:absolute;top:6px;right:25px;width:115px;height:58px;object-fit:contain;pointer-events:none;opacity:0.9;" onerror="this.style.display='none';"/>
           <div style="position:relative;z-index:2;margin-top:auto;">
             <div style="font-size:10.5px;font-weight:800;color:#000;">Authorised Signatory For</div>
             <div style="font-size:9.5px;font-weight:700;color:#222;margin-top:1px;">${CO.name}</div>
