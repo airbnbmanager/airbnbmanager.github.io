@@ -262,6 +262,97 @@ async function renderReports() {
     const todayIndex = tDates.indexOf(todayStr);
 
     let timelineHtml = `
+      <style>
+        /* ════════════════════════════════════════════════════════════
+           HOMEYHUTS FREEZE-PANES 2D STICKY ENGINE (ZERO SCROLL GLITCH)
+           ════════════════════════════════════════════════════════════ */
+        .hh-timeline-viewport {
+          overflow: auto !important;
+          max-height: min(760px, calc(100vh - 210px)) !important;
+          position: relative !important;
+          overscroll-behavior: contain !important;
+          -webkit-overflow-scrolling: touch !important;
+          background: #FFFFFF !important;
+        }
+
+        .hh-timeline-table {
+          position: static !important;
+          border-collapse: separate !important;
+          border-spacing: 0 !important;
+        }
+
+        /* 1. TOP-LEFT CORNER (Frozen Both Top & Left) */
+        .hh-timeline-table thead th.hh-prop-header-cell {
+          position: sticky !important;
+          left: 0 !important;
+          top: 0 !important;
+          z-index: 100 !important;
+          background: #F8FAFC !important;
+          border-right: 2px solid #CBD5E1 !important;
+          border-bottom: 2px solid #CBD5E1 !important;
+          box-shadow: 4px 4px 10px rgba(15, 23, 42, 0.08) !important;
+          box-sizing: border-box !important;
+        }
+
+        /* 2. TOP DATE HEADERS (Frozen Vertically at Top) */
+        .hh-timeline-table thead th.hh-date-col-header {
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 80 !important;
+          background: #F8FAFC !important;
+          border-bottom: 2px solid #CBD5E1 !important;
+          box-shadow: 0 4px 8px rgba(15, 23, 42, 0.04) !important;
+          box-sizing: border-box !important;
+        }
+        .hh-timeline-table thead th.hh-date-col-header.is-weekend {
+          background: #F1F5F9 !important;
+        }
+        .hh-timeline-table thead th.hh-date-col-header.is-today {
+          background: #FEF2F2 !important;
+          border-bottom: 2px solid #EF4444 !important;
+        }
+
+        /* 3. LEFT PROPERTY COLUMN (Frozen Horizontally at Left) */
+        .hh-timeline-table tbody td.hh-prop-cell {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 60 !important;
+          background: #FFFFFF !important;
+          border-right: 2px solid #CBD5E1 !important;
+          border-bottom: 1px solid #E2E8F0 !important;
+          box-shadow: 4px 0 10px rgba(15, 23, 42, 0.06) !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+        }
+        .hh-prop-card {
+          background: #FFFFFF !important;
+        }
+
+        /* Row Crosshair Highlight */
+        .hh-timeline-row:hover td.hh-prop-cell {
+          background: #F0F9FF !important;
+        }
+        .hh-timeline-row:hover .hh-prop-card {
+          background: #F0F9FF !important;
+          border-left: 3px solid #0284C7;
+        }
+        .hh-timeline-row:hover .hh-timeline-track {
+          background: rgba(2, 132, 199, 0.02) !important;
+        }
+
+        /* Gantt Bars Layering */
+        .hh-gantt-bar {
+          z-index: 15 !important;
+        }
+        .hh-gantt-bar:hover {
+          z-index: 25 !important;
+        }
+        .hh-today-vertical-line {
+          z-index: 10 !important;
+        }
+      </style>
+
       <!-- HOMEYHUTS UNIFIED MULTI-CALENDAR CONTAINER -->
       <div class="hh-cal-container">
         <!-- TOP TOOLBAR -->
@@ -372,6 +463,7 @@ async function renderReports() {
             <tbody>
               ${displayRooms.map(r => {
                 const rent = r.rent_per_night || 5200;
+                const propLabel = (r.nickname || r.property_name || r.unit_no);
                 const thumbHtml = getPropThumb(r);
                 const propBookings = allBks.filter(b => b.room_id === r.room_id && b.check_out > tDates[0] && b.check_in <= tDates[tDates.length - 1]);
 
@@ -382,7 +474,7 @@ async function renderReports() {
                       <div class="hh-prop-card">
                         ${thumbHtml}
                         <div class="hh-prop-info">
-                          <div class="hh-prop-name" title="${r.nickname || r.property_name || r.unit_no}">${r.nickname || r.property_name || r.unit_no}</div>
+                          <div class="hh-prop-name" title="${propLabel}">${propLabel}</div>
                           <div class="hh-prop-sub">
                             <span>${r.unit_no}</span>
                             <span>•</span>
@@ -401,12 +493,15 @@ async function renderReports() {
                           const dayOfWeek = dObj.getDay();
                           const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
                           const isToday = (ds === todayStr);
+                          const dayShort = dObj.toLocaleString('en-IN', { weekday: 'short' });
+                          const dayNum = dObj.getDate();
+                          const monthShort = dObj.toLocaleString('en-IN', { month: 'short' });
 
                           return `
                             <div class="hh-day-cell ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}"
                                  style="left:${idx * colWidth}px;width:${colWidth}px;"
                                  onclick="calCreateBooking('${r.room_id}', '${ds}')"
-                                 title="Free on ${ds} - Click to book">
+                                 title="🏢 ${propLabel} (${r.unit_no})&#10;📅 ${dayShort}, ${dayNum} ${monthShort}&#10;💰 ₹${Number(rent).toLocaleString('en-IN')}/night (Available — Click to book)">
                               <span class="hh-day-rate-hint">₹${(rent/1000).toFixed(1)}k</span>
                             </div>
                           `;
@@ -497,7 +592,10 @@ async function renderReports() {
                               </div>
                               <!-- Rich hover tooltip -->
                               <div class="hh-gantt-tooltip">
-                                <div style="font-weight:800;font-size:12px;margin-bottom:3px;">${guestTitle}</div>
+                                <div style="font-weight:900;font-size:12px;margin-bottom:4px;color:#38BDF8;display:flex;align-items:center;gap:4px;">
+                                  <span>🏢</span> <span>${propLabel} (${r.unit_no})</span>
+                                </div>
+                                <div style="font-weight:800;font-size:12px;margin-bottom:3px;color:#FFFFFF;">👤 ${guestTitle}</div>
                                 <div>📅 ${b.check_in} → ${b.check_out} (${nights} Nights)</div>
                                 <div>💰 Total: ₹${Number(totalAmt).toLocaleString('en-IN')} · Paid: ₹${Number(paidAmt).toLocaleString('en-IN')}</div>
                                 ${dueAmt > 0 ? `<div style="color:#FBBF24;font-weight:700;">⚠️ Balance Due: ₹${Math.round(dueAmt).toLocaleString('en-IN')}</div>` : '<div style="color:#4ADE80;font-weight:700;">✓ Fully Paid</div>'}
