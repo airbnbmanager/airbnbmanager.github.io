@@ -5443,13 +5443,48 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     const overlay = document.createElement('div');
     overlay.id = 'uhhPrintOverlay';
     overlay.className = 'uhh-print-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:9999999;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;';
+
     overlay.innerHTML = `
+      <style>
+        @media print {
+          body > *:not(#uhhPrintOverlay) {
+            display: none !important;
+          }
+          #uhhPrintOverlay {
+            position: static !important;
+            background: #fff !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block !important;
+          }
+          .no-print, .uhh-print-toolbar, .modal-overlay:not(#uhhPrintOverlay) {
+            display: none !important;
+          }
+          .uhh-print-body {
+            padding: 0 !important;
+            background: #fff !important;
+            overflow: visible !important;
+          }
+          #uhhPrintCardInner {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+        }
+      </style>
       <div class="uhh-print-toolbar no-print" style="position:sticky;top:0;background:#0F172A;color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;z-index:999999;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">
           <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             🖨️ Print / AirPrint
           </button>
-          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintCardInner').innerHTML, '${docTitle}.html', 'text/html;charset=utf-8')" style="background:#3B82F6;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+          <button type="button" class="uhh-print-btn" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+            📸 Save Image (PNG)
+          </button>
+          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintCardInner').innerHTML, '${escapeHtml(docTitle).replace(/'/g, "\\'")}.html', 'text/html;charset=utf-8')" style="background:#3B82F6;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             📥 Save HTML
           </button>
           <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" title="Share summary on WhatsApp">
@@ -5486,13 +5521,54 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     };
     window.addEventListener('keydown', onEsc);
 
-    // Auto-trigger print dialog after short render delay on non-mobile or when requested
-    if (options.autoPrint !== false) {
+    // Auto-trigger print dialog after short render delay on desktop or when requested
+    if (!isMobile && options.autoPrint !== false) {
       setTimeout(() => {
         try { window.print(); } catch(e) { console.warn('Auto print failed:', e); }
       }, 450);
     }
   }
+
+  window.downloadPrintDocAsImage = async function(title) {
+    const el = document.getElementById('uhhPrintCardInner');
+    if (!el) return;
+    if (typeof html2canvas === 'undefined') {
+      alert('Please wait, image renderer is preparing...');
+      return;
+    }
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const filename = `${String(title || 'TUHH_Document').replace(/[\s\/:*?"<>|]/g, '_')}.png`;
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: title || 'TUHH Document'
+          }).catch(() => {});
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (window.fsn?.success) fsn.success('Saved', 'Document image saved!');
+      }, 'image/png');
+    } catch(err) {
+      console.error('Image capture error:', err);
+      alert('Could not generate image: ' + err.message);
+    }
+  };
 
   // Provide public alias for in-app preview
   window.previewReportModal = function(h, t) {

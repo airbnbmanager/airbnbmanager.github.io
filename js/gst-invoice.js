@@ -853,14 +853,29 @@ Generated automatically via TUHH Management Portal.`;
     }
     if (!booking && typeof sb !== 'undefined' && sb) {
       try {
-        const { data } = await sb.from('guest_register')
-          .select('*, rooms(nickname, unit_no, rent_per_night, property_name)')
+        const { data, error } = await sb.from('guest_register')
+          .select('*, rooms(nickname, unit_no, property_name)')
           .eq('booking_id', bookingId)
           .maybeSingle();
+        if (error) throw error;
         booking = data;
       } catch (e) {
-        console.warn('Booking fetch error:', e);
+        console.warn('Booking fetch with rooms join error, retrying without join:', e);
+        try {
+          const { data } = await sb.from('guest_register').select('*').eq('booking_id', bookingId).maybeSingle();
+          booking = data;
+        } catch (err2) {
+          console.error('Direct booking fetch failed:', err2);
+        }
       }
+    }
+
+    // Attach rooms metadata if missing
+    if (booking && !booking.rooms && booking.room_id && typeof sb !== 'undefined' && sb) {
+      try {
+        const { data: rm } = await sb.from('rooms').select('room_id, nickname, unit_no, property_name').eq('room_id', booking.room_id).maybeSingle();
+        if (rm) booking.rooms = rm;
+      } catch (e) {}
     }
 
     if (!booking) {
@@ -1184,13 +1199,15 @@ Generated automatically via TUHH Management Portal.`;
 
             ` : `
               <!-- A4 PREVIEW TAB -->
-              <div class="uhh-invoice-document invoice-doc" style="padding:10px 0;background:#fff;">
-                ${buildPrintableInvoiceHTML({
-                  ...state,
-                  taxable_value: state.is_gst_invoice ? calc.base : state.total_amount,
-                  cgst: state.is_gst_invoice ? calc.cgst : 0,
-                  sgst: state.is_gst_invoice ? calc.sgst : 0
-                })}
+              <div id="uhhInvoicePrintArea" class="uhh-invoice-document invoice-doc" style="padding:10px 0;background:#fff;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
+                <div style="min-width:640px;background:#fff;margin:0 auto;">
+                  ${buildPrintableInvoiceHTML({
+                    ...state,
+                    taxable_value: state.is_gst_invoice ? calc.base : state.total_amount,
+                    cgst: state.is_gst_invoice ? calc.cgst : 0,
+                    sgst: state.is_gst_invoice ? calc.sgst : 0
+                  })}
+                </div>
               </div>
             `}
           </div>
@@ -1199,6 +1216,9 @@ Generated automatically via TUHH Management Portal.`;
           <div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--border);padding-top:14px;margin-top:12px;flex-wrap:wrap;">
             <button class="btn-sm" style="background:${state.is_gst_invoice ? '#B45309' : '#0284C7'};color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveAndPrint()">
               🖨️ Print / Save PDF (${state.is_gst_invoice ? 'With GST' : 'Without GST'})
+            </button>
+            <button type="button" class="btn-sm" style="background:#0F766E;color:#fff;padding:10px 16px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstDownloadImage()">
+              📸 Save Bill Image (PNG)
             </button>
             <button class="btn-sm" style="background:#059669;color:#fff;padding:10px 18px;font-weight:800;display:inline-flex;align-items:center;gap:6px;" onclick="window._gstSaveOnly()">
               💾 Save ${state.is_gst_invoice ? 'GST Invoice' : 'Without GST Bill'}
@@ -1286,7 +1306,65 @@ Generated automatically via TUHH Management Portal.`;
 
     window._gstSaveAndPrint = async function() {
       await window._gstSaveOnly();
+      modal.remove(); // Safely dismiss modal so mobile print overlay has 100% focus and zero backdrop interference
       printInvoiceDocument(state);
+    };
+
+    window._gstDownloadImage = async function() {
+      await window._gstSaveOnly();
+      const cleanInvNo = String(state.invoice_no || state.booking_id || 'Bill').replace(/[\/\\:*?"<>|]/g, '-');
+      const isGST = state.is_gst_invoice === true;
+      const title = `TUHH_${isGST ? 'GST_Tax_Invoice' : 'Without_GST_Bill'}_${cleanInvNo}`;
+
+      const tempWrapper = document.createElement('div');
+      tempWrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#ffffff;padding:16px;box-sizing:border-box;z-index:-9999;';
+      tempWrapper.innerHTML = buildPrintableInvoiceHTML({
+        ...state,
+        taxable_value: state.is_gst_invoice ? state.taxable_value : state.total_amount,
+        cgst: state.is_gst_invoice ? state.cgst : 0,
+        sgst: state.is_gst_invoice ? state.sgst : 0
+      });
+      document.body.appendChild(tempWrapper);
+
+      try {
+        if (typeof html2canvas === 'undefined') {
+          alert('Image renderer loading... Please retry in a moment.');
+          tempWrapper.remove();
+          return;
+        }
+        const canvas = await html2canvas(tempWrapper, {
+          scale: 2.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        tempWrapper.remove();
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const file = new File([blob], `${title}.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+              files: [file],
+              title: title
+            }).catch(() => {});
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${title}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          if (window.fsn?.success) fsn.success('Saved', 'Bill image saved successfully!');
+        }, 'image/png');
+      } catch(err) {
+        if (tempWrapper.parentNode) tempWrapper.remove();
+        console.error('Bill capture error:', err);
+        alert('Could not generate bill image: ' + err.message);
+      }
     };
 
     window._gstWhatsApp = function(triggerBtn) {

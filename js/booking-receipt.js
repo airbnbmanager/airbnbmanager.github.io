@@ -773,10 +773,11 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     const origDocTitle = document.title;
     try { document.title = title; } catch(e) {}
 
-    const isAppleTouch = /iPad|iPhone|iPod/i.test(navigator.userAgent) || 
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (window.innerWidth <= 768);
 
-    if (isAppleTouch && typeof window.printDocumentHTML === 'function') {
+    if (isMobile && typeof window.printDocumentHTML === 'function') {
       window.printDocumentHTML(el.innerHTML, title);
       return;
     }
