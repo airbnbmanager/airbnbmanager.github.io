@@ -106,7 +106,7 @@ const PROPERTY_PINS = [
     roomId: 'VIL-101', slug: 'gomti-grand-villa',
     name: 'Gomti Grand Villa', type: 'Private Villa',
     area: 'Geetapuri Colony, Near Lulu & Palassio',
-    price: '₹8,000', lat: 26.8042, lng: 81.0048,
+    price: '₹8,000', lat: 26.83711, lng: 81.01734,
     url: 'gomti-grand-villa.html'
   },
   {

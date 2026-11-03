@@ -124,6 +124,7 @@
 * **On-Site Caretaker:** Aniket & Shalu (`9214246820`)
 * **Operations Manager:** Praveen Singh (`9194109911`)
 * **Wi-Fi Network:** `UniqueHaven_GrandVilla` | **Password:** `Airbnb.in1`
+* **Google Maps Location:** [https://maps.app.goo.gl/qQRbCANwvez7mnD3A](https://maps.app.goo.gl/qQRbCANwvez7mnD3A)
 * **Live Booking Page:** [https://uniquehavenhomesstay.com/gomti-grand-villa.html](https://uniquehavenhomesstay.com/gomti-grand-villa.html)
 * **Airbnb iCal Sync:** `https://www.airbnb.co.in/calendar/ical/1721732716374002170.ics?t=0abeb683a0554321a1f291d623501153`
 

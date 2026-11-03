@@ -1912,8 +1912,8 @@
       airbnb_price: 10856,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/0439ab5c-25e2-4ae8-aa07-a48dd516d41f.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Geetapuri+Colony+Lucknow',
-      map_embed: 'https://www.google.com/maps?q=Geetapuri+Colony+Lucknow&output=embed',
+      map_link: 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A',
+      map_embed: 'https://www.google.com/maps?q=26.83711,81.01734&output=embed',
       photos: {
         bedrooms: [
           "https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/b691bd0f-5484-4072-8f72-a27f291245fe.jpeg",
