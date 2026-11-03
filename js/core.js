@@ -2464,10 +2464,23 @@ window.getBookingSource = function(b) {
 
 // ============ HELPERS ============
 async function getPaidMap(ids) {
-  if (!ids.length) return {};
-  const { data } = await sb.from('payment_history').select('booking_id, amount').in('booking_id', ids);
+  if (!ids || !ids.length) return {};
   const m = {};
-  (data || []).forEach(p => { m[p.booking_id] = (m[p.booking_id] || 0) + (p.amount || 0); });
+  try {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    const chunkSize = 100;
+    for (let i = 0; i < uniqueIds.length; i += chunkSize) {
+      const chunk = uniqueIds.slice(i, i + chunkSize);
+      const { data, error } = await sb.from('payment_history').select('booking_id, amount').in('booking_id', chunk);
+      if (error) {
+        console.warn('getPaidMap chunk error:', error);
+        continue;
+      }
+      (data || []).forEach(p => { m[p.booking_id] = (m[p.booking_id] || 0) + (Number(p.amount) || 0); });
+    }
+  } catch (err) {
+    console.error('getPaidMap error:', err);
+  }
   return m;
 }
 

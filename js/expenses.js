@@ -9,33 +9,44 @@ async function renderExpenses() {
 
   renderShell(`<div class="loading">Loading Unified Company Expenses &amp; Outflows...</div>`, 'expenses');
 
-  const cm = new Date().toISOString().slice(0, 7);
-  const now = new Date();
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const ml = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
+  try {
+    const cm = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const ml = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
 
-  // Fetch all 5 expense channels concurrently
-  const [
-    { data: cats },
-    { data: exps },
-    { data: gs },
-    { data: rooms },
-    { data: reimbs },
-    { data: maint },
-    { data: laundryPays },
-    { data: advs },
-    { data: emps }
-  ] = await Promise.all([
-    sb.from('expense_categories').select('*').order('category_name'),
-    sb.from('expenses').select('*, expense_categories(category_name), rooms(nickname,unit_no)').order('entry_date', { ascending: false }),
-    sb.from('guest_register').select('booking_id, check_in, total_amount'),
-    sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
-    sb.from('reimbursements').select('*').order('expense_date', { ascending: false }),
-    sb.from('maintenance_log').select('*').gt('cost', 0).order('reported_date', { ascending: false }),
-    sb.from('laundry_payments').select('*, laundry_records(vendor_name, room_id)').order('payment_date', { ascending: false }),
-    sb.from('advance_tracker').select('*, employees(name, role)').order('date_given', { ascending: false }),
-    sb.from('employees').select('emp_id, name, role, phone, salary').order('name')
-  ]);
+    // Fetch all 5 expense channels concurrently with safe fallback
+    const [
+      catsRes,
+      expsRes,
+      gsRes,
+      roomsRes,
+      reimbsRes,
+      maintRes,
+      laundryPaysRes,
+      advsRes,
+      empsRes
+    ] = await Promise.all([
+      sb.from('expense_categories').select('*').order('category_name'),
+      sb.from('expenses').select('*, expense_categories(category_name), rooms(nickname,unit_no)').order('entry_date', { ascending: false }),
+      sb.from('guest_register').select('booking_id, check_in, total_amount'),
+      sb.from('rooms').select('room_id, nickname, unit_no').order('unit_no'),
+      sb.from('reimbursements').select('*').order('expense_date', { ascending: false }),
+      sb.from('maintenance_log').select('*').gt('cost', 0).order('reported_date', { ascending: false }),
+      sb.from('laundry_payments').select('*, laundry_records(vendor_name, room_id)').order('payment_date', { ascending: false }),
+      sb.from('advance_tracker').select('*, employees(name, role)').order('date_given', { ascending: false }),
+      sb.from('employees').select('emp_id, name, role, phone, salary').order('name')
+    ]);
+
+    const cats = catsRes?.data || [];
+    const exps = expsRes?.data || [];
+    const gs = gsRes?.data || [];
+    const rooms = roomsRes?.data || [];
+    const reimbs = reimbsRes?.data || [];
+    const maint = maintRes?.data || [];
+    const laundryPays = laundryPaysRes?.data || [];
+    const advs = advsRes?.data || [];
+    const emps = empsRes?.data || [];
 
   // Employee mapping
   const empMap = {};
@@ -208,14 +219,17 @@ async function renderExpenses() {
 
   // Calculate Running Month Totals
   const thisMonthList = masterList.filter(item => item.monthYm === cm);
+  const thisMonthExps = thisMonthList;
   const totalMonthExp = thisMonthList.reduce((s, x) => s + x.amount, 0);
   const totalOdExp = thisMonthList.filter(x => x.paidBy === 'UHHS-OD').reduce((s, x) => s + x.amount, 0);
   const totalCompanyExp = thisMonthList.filter(x => x.paidBy !== 'UHHS-OD').reduce((s, x) => s + x.amount, 0);
   const pendingStaffAdvs = masterList.filter(x => x.channel === 'advance' && !x.raw?.is_deducted).reduce((s, x) => s + x.amount, 0);
+  const pendingStaffAdvances = pendingStaffAdvs;
 
-  // Income for this month from bookings
-  const pm = await getPaidMap((gs || []).map(g => g.booking_id));
-  const inc = (gs || []).filter(g => g.check_in?.startsWith(cm)).reduce((s, g) => s + (pm[g.booking_id] || 0), 0);
+  // Income for this month from bookings (safe chunked query for this month only)
+  const thisMonthBookings = (gs || []).filter(g => g.check_in?.startsWith(cm));
+  const pm = await getPaidMap(thisMonthBookings.map(g => g.booking_id));
+  const inc = thisMonthBookings.reduce((s, g) => s + (pm[g.booking_id] || 0), 0);
   const profit = inc - totalMonthExp;
 
   // Store globally for filtering & exports
@@ -244,7 +258,7 @@ async function renderExpenses() {
   masterList.forEach(item => {
     let matchedEmpId = item.empId;
     if (!matchedEmpId && item.staffName) {
-      const match = (emps || []).find(e => e.name.toLowerCase().trim() === item.staffName.toLowerCase().trim());
+      const match = (emps || []).find(e => (e.name || '').toLowerCase().trim() === String(item.staffName || '').toLowerCase().trim());
       if (match) matchedEmpId = match.emp_id;
     }
     if (matchedEmpId && staffExpenseMap[matchedEmpId]) {
@@ -397,8 +411,21 @@ async function renderExpenses() {
     <div id="expTableWrap"></div>
   `, 'expenses');
 
-  if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
-  applyExpenseFilters();
+    if (window.UHHSODManager) { window.UHHSODManager.calculateBalance(sb); }
+    applyExpenseFilters();
+  } catch (err) {
+    console.error("❌ CRITICAL ERROR in renderExpenses:", err);
+    renderShell(`
+      <div class="card" style="padding:28px;text-align:center;margin:30px auto;max-width:520px;border-radius:18px;border:1px solid #E2E8F0;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05);">
+        <div style="font-size:42px;margin-bottom:12px;">⚠️</div>
+        <h3 style="margin:0 0 8px 0;font-size:18px;font-weight:800;color:#0F172A;">Failed to load Expenses</h3>
+        <p style="font-size:13px;color:#64748B;margin:0 0 18px 0;line-height:1.5;">${escapeHtml(err?.message || String(err))}</p>
+        <button type="button" style="background:#0284C7;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" onclick="renderExpenses()">
+          <i class="ti ti-refresh"></i> <span>Retry</span>
+        </button>
+      </div>
+    `, 'expenses');
+  }
 }
 
 // ============ FILTER + TABLE RENDERING ============
