@@ -432,7 +432,7 @@ async function renderReports() {
             <!-- HEADER ROW -->
             <thead>
               <tr>
-                <th class="hh-prop-header-cell">
+                <th class="hh-prop-header-cell" style="position:sticky;left:0;top:0;z-index:100;background:#F8FAFC;">
                   <div class="hh-prop-header-title">
                     <span>Properties (${displayRooms.length})</span>
                     <span style="font-size:11px;font-weight:600;color:#64748B;">Nightly Rate</span>
@@ -446,9 +446,10 @@ async function renderReports() {
                   const dayShort = dObj.toLocaleString('en-IN', { weekday: 'short' });
                   const dayNum = dObj.getDate();
                   const monthShort = dObj.toLocaleString('en-IN', { month: 'short' });
+                  const thBg = isToday ? '#FEF2F2' : (isWeekend ? '#F1F5F9' : '#F8FAFC');
 
                   return `
-                    <th class="hh-date-col-header ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}" style="width:${colWidth}px;min-width:${colWidth}px;max-width:${colWidth}px;">
+                    <th class="hh-date-col-header ${isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''}" style="position:sticky;top:0;z-index:80;background:${thBg};width:${colWidth}px;min-width:${colWidth}px;max-width:${colWidth}px;">
                       <div class="hh-day-name">${dayShort}</div>
                       <div class="hh-day-num">${dayNum}</div>
                       ${dayNum === 1 || idx === 0 ? `<div style="font-size:9.5px;font-weight:700;color:#0284C7;text-transform:uppercase;">${monthShort}</div>` : ''}
@@ -470,7 +471,7 @@ async function renderReports() {
                 return `
                   <tr class="hh-timeline-row">
                     <!-- Sticky Property Column -->
-                    <td class="hh-prop-cell">
+                    <td class="hh-prop-cell" style="position:sticky;left:0;z-index:60;background:#FFFFFF;padding:0;margin:0;">
                       <div class="hh-prop-card">
                         ${thumbHtml}
                         <div class="hh-prop-info">
@@ -485,7 +486,7 @@ async function renderReports() {
                     </td>
 
                     <!-- Timeline Track Cells -->
-                    <td colspan="${tDates.length}" style="padding:0;position:relative;">
+                    <td colspan="${tDates.length}" style="padding:0;margin:0;">
                       <div class="hh-timeline-track" style="width:${tDates.length * colWidth}px;">
                         <!-- Background Day Cells -->
                         ${tDates.map((ds, idx) => {
