@@ -15,7 +15,7 @@
   <script src="config.js"></script>
   <script src="js/showcase-data.js?v=216"></script>
   <script src="js/seasonal-pricing.js"></script>
-  <link rel="stylesheet" href="book.css?v=270"/>
+  <link rel="stylesheet" href="book.css?v=280"/>
 </head>
 <body>
 
@@ -63,6 +63,30 @@
 
 <!-- ─── AIRBNB MAIN CONTENT CONTAINER ─── -->
 <main class="airbnb-page-wrapper">
+
+  <!-- Mehmanghar-Inspired Location & Category Quick Filter Pills -->
+  <section class="book-location-filter-bar">
+    <div class="book-filter-title">
+      <span class="pulse-dot"></span> Filter by Destination:
+    </div>
+    <div class="book-filter-pills" id="bookFilterPills">
+      <button type="button" class="book-filter-pill active" onclick="filterBookProperties('all', this)">
+        <span>✨ All 18 Stays</span>
+      </button>
+      <button type="button" class="book-filter-pill" onclick="filterBookProperties('vikalp', this)">
+        <span>📍 Vikalp Khand (8)</span>
+      </button>
+      <button type="button" class="book-filter-pill" onclick="filterBookProperties('vishesh', this)">
+        <span>🌳 Vishesh Khand (3)</span>
+      </button>
+      <button type="button" class="book-filter-pill" onclick="filterBookProperties('lulu', this)">
+        <span>🛍️ Near Lulu Mall (7)</span>
+      </button>
+      <button type="button" class="book-filter-pill" onclick="filterBookProperties('villa', this)">
+        <span>🏰 Luxury Villas (4)</span>
+      </button>
+    </div>
+  </section>
 
   <!-- Property Header Bar -->
   <section class="listing-header">
@@ -431,6 +455,6 @@
   </div>
 </div>
 
-<script src="book.js?v=270"></script>
+<script src="book.js?v=280"></script>
 </body>
 </html>

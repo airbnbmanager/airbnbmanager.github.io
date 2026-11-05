@@ -5,24 +5,26 @@
 'use strict';
 
 const PROPERTIES = [
-  {id:'VIL-102',name:'Royal White House',type:'Grand Palace Villa',img:'assets/properties/royal-white-house/cover.jpg',price:13800,airbnb:16284,guests:18,wa:'919450055554'},
-  {id:'VIL-101',name:'Gomti Grand Villa',type:'Private Luxury Villa',img:'assets/properties/gomti-grand-villa/cover.jpg',price:9200,airbnb:10856,guests:14,wa:'919450055554'},
-  {id:'GOM-101',name:'RedRose Palace',type:'3BHK Luxury Flat',img:'assets/properties/redrose-palace/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-102',name:'Black Beauty',type:'3BHK Luxury Flat',img:'assets/properties/black-beauty/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-201',name:'The Dark Blue',type:'3BHK Luxury Flat',img:'assets/properties/the-dark-blue/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-202',name:'The Brown',type:'3BHK Luxury Flat',img:'assets/properties/the-brown/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-301',name:'The Light Green',type:'3BHK Luxury Flat',img:'assets/properties/the-light-green/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-302',name:'The Unique',type:'3BHK Luxury Flat',img:'assets/properties/the-unique/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
-  {id:'GOM-401',name:'The Nawabi Stay',type:'3BHK Luxury Flat',img:'assets/properties/the-nawabi-stay/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'GOM-501',name:'Starlight Blue PentHouse',type:'Top-Floor Penthouse',img:'assets/properties/starlight-blue/cover.jpg',price:6900,airbnb:8142,guests:10,wa:'919450055554'},
-  {id:'VIL-103',name:'The Pink House',type:'5BR Duplex (2nd & 3rd Floor)',img:'assets/properties/the-pink-house/cover.jpg',price:10350,airbnb:12213,guests:10,wa:'919450055554'},
-  {id:'VIL-104',name:'The Green House',type:'3BHK 1st Floor',img:'assets/properties/the-green-house/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
-  {id:'VIL-105',name:'The Yellow House',type:'3BHK Ground Floor',img:'assets/properties/the-yellow-house/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
-  {id:'VIL-107',name:'The Velvet House',type:'3BHK 1st Floor',img:'assets/properties/the-velvet-house/cover.jpg',price:5200,airbnb:6136,guests:8,wa:'919450055554'},
-  {id:'VIL-106',name:'Green Forest',type:'3BHK 2nd Floor',img:'assets/properties/green-forest/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'VIL-108',name:'Pink Paradise',type:'3BHK 3rd Floor',img:'assets/properties/pink-paradise/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
-  {id:'LUL-101',name:'The Luxe Haven',type:'1BHK Luxury Flat',img:'assets/properties/the-luxe-haven/cover.jpg',price:2650,airbnb:3127,guests:3,wa:'919450055554'},
-  {id:'LUL-402',name:'Celebrity Garden',type:'5-Bed Grand Homestay',img:'assets/properties/celebrity-garden/cover.jpg',price:11500,airbnb:13570,guests:16,wa:'919450055554'}
+  {id:'VIL-102',name:'Royal White House',type:'Grand Palace Villa',area:'lulu',areaLabel:'Near Lulu Mall & Shaheed Path',img:'assets/properties/royal-white-house/cover.jpg',price:13800,airbnb:16284,guests:18,wa:'919450055554'},
+  {id:'VIL-101',name:'Gomti Grand Villa',type:'Private Luxury Villa',area:'lulu',areaLabel:'Near Lulu Mall & Shaheed Path',img:'assets/properties/gomti-grand-villa/cover.jpg',price:9200,airbnb:10856,guests:14,wa:'919450055554'},
+  {id:'LUL-402',name:'Celebrity Garden',type:'5-Bed Grand Homestay',area:'lulu',areaLabel:'Celebrity Gardens / Sushant Golf City',img:'assets/properties/celebrity-garden/cover.jpg',price:11500,airbnb:13570,guests:16,wa:'919450055554'},
+  {id:'LUL-101',name:'The Luxe Haven',type:'1BHK Luxury Flat',area:'lulu',areaLabel:'Near Lulu Mall & Medanta',img:'assets/properties/the-luxe-haven/cover.jpg',price:2650,airbnb:3127,guests:3,wa:'919450055554'},
+  {id:'VIL-107',name:'The Velvet House',type:'3BHK 1st Floor',area:'lulu',areaLabel:'Near Lulu Mall & Shaheed Path',img:'assets/properties/the-velvet-house/cover.jpg',price:5200,airbnb:6136,guests:8,wa:'919450055554'},
+  {id:'VIL-106',name:'Green Forest',type:'3BHK 2nd Floor',area:'lulu',areaLabel:'Near Lulu Mall & Shaheed Path',img:'assets/properties/green-forest/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'VIL-108',name:'Pink Paradise',type:'3BHK 3rd Floor',area:'lulu',areaLabel:'Near Lulu Mall & Shaheed Path',img:'assets/properties/pink-paradise/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+
+  {id:'GOM-101',name:'RedRose Palace',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/redrose-palace/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-102',name:'Black Beauty',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/black-beauty/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-201',name:'The Dark Blue',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-dark-blue/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-202',name:'The Brown',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-brown/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-301',name:'The Light Green',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-light-green/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-302',name:'The Unique',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-unique/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
+  {id:'GOM-401',name:'The Nawabi Stay',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-nawabi-stay/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-501',name:'Starlight Blue PentHouse',type:'Top-Floor Penthouse',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/starlight-blue/cover.jpg',price:6900,airbnb:8142,guests:10,wa:'919450055554'},
+
+  {id:'VIL-103',name:'The Pink House',type:'5BR Duplex Villa',area:'vishesh',areaLabel:'Vishesh Khand, Gomti Nagar',img:'assets/properties/the-pink-house/cover.jpg',price:10350,airbnb:12213,guests:10,wa:'919450055554'},
+  {id:'VIL-104',name:'The Green House',type:'3BHK 1st Floor',area:'vishesh',areaLabel:'Vishesh Khand, Gomti Nagar',img:'assets/properties/the-green-house/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
+  {id:'VIL-105',name:'The Yellow House',type:'3BHK Ground Floor',area:'vishesh',areaLabel:'Vishesh Khand, Gomti Nagar',img:'assets/properties/the-yellow-house/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'}
 ];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -145,22 +147,72 @@ const BUILTIN_COUPONS = {
   'PINKPARADISE20': { discount_percent: 20, property_id: 'VIL-108', title: 'Pink Paradise Luxury Privilege' }
 };
 
+function populatePropertySelect(sel, filterArea = 'all') {
+  if (!sel) return;
+  const groups = {
+    'lulu': { label: '📍 Shaheed Path & Near Lulu Mall (7 Stays)', items: [] },
+    'vikalp': { label: '📍 Vikalp Khand, Gomti Nagar (8 Stays)', items: [] },
+    'vishesh': { label: '📍 Vishesh Khand, Gomti Nagar (3 Stays)', items: [] }
+  };
+  PROPERTIES.forEach(p => {
+    const key = p.area || 'vikalp';
+    let match = false;
+    if (filterArea === 'all') match = true;
+    else if (filterArea === 'vikalp') match = key === 'vikalp';
+    else if (filterArea === 'vishesh') match = key === 'vishesh';
+    else if (filterArea === 'lulu') match = key === 'lulu';
+    else if (filterArea === 'villa') match = (p.type || '').toLowerCase().includes('villa');
+    
+    if (match) {
+      if (groups[key]) groups[key].items.push(p);
+      else groups['vikalp'].items.push(p);
+    }
+  });
+
+  sel.innerHTML = '';
+  let firstItem = null;
+  Object.values(groups).forEach(g => {
+    if (g.items.length === 0) return;
+    const og = document.createElement('optgroup');
+    og.label = g.label;
+    g.items.forEach(p => {
+      if (!firstItem) firstItem = p;
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${p.type}) — ₹${p.price.toLocaleString('en-IN')}/nt`;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+
+  return firstItem;
+}
+
+window.filterBookProperties = function(areaKey, btnEl) {
+  const pills = document.querySelectorAll('#bookFilterPills .book-filter-pill');
+  pills.forEach(p => p.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const sel = document.getElementById('propSelect');
+  if (sel) {
+    const firstMatching = populatePropertySelect(sel, areaKey);
+    if (firstMatching) {
+      sel.value = firstMatching.id;
+      onPropertyChange();
+    }
+  }
+};
+
 // ─── INITIALIZATION ───
 function init() {
   if (typeof supabase !== 'undefined' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
     sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   }
 
-  // Populate Dropdown
+  // Populate Dropdown with optgroups by Location (Mehmanghar / Airbnb style)
   const sel = document.getElementById('propSelect');
   if (sel) {
-    sel.innerHTML = '';
-    PROPERTIES.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = `${p.name} (${p.type}) — ₹${p.price.toLocaleString('en-IN')}/nt`;
-      sel.appendChild(opt);
-    });
+    populatePropertySelect(sel);
   }
 
   // Real-time tariff sync from Supabase rooms table
@@ -181,13 +233,7 @@ function init() {
         if (changed) {
           if (sel) {
             const cur = sel.value;
-            sel.innerHTML = '';
-            PROPERTIES.forEach(p => {
-              const opt = document.createElement('option');
-              opt.value = p.id;
-              opt.textContent = `${p.name} (${p.type}) — ₹${p.price.toLocaleString('en-IN')}/nt`;
-              sel.appendChild(opt);
-            });
+            populatePropertySelect(sel);
             if (cur) sel.value = cur;
           }
           if (selectedProp) {

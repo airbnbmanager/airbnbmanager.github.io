@@ -485,6 +485,7 @@
     'the-light-green',
     'the-unique',
     'the-nawabi-stay',
+    'the-tehzeeb-nest',
     'starlight-blue-penthouse'
   ]);
 
@@ -541,7 +542,8 @@
     let flatCount = 0;
     let villaCount = 0;
     let pentCount = 0;
-    let gomtiCount = 0;
+    let vikalpCount = 0;
+    let visheshCount = 0;
     let luluCount = 0;
 
     cards.forEach(card => {
@@ -556,7 +558,8 @@
       const isLulu = LULU_SLUGS.has(slug) || area === 'lulu' || card.dataset.location === 'lulu';
       const isVikalp = VIKALP_SLUGS.has(slug) || area === 'vikalp';
       const isVishesh = VISHESH_SLUGS.has(slug) || area === 'vishesh';
-      if (isVikalp || isVishesh || (!isLulu && area === 'gomti')) gomtiCount++;
+      if (isVikalp) vikalpCount++;
+      if (isVishesh) visheshCount++;
       if (isLulu) luluCount++;
     });
 
@@ -565,11 +568,12 @@
       if (btn) btn.textContent = text;
     };
 
-    setPillText('flat', `Flats & Apartments (${flatCount})`);
-    setPillText('villa', `Luxury Villas (${villaCount})`);
-    setPillText('penthouse', `Penthouse (${pentCount})`);
-    setPillText('gomti', `Gomti Nagar (${gomtiCount})`);
+    setPillText('all', `All Stays (${cards.length})`);
+    setPillText('vikalp', `Vikalp Khand (${vikalpCount})`);
+    setPillText('vishesh', `Vishesh Khand (${visheshCount})`);
     setPillText('lulu', `Near Lulu Mall (${luluCount})`);
+    setPillText('villa', `Luxury Villas (${villaCount})`);
+    setPillText('flat', `Flats (${flatCount})`);
   }
 
   function applyFilters() {
@@ -609,6 +613,10 @@
         catMatch = type === 'penthouse';
       } else if (activeFilterCategory === 'top-rated') {
         catMatch = rating >= 4.90;
+      } else if (activeFilterCategory === 'vikalp') {
+        catMatch = isVikalpProperty;
+      } else if (activeFilterCategory === 'vishesh') {
+        catMatch = isVisheshProperty;
       } else if (activeFilterCategory === 'gomti') {
         catMatch = isGomtiProperty;
       } else if (activeFilterCategory === 'lulu') {

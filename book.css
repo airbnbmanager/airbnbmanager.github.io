@@ -1,4 +1,89 @@
 /* ═══════════════════════════════════════════════════════════════════════════
+   MEHMANGHAR-INSPIRED LOCATION & CATEGORY FILTER PILLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.book-location-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0 24px;
+  padding: 12px 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+}
+
+.book-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.25);
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+
+.book-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+.book-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.book-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 9999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.book-filter-pill:hover {
+  border-color: #0F172A;
+  color: #0F172A;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+}
+
+.book-filter-pill.active {
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    THE UNIQUE HAVEN HOMES — AIRBNB CLONE DESIGN SYSTEM (book.css)
    Authentic DLS Architecture inspired by Airbnb Cereal Design
    ═══════════════════════════════════════════════════════════════════════════ */
