@@ -44,7 +44,7 @@
 <link href="css/property-luxe.css" rel="stylesheet"/>
 <link href="css/properties-directory.css?v=205" rel="stylesheet"/>
 <link href="css/mobile-fixes.css?v=206" rel="stylesheet"/>
-<link href="css/vesper-hero.css?v=12" rel="stylesheet"/>
+<link href="css/vesper-hero.css?v=25" rel="stylesheet"/>
 <!-- Supabase Client for Real-Time CRM Geolocation Sync -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -1329,7 +1329,7 @@
                 <a href="${room.map_link}" target="_blank" rel="noopener" class="dir-map-pin-link" title="Open exact pinpoint on Google Maps">
                   <span class="dir-map-icon">📍</span>
                   <span class="dir-map-text">${currentLocText}</span>
-                  <span class="dir-map-badge">Exact Pin ↗</span>
+                  <span style="display:inline-block; font-size:10.5px; font-weight:700; color:#2563EB; background:#EFF6FF; border:1px solid #BFDBFE; padding:2px 7px; border-radius:999px; margin-left:6px;">Maps ↗</span>
                 </a>
               `;
             }
@@ -1376,18 +1376,17 @@
 <!-- Live Price Sync: Fetches rates from Supabase → property_rates table -->
 <script src="js/seasonal-pricing.js"></script>
 <script src="js/price-sync.js?v=1"></script>
-<!-- Inject "Book Now" buttons into all property cards -->
+<!-- Inject clean "Book Direct" action buttons into property cards if needed -->
 <script>
 (function() {
   document.querySelectorAll('.dir-card[data-room-id]').forEach(function(card) {
     var roomId = card.getAttribute('data-room-id');
     var actionsDiv = card.querySelector('.dir-card-actions');
-    if (actionsDiv && roomId) {
+    if (actionsDiv && roomId && !actionsDiv.querySelector('.dir-btn-book-direct')) {
       var bookBtn = document.createElement('a');
-      bookBtn.className = 'dir-btn-details';
+      bookBtn.className = 'dir-btn-details dir-btn-book-direct';
       bookBtn.href = 'book.html?property=' + roomId;
-      bookBtn.style.cssText = 'background:#059669; color:#fff; border-color:#059669;';
-      bookBtn.textContent = '📋 Book Now';
+      bookBtn.textContent = 'Reserve Now';
       actionsDiv.insertBefore(bookBtn, actionsDiv.firstChild);
     }
   });

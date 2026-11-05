@@ -1178,39 +1178,42 @@ html, body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   VESPER CONTINUOUS LUXURY: OBSIDIAN DIRECTORY & SECTIONS
+   VESPER & MEHMANGHAR-INSPIRED LUXURY DIRECTORY STYLING
+   Clean, pristine ivory-white background with refined cards
    ══════════════════════════════════════════════════════════════ */
 
 body.properties-directory-page {
-  background-color: #0c0d10 !important;
-  color: #f8fafc !important;
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
 }
 
-/* Categories Bar - Translucent Dark Obsidian Glass */
+/* Category Filter Bar - Clean Translucent Frosted Glass */
 .airnest-cat-nav {
-  background: rgba(12, 13, 16, 0.95) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
 }
 
 .airnest-cat-btn {
-  color: rgba(248, 250, 252, 0.65) !important;
+  color: #64748B !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
 }
 
 .airnest-cat-btn:hover {
-  color: #f59e0b !important;
+  color: #0F172A !important;
 }
 
 .airnest-cat-btn.active {
-  color: #fbbf24 !important;
-  font-weight: 700 !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
 }
 
 .airnest-cat-btn.active::after {
-  background: #f59e0b !important;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.7) !important;
+  background: #0F172A !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
 }
 
 /* Main Directory Header & Count */
@@ -1219,160 +1222,171 @@ body.properties-directory-page {
 }
 
 .dir-grid-count {
-  color: #ffffff !important;
-  font-family: 'Fraunces', serif !important;
-  font-size: 22px !important;
-  letter-spacing: -0.01em !important;
+  color: #0F172A !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
 }
 
 .dir-grid-header div span {
-  color: #34d399 !important;
-  font-weight: 600 !important;
+  color: #059669 !important;
+  font-weight: 700 !important;
 }
 
-/* ─── LUXURY OBSIDIAN PROPERTY CARDS ─── */
+/* ─── 5-STAR LUXURY BOUTIQUE PROPERTY CARDS ─── */
 .dir-card {
-  background: #14161c !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
   border-radius: 20px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .dir-card:hover {
-  transform: translateY(-8px) !important;
-  border-color: rgba(245, 158, 11, 0.45) !important;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(245, 158, 11, 0.2) !important;
+  transform: translateY(-6px) !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1) !important;
 }
 
 .dir-card-body {
-  background: #14161c !important;
-  color: #f8fafc !important;
+  background: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 .dir-card-title a {
-  color: #ffffff !important;
-  font-family: 'Fraunces', serif !important;
-  font-size: 20px !important;
-  font-weight: 600 !important;
+  color: #0F172A !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
   transition: color 0.2s ease !important;
 }
 
 .dir-card-title a:hover {
-  color: #fbbf24 !important;
+  color: #2563EB !important;
 }
 
 .dir-card-eyebrow {
-  color: #f59e0b !important;
-  font-weight: 700 !important;
+  color: #D97706 !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
   letter-spacing: 0.04em !important;
 }
 
 .dir-card-location {
-  color: #94a3b8 !important;
+  color: #64748B !important;
+  font-size: 13px !important;
 }
 
 .dir-card-spec-item {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
-  color: #e2e8f0 !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
 }
 
 .dir-card-price-main {
-  color: #fbbf24 !important;
-  font-weight: 800 !important;
+  color: #0F172A !important;
+  font-weight: 900 !important;
+  font-size: 21px !important;
 }
 
 .dir-card-price-main small {
-  color: rgba(248, 250, 252, 0.6) !important;
+  color: #64748B !important;
+  font-weight: 500 !important;
 }
 
 .dir-card-price-strike {
-  color: #94a3b8 !important;
+  color: #94A3B8 !important;
 }
 
 .dir-card-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid #F1F5F9 !important;
 }
 
 .dir-btn-details {
-  background: linear-gradient(135deg, #059669, #10b981) !important;
-  color: #ffffff !important;
+  background: #059669 !important;
+  color: #FFFFFF !important;
   border: none !important;
   font-weight: 700 !important;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
-  transition: all 0.25s ease !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+  transition: all 0.2s ease !important;
 }
 
 .dir-btn-details:hover {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
+  background: #047857 !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35) !important;
 }
 
 .dir-btn-share-icon {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #cbd5e1 !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #475569 !important;
+  border-radius: 999px !important;
 }
 
 .dir-btn-share-icon:hover {
-  background: rgba(37, 211, 102, 0.2) !important;
-  border-color: rgba(37, 211, 102, 0.5) !important;
-  color: #25d366 !important;
+  background: #ECFDF5 !important;
+  border-color: #10B981 !important;
+  color: #059669 !important;
 }
 
 /* ─── REVIEWS, MAP & FOUNDERS SECTIONS ─── */
 .dir-reviews-section,
 .dir-map-section,
 .dir-founders-section {
-  background: #0c0d10 !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #FFFFFF !important;
+  border-top: 1px solid #E2E8F0 !important;
 }
 
 .dir-sec-title,
 .dir-founders-title,
 .dir-reviews-title {
-  color: #ffffff !important;
-  font-family: 'Fraunces', serif !important;
-  letter-spacing: -0.01em !important;
+  color: #0F172A !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
 }
 
 .dir-sec-sub,
 .dir-founders-sub,
 .dir-reviews-sub {
-  color: #94a3b8 !important;
+  color: #64748B !important;
 }
 
 .dir-review-card,
 .dir-founder-card {
-  background: #14161c !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #f8fafc !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03) !important;
 }
 
 .dir-review-author {
-  color: #ffffff !important;
+  color: #0F172A !important;
 }
 
 .dir-review-stay {
-  color: #f59e0b !important;
+  color: #D97706 !important;
 }
 
 .dir-review-text {
-  color: #cbd5e1 !important;
+  color: #334155 !important;
 }
 
 .dir-host-name {
-  color: #ffffff !important;
+  color: #0F172A !important;
 }
 
 .dir-host-phone {
-  color: #fbbf24 !important;
+  color: #2563EB !important;
 }
 
 .dir-founder-quote {
-  color: #cbd5e1 !important;
+  color: #475569 !important;
 }
 
 /* ══════════════════════════════════════════════════════════════
