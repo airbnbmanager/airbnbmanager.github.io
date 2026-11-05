@@ -1305,33 +1305,48 @@ body.properties-directory-page {
   border-top: 1px solid #F1F5F9 !important;
 }
 
-.dir-btn-details {
-  background: #059669 !important;
+.dir-btn-reserve {
+  background: #0F172A !important;
   color: #FFFFFF !important;
   border: none !important;
   font-weight: 700 !important;
-  border-radius: 999px !important;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
-  transition: all 0.2s ease !important;
+  border-radius: 9999px !important;
+  padding: 8px 18px !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18) !important;
+  transition: all 0.25s ease !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
-.dir-btn-details:hover {
-  background: #047857 !important;
+.dir-btn-reserve:hover {
+  background: #B45309 !important;
+  color: #FFFFFF !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35) !important;
+  box-shadow: 0 6px 18px rgba(180, 83, 9, 0.28) !important;
 }
 
-.dir-btn-share-icon {
+.dir-btn-details-subtle {
   background: #F8FAFC !important;
   border: 1px solid #E2E8F0 !important;
   color: #475569 !important;
-  border-radius: 999px !important;
+  border-radius: 9999px !important;
+  padding: 7px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  transition: all 0.2s ease !important;
 }
 
-.dir-btn-share-icon:hover {
-  background: #ECFDF5 !important;
-  border-color: #10B981 !important;
-  color: #059669 !important;
+.dir-btn-details-subtle:hover {
+  background: #EDE8E2 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+  transform: translateY(-1px) !important;
 }
 
 /* ─── REVIEWS, MAP & FOUNDERS SECTIONS ─── */
@@ -1395,14 +1410,14 @@ body.properties-directory-page {
    ══════════════════════════════════════════════════════════════ */
 
 .vesper-luxe-footer {
-  background: #090a0d;
+  background: #140B04;
   position: relative;
-  border-top: 1px solid rgba(245, 158, 11, 0.22);
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.6);
-  color: #e2e8f0;
+  border-top: 1px solid rgba(217, 119, 6, 0.28);
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.25);
+  color: #EDE8E2;
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow: hidden;
-  padding: 80px 24px 36px;
+  padding: 72px 24px 36px;
 }
 
 .vesper-footer-inner {
@@ -1412,7 +1427,7 @@ body.properties-directory-page {
 
 /* 1. Top 3 Trust Pillars (Balanced Responsive Grid) */
 .vesper-footer-trust-banner {
-  background: #14161c;
+  background: #1E1208;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   padding: 24px 28px;
@@ -1420,7 +1435,7 @@ body.properties-directory-page {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .vesper-trust-item {
