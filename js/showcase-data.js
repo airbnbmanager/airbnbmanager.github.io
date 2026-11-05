@@ -3059,13 +3059,19 @@
         ],
         bathrooms: [
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/02b94c28-7551-4672-8c5e-b0c28d7ea001.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0c06225f-55a8-4866-9114-e55e85aaf459.jpeg'
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0c06225f-55a8-4866-9114-e55e85aaf459.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/4142171d-b1fe-4c55-b2cb-ae5dd8840d8f.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/02a5bfa7-1007-47be-ac17-884d2b18ed2d.jpeg'
         ],
         living_hall: [
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/bc29b9a1-db2d-4917-9e5f-47c73e59d7f4.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg'
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/d90b7498-7662-445d-bb68-cee505014e81.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/bf98e041-4eec-430a-aca2-1ca45f5555a9.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/fff4ed00-313b-43f4-8cca-32d999542588.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/bef47095-54c2-4679-9b18-a301715a11c1.jpeg'
         ],
         kitchen: [
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f38af0c2-8b86-47a0-b53a-c94e0f5bc172.jpeg',
@@ -3073,19 +3079,45 @@
         ],
         balcony: [
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/47b3af32-0e62-4ed1-bd9c-243cc244585e.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5aee3154-f2f1-4e8a-b60c-e5bf91afbf87.jpeg'
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5aee3154-f2f1-4e8a-b60c-e5bf91afbf87.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/ac19420e-0f2f-42ce-90e0-5de639728db2.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/23edd38d-a91f-449a-8824-865e94f0da09.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/b3251de9-4685-42ae-80fb-92e2f89579c3.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/835579d4-daf1-4d03-956f-3a0e6147480c.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/80c85e02-5b75-4792-a54f-93a377b19d8f.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/566c045e-3eb5-4cd0-b2de-8dfb13870e20.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/935e9230-217b-404d-91d1-44d3b454045d.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/e177fb84-a64e-446d-92e7-ca7ace3eeb89.jpeg'
         ],
         all: [
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/bc29b9a1-db2d-4917-9e5f-47c73e59d7f4.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3c34ceb3-4be9-4482-a8b2-c8d1d30dde1e.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/9a070783-c761-4761-8996-868dbf0ad056.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a26786bc-40d1-4f7b-ace2-3d520470100b.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/bc29b9a1-db2d-4917-9e5f-47c73e59d7f4.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/02b94c28-7551-4672-8c5e-b0c28d7ea001.jpeg',
           'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0c06225f-55a8-4866-9114-e55e85aaf459.jpeg',
-          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg'
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f38af0c2-8b86-47a0-b53a-c94e0f5bc172.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f5b7b85d-b91b-461f-9cc8-ee1b8463f7c4.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/47b3af32-0e62-4ed1-bd9c-243cc244585e.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5aee3154-f2f1-4e8a-b60c-e5bf91afbf87.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/d90b7498-7662-445d-bb68-cee505014e81.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/bf98e041-4eec-430a-aca2-1ca45f5555a9.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/fff4ed00-313b-43f4-8cca-32d999542588.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/bef47095-54c2-4679-9b18-a301715a11c1.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/4142171d-b1fe-4c55-b2cb-ae5dd8840d8f.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/02a5bfa7-1007-47be-ac17-884d2b18ed2d.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/ac19420e-0f2f-42ce-90e0-5de639728db2.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/23edd38d-a91f-449a-8824-865e94f0da09.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/b3251de9-4685-42ae-80fb-92e2f89579c3.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/835579d4-daf1-4d03-956f-3a0e6147480c.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/80c85e02-5b75-4792-a54f-93a377b19d8f.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/566c045e-3eb5-4cd0-b2de-8dfb13870e20.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/935e9230-217b-404d-91d1-44d3b454045d.jpeg',
+          'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/e177fb84-a64e-446d-92e7-ca7ace3eeb89.jpeg'
         ]
       },
       amenities: ['AC in all 3 Bedrooms', 'High-Speed Wi-Fi', 'Modular Kitchen with Utensils', 'Balcony with Skyline View', 'Geyser Hot Water', 'Elevator Access', 'Dedicated Car Parking', '24/7 Host Concierge', 'Power Backup'],
