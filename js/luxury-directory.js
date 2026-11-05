@@ -48,19 +48,9 @@
 
     const cards = document.querySelectorAll('.dir-card');
     cards.forEach(card => {
-      // Ensure + GST · Direct Discount tag exists with official rate (5% <= 7500, 18% > 7500)
-      let taxEl = card.querySelector('.dir-card-price-tax');
-      const cardPrice = Number(card.dataset.price || 4500);
-      const taxRate = cardPrice <= 7500 ? 5 : 18;
-      if (!taxEl) {
-        taxEl = document.createElement('span');
-        taxEl.className = 'dir-card-price-tax';
-        taxEl.innerHTML = `+ ${taxRate}% GST · Direct Discount`;
-        const pBlock = card.querySelector('.dir-card-price-block');
-        if (pBlock) pBlock.appendChild(taxEl);
-      } else {
-        taxEl.innerHTML = `+ ${taxRate}% GST · Direct Discount`;
-      }
+      // Remove any cluttered tax tags for clean luxury feel
+      const existingTax = card.querySelector('.dir-card-price-tax');
+      if (existingTax) existingTax.remove();
 
       const slug = card.dataset.slug;
       if (!slug || !db) return;

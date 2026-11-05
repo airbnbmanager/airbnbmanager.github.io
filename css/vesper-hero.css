@@ -1995,12 +1995,12 @@ body.properties-directory-page {
    ══════════════════════════════════════════════════════════════ */
 
 .vesper-spaces-section {
-  background: #0c0d10;
-  color: #f8fafc;
-  padding: 90px 24px 100px;
+  background: #FAF8F5;
+  color: #0F172A;
+  padding: 85px 24px 95px;
   position: relative;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #EDE8E2;
 }
 
 .vesper-spaces-container {
@@ -2015,29 +2015,31 @@ body.properties-directory-page {
 
 .vesper-spaces-eyebrow {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #B45309;
   display: block;
   margin-bottom: 10px;
 }
 
 .vesper-spaces-title {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(32px, 3.8vw, 48px);
-  font-weight: 600;
-  color: #ffffff;
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: clamp(30px, 3.8vw, 46px);
+  font-weight: 700;
+  color: #18181B;
   line-height: 1.15;
   margin: 0 0 14px;
   letter-spacing: -0.02em;
 }
 
 .vesper-spaces-sub {
-  font-size: 16px;
-  color: #94a3b8;
+  font-size: 15.5px;
+  color: #64748B;
   line-height: 1.6;
+  margin: 0;
+}
   margin: 0;
 }
 
@@ -2101,14 +2103,14 @@ body.properties-directory-page {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: #f59e0b;
+  color: #92400E;
   text-transform: uppercase;
-  background: rgba(12, 14, 18, 0.75);
+  background: rgba(254, 243, 199, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid #FDE68A;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: 9999px;
   margin-bottom: 8px;
   transition: all 0.3s ease;
 }
@@ -2164,11 +2166,11 @@ body.properties-directory-page {
 }
 
 .vesper-narrative-card {
-  background: #14161c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
   border-radius: 24px;
-  padding: 38px 34px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  padding: 36px 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -2182,21 +2184,21 @@ body.properties-directory-page {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #f59e0b;
+  background: #B45309;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .vesper-narrative-card:hover {
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: #CBD5E1;
   transform: translateY(-3px);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
 }
 
 .vesper-narrative-card.active {
-  background: #181b24;
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 24px rgba(245, 158, 11, 0.15);
+  background: #FFFFFF;
+  border-color: #B45309;
+  box-shadow: 0 16px 36px rgba(180, 83, 9, 0.12), 0 0 0 1px #B45309;
 }
 
 .vesper-narrative-card.active::before {
@@ -2207,22 +2209,22 @@ body.properties-directory-page {
   font-family: 'Fraunces', serif;
   font-size: 32px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
   line-height: 1;
   margin-bottom: 12px;
   transition: color 0.3s ease;
 }
 
 .vesper-narrative-card.active .vesper-narrative-num {
-  color: #f59e0b;
+  color: #B45309;
 }
 
 .vesper-narrative-badge {
   display: inline-block;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: #94a3b8;
+  color: #B45309;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
@@ -2230,15 +2232,15 @@ body.properties-directory-page {
 .vesper-narrative-title {
   font-family: 'Fraunces', serif;
   font-size: 24px;
-  font-weight: 600;
-  color: #ffffff;
+  font-weight: 700;
+  color: #18181B;
   margin: 0 0 12px;
   line-height: 1.25;
 }
 
 .vesper-narrative-desc {
   font-size: 14.5px;
-  color: #94a3b8;
+  color: #64748B;
   line-height: 1.65;
   margin: 0 0 20px;
 }
@@ -2251,11 +2253,11 @@ body.properties-directory-page {
 
 .vesper-narrative-specs span {
   font-size: 12px;
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 4px 12px;
-  border-radius: 999px;
+  color: #475569;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 5px 13px;
+  border-radius: 9999px;
 }
 
 /* Tablet & Mobile Breakpoints for Sticky Scroll (35:12 - 35:29 Responsive Refinement) */
@@ -2364,15 +2366,15 @@ body.properties-directory-page {
   }
 }
 /* ══════════════════════════════════════════════════════════════
-   THE COLLECTION SECTION — THE UNIQUE HAVEN HOMES 17 STAYS
+   THE COLLECTION SECTION — MEHMANGHAR LUXURY IVORY THEME
    ══════════════════════════════════════════════════════════════ */
 
 .vesper-collection-section {
-  background: #0c0d10;
-  color: #f8fafc;
-  padding: 90px 24px 100px;
+  background: #FAF8F5;
+  color: #0F172A;
+  padding: 80px 24px 90px;
   position: relative;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid #EDE8E2;
 }
 
 .vesper-collection-container {
@@ -2388,27 +2390,27 @@ body.properties-directory-page {
 
 .vesper-collection-eyebrow {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #B45309;
   display: block;
   margin-bottom: 10px;
 }
 
 .vesper-collection-title {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(32px, 3.8vw, 46px);
-  font-weight: 600;
-  color: #ffffff;
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: clamp(30px, 3.8vw, 44px);
+  font-weight: 700;
+  color: #18181B;
   margin: 0 0 14px;
   letter-spacing: -0.02em;
 }
 
 .vesper-collection-sub {
   font-size: 15.5px;
-  color: #94a3b8;
+  color: #64748B;
   line-height: 1.6;
   margin: 0;
 }
@@ -2424,33 +2426,35 @@ body.properties-directory-page {
 }
 
 .vesper-filter-btn {
-  background: #14161c;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
+  color: #475569;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  padding: 10px 20px;
-  border-radius: 999px;
+  padding: 10px 22px;
+  border-radius: 9999px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .vesper-filter-btn:hover {
-  background: #1c2028;
-  color: #ffffff;
-  border-color: rgba(245, 158, 11, 0.4);
+  background: #F8FAFC;
+  color: #0F172A;
+  border-color: #CBD5E1;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .vesper-filter-btn.active {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #ffffff;
-  border-color: #f59e0b;
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
 }
 
-/* ── 17 Properties Grid ── */
+/* ── 19 Properties Grid ── */
 .vesper-stays-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2493,11 +2497,11 @@ body.properties-directory-page {
 }
 
 .vesper-stay-card {
-  background: #14161c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2505,8 +2509,8 @@ body.properties-directory-page {
 
 .vesper-stay-card:hover {
   transform: translateY(-6px);
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.15);
+  border-color: #CBD5E1;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
 }
 
 .vesper-stay-media {
@@ -2514,7 +2518,7 @@ body.properties-directory-page {
   width: 100%;
   aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: #020617;
+  background: #F1F5F9;
   display: block;
   text-decoration: none;
   cursor: pointer;
@@ -2525,16 +2529,16 @@ body.properties-directory-page {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.9);
-  background: rgba(12, 13, 16, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(245, 158, 11, 0.5);
-  color: #fcd34d;
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
   font-size: 12px;
   font-weight: 700;
   padding: 8px 16px;
   border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   opacity: 0;
   pointer-events: none;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2557,42 +2561,44 @@ body.properties-directory-page {
 }
 
 .vesper-stay-card:hover .vesper-stay-media img {
-  transform: scale(1.06);
+  transform: scale(1.05);
 }
 
 .vesper-stay-badge {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(12, 13, 16, 0.9);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fcd34d;
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .vesper-stay-save-badge {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(16, 185, 129, 0.92);
-  color: #ffffff;
+  background: #059669;
+  color: #FFFFFF;
   font-size: 10px;
   font-weight: 800;
   padding: 3px 8px;
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 
 .vesper-stay-body {
   padding: 20px 22px 22px;
+  background: #FFFFFF;
+  color: #0F172A;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -2604,31 +2610,31 @@ body.properties-directory-page {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #B45309;
   margin-bottom: 6px;
 }
 
 .vesper-stay-title {
-  font-family: 'Fraunces', serif;
-  font-size: 21px;
-  font-weight: 600;
-  color: #ffffff;
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #18181B;
   margin: 0 0 6px;
 }
 
 .vesper-stay-title a {
-  color: inherit;
+  color: #18181B;
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .vesper-stay-title a:hover {
-  color: #fbbf24;
+  color: #2563EB;
 }
 
 .vesper-stay-loc {
-  font-size: 12.5px;
-  color: #94a3b8;
+  font-size: 13px;
+  color: #64748B;
   margin-bottom: 14px;
 }
 
@@ -2640,12 +2646,13 @@ body.properties-directory-page {
 }
 
 .vesper-stay-spec-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #334155;
   font-size: 11.5px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 6px;
+  font-weight: 500;
 }
 
 .vesper-stay-pricing-row {
@@ -2653,145 +2660,37 @@ body.properties-directory-page {
   align-items: baseline;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #F1ECE6;
   margin-bottom: 16px;
 }
 
 .vesper-stay-price {
   font-size: 20px;
   font-weight: 800;
-  color: #ffffff;
+  color: #18181B;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .vesper-stay-price small {
   font-size: 12px;
-  color: #94a3b8;
-  font-weight: 400;
+  color: #64748B;
+  font-weight: 500;
 }
 
 .vesper-stay-price-strike {
   font-size: 13px;
-  color: #94a3b8;
+  color: #94A3B8;
   text-decoration: line-through;
   margin-right: 6px;
 }
 
 .vesper-stay-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.vesper-btn-stay-book {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #ffffff;
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 10px 14px;
-  border-radius: 999px;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
-}
-
-.vesper-btn-stay-book:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.45);
-}
-
-.vesper-btn-stay-wa {
-  background: rgba(37, 211, 102, 0.14);
-  border: 1px solid rgba(37, 211, 102, 0.35);
-  color: #4ade80;
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 10px 14px;
-  border-radius: 999px;
-  text-decoration: none;
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  transition: all 0.2s ease;
-}
-
-.vesper-btn-stay-wa:hover {
-  background: #25d366;
-  color: #0c0d10;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
-}
-
-.vesper-price-direct-box {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
-.vesper-ota-compare {
-  font-size: 11.5px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.vesper-ota-compare del {
-  color: #ef4444;
-  margin-left: 2px;
-}
-
-.vesper-direct-save-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-top: 4px;
-}
-
-.vesper-live-badge {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-}
-
-.vesper-live-badge .live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: livePulse 2s infinite;
-}
-
-@keyframes livePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-/* ─── VESPER OMNI SEARCH BAR (AIRBNB / MARRIOTT INSPIRED) ─── */
+/* ─── VESPER OMNI SEARCH BAR (MEHMANGHAR / AIRBNB LUXURY STYLE) ─── */
 .vesper-omni-search-wrap {
   width: 100%;
   max-width: 1100px;
@@ -2803,17 +2702,15 @@ body.properties-directory-page {
 }
 
 .vesper-omni-search {
-  background: rgba(20, 24, 33, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
   border-radius: 24px;
   padding: 14px 18px;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr auto;
   gap: 12px;
   align-items: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(245, 158, 11, 0.12);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.06);
 }
 
 .vesper-omni-col {
@@ -2822,14 +2719,14 @@ body.properties-directory-page {
   gap: 3px;
   padding: 6px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   transition: all 0.2s ease;
 }
 
 .vesper-omni-col:focus-within {
-  border-color: #f59e0b;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: #B45309;
+  background: #FFFFFF;
 }
 
 .vesper-omni-label {
@@ -2837,13 +2734,13 @@ body.properties-directory-page {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #B45309;
 }
 
 .vesper-omni-select, .vesper-omni-input {
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: #0F172A;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13.5px;
   font-weight: 600;
@@ -2853,32 +2750,32 @@ body.properties-directory-page {
 }
 
 .vesper-omni-select option {
-  background: #0f172a;
-  color: #ffffff;
+  background: #FFFFFF;
+  color: #0F172A;
 }
 
 .vesper-omni-btn {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #ffffff;
+  background: #0F172A;
+  color: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13.5px;
   font-weight: 700;
   padding: 14px 22px;
-  border-radius: 14px;
+  border-radius: 9999px;
   border: none;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.4);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
   transition: all 0.25s ease;
 }
 
 .vesper-omni-btn:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #B45309;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 6px 20px rgba(180, 83, 9, 0.35);
 }
 
 @media (max-width: 900px) {
@@ -2899,8 +2796,8 @@ body.properties-directory-page {
 }
 
 .vesper-collection-banner {
-  background: #14161c;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
   border-radius: 20px;
   padding: 30px 36px;
   display: flex;
@@ -2908,54 +2805,54 @@ body.properties-directory-page {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .vesper-collection-banner-text h3 {
   font-family: 'Fraunces', serif;
   font-size: 22px;
-  color: #ffffff;
+  color: #18181B;
   margin: 0 0 6px;
 }
 
 .vesper-collection-banner-text p {
   font-size: 14px;
-  color: #cbd5e1;
+  color: #64748B;
   margin: 0;
 }
 
 .vesper-btn-explore-collection {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: #ffffff;
+  background: #0F172A;
+  color: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
   padding: 14px 28px;
-  border-radius: 999px;
+  border-radius: 9999px;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
   transition: all 0.25s ease;
 }
 
 .vesper-btn-explore-collection:hover {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #B45309;
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(217, 119, 6, 0.5);
+  box-shadow: 0 8px 22px rgba(180, 83, 9, 0.35);
 }
 
 /* ══════════════════════════════════════════════════════════════
-   THE HOSTS SECTION — THE 3 PROFILE PHOTOS REQUESTED
+   THE HOSTS SECTION — MEHMANGHAR LUXURY IVORY THEME
    ══════════════════════════════════════════════════════════════ */
 
 .vesper-hosts-section {
-  background: #0c0d10;
-  color: #f8fafc;
-  padding: 90px 24px 100px;
+  background: #FAF8F5;
+  color: #0F172A;
+  padding: 80px 24px 90px;
   position: relative;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #EDE8E2;
 }
 
 .vesper-hosts-container {
@@ -2970,27 +2867,27 @@ body.properties-directory-page {
 }
 
 .vesper-hosts-eyebrow {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #B45309;
   display: block;
   margin-bottom: 10px;
 }
 
 .vesper-hosts-title {
   font-family: 'Fraunces', serif;
-  font-size: clamp(32px, 3.8vw, 46px);
-  font-weight: 600;
-  color: #ffffff;
+  font-size: clamp(30px, 3.8vw, 44px);
+  font-weight: 700;
+  color: #18181B;
   margin: 0 0 14px;
   letter-spacing: -0.02em;
 }
 
 .vesper-hosts-sub {
   font-size: 15.5px;
-  color: #94a3b8;
+  color: #64748B;
   line-height: 1.6;
   margin: 0;
 }
@@ -3014,15 +2911,15 @@ body.properties-directory-page {
 }
 
 .vesper-host-card {
-  background: #14161c;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #FFFFFF;
+  border: 1px solid #EDE8E2;
   border-radius: 24px;
   padding: 32px 26px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
@@ -3035,15 +2932,15 @@ body.properties-directory-page {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: linear-gradient(90deg, #F59E0B, #D97706);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .vesper-host-card:hover {
-  transform: translateY(-8px);
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.15);
+  transform: translateY(-6px);
+  border-color: #CBD5E1;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
 }
 
 .vesper-host-card:hover::before {
@@ -3072,9 +2969,9 @@ body.properties-directory-page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(245, 158, 11, 0.14);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fcd34d;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -3087,22 +2984,22 @@ body.properties-directory-page {
 .vesper-host-name {
   font-family: 'Fraunces', serif;
   font-size: 22px;
-  font-weight: 600;
-  color: #ffffff;
+  font-weight: 700;
+  color: #18181B;
   margin: 0 0 6px;
 }
 
 .vesper-host-role {
   font-size: 13px;
   font-weight: 600;
-  color: #f59e0b;
+  color: #B45309;
   margin: 0 0 16px;
 }
 
 .vesper-host-quote {
   font-size: 13.5px;
   line-height: 1.6;
-  color: #cbd5e1;
+  color: #475569;
   font-style: italic;
   margin: 0 0 24px;
   flex: 1;

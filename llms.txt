@@ -28,62 +28,62 @@
 
 ---
 
-## Complete Properties Directory by Location (18 Properties)
+## Complete Properties Directory by Location (19 Luxury Stays)
 
 ### Area 1: Vikalp Khand, Gomti Nagar, Lucknow (8 Premium Flats & Penthouses)
 Ideal for corporate travellers, families, medical tourists (near Max Super Speciality Hospital), and leisure visits.
 
 1. **The Dark Blue** (Code: GOM-201)
    - Type: Luxury 3BHK Serviced Apartment
-   - Rating: ⭐ 4.95 (Airbnb Superhost) | Price: ₹4,500/night
+   - Rating: ⭐ 4.95 (Airbnb Superhost) | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/the-dark-blue.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-dark-blue/cover.jpg
    - Highlights: Deep royal blue interior accents, 3 master bedrooms, modular kitchen, balcony, high-speed WiFi.
 
 2. **Starlight Blue Penthouse** (Code: GOM-501)
    - Type: Luxury Skyline Penthouse
-   - Rating: ⭐ 4.96 (Airbnb Superhost) | Price: ₹6,000/night
+   - Rating: ⭐ 4.96 (Airbnb Superhost) | Price: ₹6,900/night
    - URL: https://uniquehavenhomesstay.com/starlight-blue-penthouse.html
    - Highlights: Top-floor penthouse, expansive terrace with panoramic city views, designer lounge, luxury bedrooms.
 
 3. **The Unique** (Code: GOM-302)
    - Type: Designer 3BHK Apartment
-   - Rating: ⭐ 4.93 | Price: ₹5,500/night
+   - Rating: ⭐ 4.93 | Price: ₹6,300/night
    - URL: https://uniquehavenhomesstay.com/the-unique.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-unique/cover.jpg
    - Highlights: Signature flagship property, bespoke furniture, spacious living hall, premium modular kitchen.
 
 4. **The Nawabi Stay** (Code: GOM-401)
    - Type: Heritage-Modern 3BHK Flat
-   - Rating: ⭐ 4.92 | Price: ₹4,500/night
+   - Rating: ⭐ 4.92 | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/the-nawabi-stay.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-nawabi-stay/cover.jpg
    - Highlights: Awadhi cultural motifs, proximity to Max Hospital and Gomti Nagar railway hub, ideal for families.
 
 5. **RedRose Palace** (Code: GOM-101)
    - Type: Royal Crimson 3BHK Flat
-   - Rating: ⭐ 4.92 | Price: ₹4,500/night
+   - Rating: ⭐ 4.92 | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/redrose-palace.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/redrose-palace/cover.jpg
    - Highlights: Elegant warm ambient lighting, plush master bedding, full air conditioning.
 
 6. **Black Beauty** (Code: GOM-102)
    - Type: Contemporary Monochrome 3BHK Flat
-   - Rating: ⭐ 4.91 | Price: ₹4,500/night
+   - Rating: ⭐ 4.91 | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/black-beauty.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/black-beauty/cover.jpg
    - Highlights: Modern sleek black and charcoal decor, high-end Smart TVs, modular kitchen.
 
 7. **The Light Green** (Code: GOM-301)
    - Type: Nature-Inspired 3BHK Flat
-   - Rating: ⭐ 4.88 | Price: ₹4,500/night
+   - Rating: ⭐ 4.88 | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/the-light-green.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-light-green/cover.jpg
    - Highlights: Calming botanical aesthetics, quiet neighborhood, fast WiFi, dedicated workspace.
 
 8. **The Brown** (Code: GOM-202)
    - Type: Earth-Tone Warm 3BHK Flat
-   - Rating: ⭐ 4.90 | Price: ₹4,500/night
+   - Rating: ⭐ 4.90 | Price: ₹5,200/night
    - URL: https://uniquehavenhomesstay.com/the-brown.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-brown/cover.jpg
    - Highlights: Warm wooden textures, family-friendly layout, private balconies.
@@ -95,21 +95,21 @@ Located in Lucknow's most affluent residential district with immediate access to
 
 9. **The Pink House** (Code: VIL-103)
    - Type: Premium Luxury Villa / Estate Flat
-   - Rating: ⭐ 4.89 | Price: ₹9,000/night
+   - Rating: ⭐ 4.89 | Price: ₹10,350/night
    - URL: https://uniquehavenhomesstay.com/the-pink-house.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-pink-house/cover.jpg
    - Highlights: Large family layout, pastel luxury aesthetic, expansive bedrooms, private car parking.
 
 10. **The Green House** (Code: VIL-104)
     - Type: Eco-Luxe 3BHK Flat
-    - Rating: ⭐ 4.90 | Price: ₹5,500/night
+    - Rating: ⭐ 4.90 | Price: ₹6,300/night
     - URL: https://uniquehavenhomesstay.com/the-green-house.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-green-house/cover.jpg
     - Highlights: Lush green surroundings, open layout, luxury bath fittings, modular kitchen.
 
 11. **The Yellow House** (Code: VIL-105)
     - Type: Bright Sunshine 3BHK Flat
-    - Rating: ⭐ 4.89 | Price: ₹5,500/night
+    - Rating: ⭐ 4.89 | Price: ₹6,300/night
     - URL: https://uniquehavenhomesstay.com/the-yellow-house.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-yellow-house/cover.jpg
     - Highlights: Cheerful sunlit ambiance, work desks, ideal for long-stay professionals and wedding guests.
@@ -121,42 +121,42 @@ Prime location for cricket matches at Ekana Stadium, shopping at Lulu Mall & Pho
 
 12. **Royal White House** (Code: VIL-102)
     - Type: Ultra-Luxury Grand Villa (Private Estate)
-    - Rating: ⭐ 4.95 (Top Rated Villa) | Price: ₹12,000/night
+    - Rating: ⭐ 4.95 (Top Rated Villa) | Price: ₹13,800/night
     - URL: https://uniquehavenhomesstay.com/royal-white-house.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/royal-white-house/cover.jpg
     - Highlights: Majestic white facade, palatial multi-room setup, private lawn, wedding and VIP executive favorite. 10 mins from Lulu Mall & Airport.
 
 13. **Celebrity Garden Villa** (Code: LUL-402)
     - Type: Grand Celebration & Garden Villa
-    - Rating: ⭐ 4.94 | Price: ₹10,000/night
+    - Rating: ⭐ 4.94 | Price: ₹11,500/night
     - URL: https://uniquehavenhomesstay.com/celebrity-garden.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/celebrity-garden/cover.jpg
     - Highlights: Huge private garden, luxury outdoor seating, spacious living halls, ideal for destination weddings & gatherings.
 
 14. **Gomti Grand Villa** (Code: VIL-101)
     - Type: Royal Luxury Villa
-    - Rating: ⭐ 4.97 (Highest Rated Villa) | Price: ₹8,000/night
+    - Rating: ⭐ 4.97 (Highest Rated Villa) | Price: ₹9,200/night
     - URL: https://uniquehavenhomesstay.com/gomti-grand-villa.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/gomti-grand-villa/cover.jpg
     - Highlights: Multi-level private villa, 5-star amenities, master ensuites, 24/7 private caretaker.
 
 15. **Pink Paradise Villa** (Code: VIL-108)
     - Type: Boutique Villa
-    - Rating: ⭐ 4.91 | Price: ₹4,500/night
+    - Rating: ⭐ 4.91 | Price: ₹5,200/night
     - URL: https://uniquehavenhomesstay.com/pink-paradise.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/pink-paradise/cover.jpg
     - Highlights: Charming boutique design, calm neighborhood, close to Shaheed Path arterial highway.
 
 16. **Green Forest View** (Code: VIL-106)
     - Type: Forest-Facing Serviced Stay
-    - Rating: ⭐ 4.94 | Price: ₹4,500/night
+    - Rating: ⭐ 4.94 | Price: ₹5,200/night
     - URL: https://uniquehavenhomesstay.com/green-forest.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/green-forest/cover.jpg
     - Highlights: Scenic greenery, peaceful retreat, fast access to Chinhat and Shaheed Path.
 
 17. **The Velvet House** (Code: VIL-107)
     - Type: Luxury Boutique Villa
-    - Rating: ⭐ 4.93 | Price: ₹4,500/night
+    - Rating: ⭐ 4.93 | Price: ₹5,200/night
     - URL: https://uniquehavenhomesstay.com/the-velvet-house.html
    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-velvet-house/cover.jpg
     - Highlights: Velvet fabric textures, rich atmospheric interior design, direct highway connectivity.
@@ -164,7 +164,14 @@ Prime location for cricket matches at Ekana Stadium, shopping at Lulu Mall & Pho
 ---
 
 
-18. **Blossom Skyline** (Code: VIL-104)
+18. **The Luxe Haven** (Code: LUL-101)
+    - Type: Modern 1BHK Luxury Flat
+    - Rating: ⭐ 4.95 (Airbnb) | Price: ₹2,650/night
+    - URL: https://uniquehavenhomesstay.com/the-luxe-haven.html
+    - Photo: https://uniquehavenhomesstay.com/assets/properties/the-luxe-haven/cover.jpg
+    - Highlights: Modern 1BHK near Lulu Mall & Medanta Hospital, ideal for couples, medical stays & business solo travellers.
+
+19. **Blossom Skyline (The Tehzeeb Nest)** (Code: VIL-104)
     - Type: Boutique Serviced Residence
     - Address: 17, Awadh Vihar Colony, Ashraf Vihar Colony, Manalar, Lucknow, Uttar Pradesh 226028
     - Direct Contacts: Prop. Shahenshah (+91 9450055554, +91 91941 09911) & Prop. Firoz Ahmad (+91 82996 00709)

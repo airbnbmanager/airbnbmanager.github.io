@@ -11,56 +11,56 @@ const PROPERTY_PINS = [
     roomId: 'GOM-101', slug: 'redrose-palace',
     name: 'RedRose Palace', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8732, lng: 81.0012,
+    price: '₹5,200', lat: 26.8732, lng: 81.0012,
     url: 'redrose-palace.html'
   },
   {
     roomId: 'GOM-102', slug: 'black-beauty',
     name: 'Black Beauty', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8720, lng: 80.9992,
+    price: '₹5,200', lat: 26.8720, lng: 80.9992,
     url: 'black-beauty.html'
   },
   {
     roomId: 'GOM-201', slug: 'the-dark-blue',
     name: 'The Dark Blue', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8744, lng: 81.0028,
+    price: '₹5,200', lat: 26.8744, lng: 81.0028,
     url: 'the-dark-blue.html'
   },
   {
     roomId: 'GOM-202', slug: 'the-brown',
     name: 'The Brown', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8753, lng: 81.0006,
+    price: '₹5,200', lat: 26.8753, lng: 81.0006,
     url: 'the-brown.html'
   },
   {
     roomId: 'GOM-301', slug: 'the-light-green',
     name: 'The Light Green', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8715, lng: 81.0024,
+    price: '₹5,200', lat: 26.8715, lng: 81.0024,
     url: 'the-light-green.html'
   },
   {
     roomId: 'GOM-302', slug: 'the-unique',
     name: 'The Unique', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹5,500', lat: 26.8738, lng: 80.9978,
+    price: '₹6,300', lat: 26.8738, lng: 80.9978,
     url: 'the-unique.html'
   },
   {
     roomId: 'GOM-401', slug: 'the-nawabi-stay',
     name: 'The Nawabi Stay', type: '3BHK Luxury Flat',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹4,500', lat: 26.8702, lng: 81.0038,
+    price: '₹5,200', lat: 26.8702, lng: 81.0038,
     url: 'the-nawabi-stay.html'
   },
   {
     roomId: 'GOM-501', slug: 'starlight-blue-penthouse',
     name: 'Starlight Blue Penthouse', type: '4BHK Penthouse',
     area: 'Vikalp Khand, Gomti Nagar',
-    price: '₹6,000', lat: 26.8762, lng: 81.0022,
+    price: '₹6,900', lat: 26.8762, lng: 81.0022,
     url: 'starlight-blue-penthouse.html'
   },
 
@@ -69,21 +69,21 @@ const PROPERTY_PINS = [
     roomId: 'VIL-103', slug: 'the-pink-house',
     name: 'The Pink House (2nd & 3rd Floor)', type: '5BR Duplex Penthouse',
     area: '2nd & 3rd Floor, Vishesh Khand 3, Gomti Nagar',
-    price: '₹9,000', lat: 26.8546, lng: 81.0015,
+    price: '₹10,350', lat: 26.8546, lng: 81.0015,
     url: 'the-pink-house.html'
   },
   {
     roomId: 'VIL-104', slug: 'the-green-house',
     name: 'The Green House (1st Floor)', type: '3BHK Flat · 1st Floor',
     area: '1st Floor, Vishesh Khand 3, Gomti Nagar',
-    price: '₹5,500', lat: 26.8532, lng: 80.9988,
+    price: '₹6,300', lat: 26.8532, lng: 80.9988,
     url: 'the-green-house.html'
   },
   {
     roomId: 'VIL-105', slug: 'the-yellow-house',
     name: 'The Yellow House (Ground Floor)', type: '3BHK Flat · Ground Floor',
     area: 'Ground Floor, Vishesh Khand 3, Gomti Nagar',
-    price: '₹5,500', lat: 26.8562, lng: 81.0038,
+    price: '₹6,300', lat: 26.8562, lng: 81.0038,
     url: 'the-yellow-house.html'
   },
 
@@ -92,42 +92,42 @@ const PROPERTY_PINS = [
     roomId: 'LUL-402', slug: 'celebrity-garden',
     name: 'Celebrity Garden', type: '4BHK Grand Homestay',
     area: 'Sushant Golf City, Near Lulu Mall',
-    price: '₹10,000', lat: 26.7792, lng: 81.0028,
+    price: '₹11,500', lat: 26.7792, lng: 81.0028,
     url: 'celebrity-garden.html'
   },
   {
     roomId: 'VIL-107', slug: 'the-velvet-house',
     name: 'The Velvet House (1st Floor)', type: '3BHK Flat · 1st Floor',
     area: 'Shaheed Path, Near Medanta & Lulu Mall',
-    price: '₹4,500', lat: 26.7918, lng: 80.9865,
+    price: '₹5,200', lat: 26.7918, lng: 80.9865,
     url: 'the-velvet-house.html'
   },
   {
     roomId: 'VIL-101', slug: 'gomti-grand-villa',
     name: 'Gomti Grand Villa', type: 'Private Villa',
     area: 'Geetapuri Colony, Near Lulu & Palassio',
-    price: '₹8,000', lat: 26.83711, lng: 81.01734,
+    price: '₹9,200', lat: 26.83711, lng: 81.01734,
     url: 'gomti-grand-villa.html'
   },
   {
     roomId: 'VIL-102', slug: 'royal-white-house',
     name: 'Royal White House', type: 'Luxury Villa',
     area: 'Omaxe City, Near Lulu Mall & Airport',
-    price: '₹12,000', lat: 26.7854, lng: 80.9825,
+    price: '₹13,800', lat: 26.7854, lng: 80.9825,
     url: 'royal-white-house.html'
   },
   {
     roomId: 'VIL-106', slug: 'green-forest',
     name: 'Green Forest (2nd Floor)', type: '3BHK Flat · 2nd Floor',
     area: 'Ansal Golf City, Near Lulu & Ekana',
-    price: '₹4,500', lat: 26.7885, lng: 81.0115,
+    price: '₹5,200', lat: 26.7885, lng: 81.0115,
     url: 'green-forest.html'
   },
   {
     roomId: 'VIL-108', slug: 'pink-paradise',
     name: 'Pink Paradise (3rd Floor)', type: '3BHK Flat · 3rd Floor',
     area: 'Shaheed Path, Near Lulu Mall & Medanta',
-    price: '₹4,500', lat: 26.7958, lng: 80.9912,
+    price: '₹5,200', lat: 26.7958, lng: 80.9912,
     url: 'pink-paradise.html'
   },
   {

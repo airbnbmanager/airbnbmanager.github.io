@@ -2927,7 +2927,7 @@ body.luxe-property-page .hero-frame {
 
 /* ─── MAP SECTION ─── */
 .dir-map-section {
-  background: var(--luxe-bg);
+  background: #FAF8F5 !important;
   padding: 60px 0 0;
 }
 .dir-map-section-header {

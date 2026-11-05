@@ -45,8 +45,8 @@ html {
 }
 
 body.properties-directory-page {
-  background-color: var(--dir-bg);
-  color: var(--dir-ink);
+  background-color: #FAF8F5 !important;
+  color: #0F172A !important;
   font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   padding: 0;
