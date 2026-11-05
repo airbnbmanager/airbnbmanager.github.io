@@ -20,6 +20,7 @@ const PROPERTIES = [
   {id:'GOM-301',name:'The Light Green',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-light-green/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
   {id:'GOM-302',name:'The Unique',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-unique/cover.jpg',price:6300,airbnb:7434,guests:8,wa:'919450055554'},
   {id:'GOM-401',name:'The Nawabi Stay',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/the-nawabi-stay/cover.jpg',price:5200,airbnb:6136,guests:6,wa:'919450055554'},
+  {id:'GOM-402',slug:'the-tehzeeb-nest',name:'The Tehzeeb Nest (Flat 402)',type:'3BHK Luxury Flat',area:'vikalp',areaLabel:'Blossom Skyline, Vikalp Khand, Gomti Nagar',img:'assets/properties/the-tehzeeb-nest/cover.jpg',price:5200,airbnb:6136,guests:8,wa:'919450055554'},
   {id:'GOM-501',name:'Starlight Blue PentHouse',type:'Top-Floor Penthouse',area:'vikalp',areaLabel:'Vikalp Khand, Gomti Nagar',img:'assets/properties/starlight-blue/cover.jpg',price:6900,airbnb:8142,guests:10,wa:'919450055554'},
 
   {id:'VIL-103',name:'The Pink House',type:'5BR Duplex Villa',area:'vishesh',areaLabel:'Vishesh Khand, Gomti Nagar',img:'assets/properties/the-pink-house/cover.jpg',price:10350,airbnb:12213,guests:10,wa:'919450055554'},
@@ -121,6 +122,13 @@ const BUILTIN_COUPONS = {
   'NAWABI15': { discount_percent: 15, property_id: 'GOM-401', title: 'The Nawabi Stay Special' },
   'NAWABI20': { discount_percent: 20, property_id: 'GOM-401', title: 'The Nawabi Stay Luxury Privilege' },
 
+  // 👑 The Tehzeeb Nest (GOM-402)
+  'TEHZEEB10': { discount_percent: 10, property_id: 'GOM-402', title: 'The Tehzeeb Nest Privilege' },
+  'TEHZEEB15': { discount_percent: 15, property_id: 'GOM-402', title: 'The Tehzeeb Nest Special' },
+  'TEHZEEB20': { discount_percent: 20, property_id: 'GOM-402', title: 'The Tehzeeb Nest Luxury Privilege' },
+  'SHAHANSHAH-TEHZEEB': { discount_percent: 15, property_id: 'GOM-402', title: 'Mr. Shahanshah Tehzeeb Privilege' },
+  'FIROZ-TEHZEEB': { discount_percent: 15, property_id: 'GOM-402', title: 'Mr. Firoz Khan Tehzeeb Privilege' },
+
   // 👑 The Green House (VIL-104)
   'GREENHOUSE10': { discount_percent: 10, property_id: 'VIL-104', title: 'The Green House Privilege' },
   'GREENHOUSE15': { discount_percent: 15, property_id: 'VIL-104', title: 'The Green House Special' },
@@ -151,7 +159,7 @@ function populatePropertySelect(sel, filterArea = 'all') {
   if (!sel) return;
   const groups = {
     'lulu': { label: '📍 Shaheed Path & Near Lulu Mall (7 Stays)', items: [] },
-    'vikalp': { label: '📍 Vikalp Khand, Gomti Nagar (8 Stays)', items: [] },
+    'vikalp': { label: '📍 Vikalp Khand, Gomti Nagar (9 Stays)', items: [] },
     'vishesh': { label: '📍 Vishesh Khand, Gomti Nagar (3 Stays)', items: [] }
   };
   PROPERTIES.forEach(p => {
@@ -260,6 +268,7 @@ function init() {
     const cleanPid = pid.toLowerCase().replace(/[^a-z0-9]/g, '');
     const matched = PROPERTIES.find(p => 
       p.id.toLowerCase() === pid.toLowerCase() || 
+      (p.slug && p.slug.toLowerCase() === pid.toLowerCase()) ||
       p.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanPid ||
       cleanPid.includes(p.name.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
       p.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanPid)

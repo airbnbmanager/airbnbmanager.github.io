@@ -217,6 +217,22 @@
       ]
     },
     {
+      slug: 'the-tehzeeb-nest',
+      name: 'The Tehzeeb Nest (Flat 402)',
+      type: '3BHK Luxury Flat · Blossom Skyline',
+      headline: 'Awadhi grace in modern heights.',
+      desc: 'Luxe 3BHK serviced residence at Blossom Skyline, Vikalp Khand, Gomti Nagar. Elevator access, royal Tehzeeb decor & 24/7 caretaker.',
+      specs: ['👥 Sleeps 10', '🛏️ 3 King Beds', '❄️ 100% AC', '🛗 Elevator', '🅿️ Free Parking', '✨ Save 15% Direct'],
+      price: '₹5,200 / night',
+      spaces: [
+        { num: '01', name: 'Royal Living Lounge', desc: 'Plush velvet sofa & 55" Smart 4K TV' },
+        { num: '02', name: 'Master Awadhi Suite', desc: 'King bed with ensuite bath & split AC' },
+        { num: '03', name: 'Grand Skyline Bedroom', desc: 'King bed, large glass windows & wardrobes' },
+        { num: '04', name: 'Modern Ensuite Bath', desc: 'Designer tiles, geyser & fresh toiletries' },
+        { num: '05', name: 'Skyline Balcony', desc: 'High-floor open balcony view of Gomti Nagar' }
+      ]
+    },
+    {
       slug: 'the-unique',
       name: 'The Unique',
       type: '3BHK Luxury Flat · Gomti Nagar',
@@ -429,6 +445,13 @@
     "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/5a7c9c80-dae3-4fe0-a770-21b32900d277.jpeg",
     "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/cfa21df6-ee64-4a66-a975-2348ea78b978.jpeg",
     "https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/6c7c38f8-e523-4e4e-bbdc-cfbf6b699ef5.jpeg"
+  ],
+  "the-tehzeeb-nest": [
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3c34ceb3-4be9-4482-a8b2-c8d1d30dde1e.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/02b94c28-7551-4672-8c5e-b0c28d7ea001.jpeg",
+    "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg"
   ]
 };
 
