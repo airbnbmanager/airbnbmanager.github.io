@@ -120,7 +120,10 @@ async function renderDailyReport(selectedDate) {
             📥 Export CSV
           </button>
           <button onclick="whatsappDailyReport('${repDate}')" class="btn-sm" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 1px 3px rgba(5,150,105,0.2);">
-            📱 WhatsApp
+            📱 Summary WA
+          </button>
+          <button onclick="openBlossomSkylineDailyStatusModal('${repDate}')" class="btn-sm" style="background:#25D366;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 2px 8px rgba(37,211,102,0.35);" title="Auto-generate 1-Click Status for WhatsApp Booking Data Group">
+            📋 Group Status
           </button>
           <button onclick="navigate('dashboard')" class="btn-sm" style="background:#EF4444;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:38px;box-shadow:0 2px 6px rgba(239,68,68,0.35);" title="Close Report (ESC)">
             ✕ Close
@@ -576,3 +579,350 @@ async function whatsappDailyReport(date) {
 
 window.renderDailyReport = renderDailyReport;
 window.whatsappDailyReport = whatsappDailyReport;
+
+// ══════════════════════════════════════════════════════════════════════
+// 📋 AUTOMATED DAILY WHATSAPP STATUS GENERATOR (Blossom Skyline 101–501)
+// Tailored specifically for the "📑 Booking Data" WhatsApp Group
+// ══════════════════════════════════════════════════════════════════════
+window._blossomStatusSettings = {
+  includeTags: true,
+  defaultKeyNote: true,
+  includeVillas: false
+};
+
+async function openBlossomSkylineDailyStatusModal(targetDate) {
+  const today = new Date().toISOString().slice(0, 10);
+  const repDate = targetDate || window._dailyReportDate || today;
+
+  let modal = document.getElementById('blossomStatusModalOverlay');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'blossomStatusModalOverlay';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:640px;width:94%;padding:26px;border-radius:18px;box-shadow:0 20px 45px rgba(0,0,0,0.25);background:var(--card,#ffffff);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:24px;height:24px;border:3px solid #CBD5E1;border-top-color:#25D366;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:var(--text,#0F172A);">Generating WhatsApp Booking Status...</div>
+          <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">Syncing Blossom Skyline flats (101–501) with live bookings & payments for ${repDate}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const [
+      { data: bks, error: bksErr },
+      { data: pays, error: paysErr },
+      { data: flats, error: flatsErr }
+    ] = await Promise.all([
+      sb.from('guest_register')
+        .select('*')
+        .lte('check_in', repDate)
+        .gte('check_out', repDate)
+        .eq('is_cancelled', false),
+      sb.from('payment_history')
+        .select('booking_id, amount')
+        .neq('verification_status', 'rejected'),
+      sb.from('flats_status')
+        .select('*')
+    ]);
+
+    if (bksErr) console.warn('guest_register error:', bksErr);
+
+    const paidMap = {};
+    (pays || []).forEach(p => {
+      paidMap[p.booking_id] = (paidMap[p.booking_id] || 0) + (p.amount || 0);
+    });
+
+    const flatStatusMap = {};
+    (flats || []).forEach(f => {
+      flatStatusMap[f.room_id] = f;
+    });
+
+    const units = [
+      { num: '101', roomIds: ['GOM-101'], name: 'RedRose Palace' },
+      { num: '102', roomIds: ['GOM-102'], name: 'Black Beauty' },
+      { num: '201', roomIds: ['GOM-201'], name: 'The Dark Blue' },
+      { num: '202', roomIds: ['GOM-202'], name: 'The Brown' },
+      { num: '301', roomIds: ['GOM-301'], name: 'The Light Green' },
+      { num: '302', roomIds: ['GOM-302'], name: 'The Unique' },
+      { num: '401', roomIds: ['GOM-401'], name: 'The Nawabi Stay' },
+      { num: '402', roomIds: ['Flat 402', 'GOM-402'], name: 'The Tehzeeb Nest' },
+      { num: '501', roomIds: ['GOM-501'], name: 'Starlight Blue PentHouse' }
+    ];
+
+    window._blossomStatusCache = {
+      repDate,
+      bks: bks || [],
+      paidMap,
+      flatStatusMap,
+      units
+    };
+
+    renderBlossomStatusModalUI(repDate);
+
+  } catch (err) {
+    console.error('Error fetching Blossom status data:', err);
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:520px;padding:24px;border-radius:16px;">
+        <button class="modal-close" onclick="document.getElementById('blossomStatusModalOverlay').remove()">✕</button>
+        <h3 style="color:#DC2626;margin:0 0 8px;">⚠️ Could not load status</h3>
+        <p style="font-size:13px;color:#64748B;line-height:1.5;">${escapeHtml(err.message || String(err))}</p>
+      </div>
+    `;
+  }
+}
+
+function generateBlossomStatusText(includeTags, defaultKeyNote, includeVillas) {
+  const cache = window._blossomStatusCache;
+  if (!cache) return '';
+  const { repDate, bks, paidMap, flatStatusMap, units } = cache;
+
+  const lines = [];
+  if (includeTags) {
+    lines.push('@Arman Commander @Abraham Khan (Raja) @Mr. Firoz khan @Mr. Shahanshah Khan ');
+  }
+  lines.push('📋 UPDATED BOOKING STATUS\n');
+
+  units.forEach(u => {
+    const roomBks = bks.filter(b => u.roomIds.includes(b.room_id));
+    // Priority: today check-in first (repDate), then staying, then checking out
+    roomBks.sort((a, b) => {
+      const aPri = a.check_in === repDate ? 2 : (a.check_out > repDate ? 1 : 0);
+      const bPri = b.check_in === repDate ? 2 : (b.check_out > repDate ? 1 : 0);
+      return bPri - aPri;
+    });
+
+    const activeBk = roomBks[0];
+    if (!activeBk) {
+      const fs = u.roomIds.map(rid => flatStatusMap[rid]).find(Boolean);
+      const note = fs?.notes ? ` (${fs.notes})` : (defaultKeyNote ? ' (Key Not Received)' : '');
+      lines.push(`${u.num} – Vacant${note}`);
+      return;
+    }
+
+    let gName = (activeBk.guest_name || '').trim();
+    const isInfluencer = activeBk.is_review_booking || /influencer/i.test(gName);
+    gName = gName.replace(/\s*\(?\s*influencer\s*\)?/i, '').trim();
+
+    if (isInfluencer) {
+      lines.push(`${u.num} – ${gName} (Influencer)`);
+      return;
+    }
+
+    const total = activeBk.total_amount || 0;
+    const paid = paidMap[activeBk.booking_id] || 0;
+    const fmtTotal = '₹' + total.toLocaleString('en-IN');
+    const fmtPaid = '₹' + paid.toLocaleString('en-IN');
+
+    if (paid >= total && total > 0) {
+      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPaid} ✅`);
+    } else if (paid === 0) {
+      // If fully unpaid
+      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ₹0`);
+    } else {
+      // Partial payment
+      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPaid}`);
+    }
+  });
+
+  if (includeVillas) {
+    lines.push('\n🏡 VILLAS & ESTATES');
+    const villaUnits = [
+      { num: 'VIL-101', name: 'Gomti Grand Villa' },
+      { num: 'VIL-102', name: 'Royal White House' },
+      { num: 'VIL-103', name: 'The Pink House' },
+      { num: 'VIL-104', name: 'The Green House' },
+      { num: 'VIL-105', name: 'The Yellow House' },
+      { num: 'VIL-106', name: 'Green Forest' },
+      { num: 'VIL-107', name: 'The Velvet House' },
+      { num: 'VIL-108', name: 'Pink Paradise' },
+      { num: 'LUL-101', name: 'The Luxe Haven' }
+    ];
+    villaUnits.forEach(v => {
+      const vbk = bks.find(b => b.room_id === v.num);
+      if (!vbk) {
+        lines.push(`${v.num} – Vacant`);
+      } else {
+        const vPaid = paidMap[vbk.booking_id] || 0;
+        const vTot = vbk.total_amount || 0;
+        if (vPaid >= vTot && vTot > 0) {
+          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPaid.toLocaleString('en-IN')} ✅`);
+        } else {
+          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPaid.toLocaleString('en-IN')}`);
+        }
+      }
+    });
+  }
+
+  return lines.join('\n');
+}
+
+function renderBlossomStatusModalUI(repDate) {
+  const modal = document.getElementById('blossomStatusModalOverlay');
+  if (!modal) return;
+
+  const s = window._blossomStatusSettings;
+  const initialText = generateBlossomStatusText(s.includeTags, s.defaultKeyNote, s.includeVillas);
+  const dateFormatted = new Date(repDate).toLocaleDateString('en-IN', {
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+  });
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:680px;width:94%;padding:24px 26px;border-radius:18px;box-shadow:0 24px 50px rgba(0,0,0,0.28);background:var(--card,#ffffff);border:1px solid var(--border,#E2E8F0);">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:#DCFCE7;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+            📋
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--text,#0F172A);letter-spacing:-0.2px;">
+                WhatsApp Booking Status
+              </h2>
+              <span style="background:#25D366;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">
+                1-Click Ready
+              </span>
+            </div>
+            <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">
+              For <strong>📑 Booking Data</strong> group • Blossom Skyline (101–501) • ${dateFormatted}
+            </div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="font-size:18px;color:#94A3B8;background:transparent;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;">✕</button>
+      </div>
+
+      <!-- Controls bar: Date & Filters -->
+      <div style="background:var(--bg,#F8FAFC);border:1px solid var(--border,#E2E8F0);padding:10px 14px;border-radius:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text,#334155);">📅 Date:</label>
+          <input type="date" value="${repDate}" onchange="openBlossomSkylineDailyStatusModal(this.value)" style="padding:4px 10px;font-size:12.5px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;font-weight:600;color:var(--text,#0F172A);">
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;font-weight:600;color:var(--text,#334155);flex-wrap:wrap;">
+          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="chkBlossomTags" ${s.includeTags ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
+            <span>Owner Tags</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="chkBlossomKeyNote" ${s.defaultKeyNote ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
+            <span>(Key Not Received)</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="chkBlossomVillas" ${s.includeVillas ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
+            <span>+ Villas</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Textarea with Live Message -->
+      <div style="position:relative;margin-bottom:10px;">
+        <textarea id="blossomStatusText" rows="12" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.55;padding:14px 16px;border-radius:12px;border:1.5px solid var(--border,#CBD5E1);background:#FFFFFF;color:#0F172A;resize:vertical;box-sizing:border-box;box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">${initialText}</textarea>
+      </div>
+
+      <!-- Quick Text helper chips -->
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+        <span style="font-size:11px;font-weight:700;color:var(--muted,#64748B);margin-right:2px;">Quick Insert:</span>
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | Payment Pending')" style="background:#FFFBEB;border:1px solid #FDE68A;color:#B45309;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + Payment Pending
+        </button>
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' ✅')" style="background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + ✅ Paid
+        </button>
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Influencer)')" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#4338CA;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + (Influencer)
+        </button>
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Key Not Received)')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + (Key Not Received)
+        </button>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border,#E2E8F0);">
+        <div style="font-size:11.5px;color:var(--muted,#64748B);">
+          💡 Click <strong>Copy</strong> and paste into <strong>📑 Booking Data</strong>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button type="button" onclick="window.copyBlossomStatusText()" id="btnCopyBlossomStatus" style="background:#25D366;color:#ffffff;border:none;padding:10px 22px;border-radius:10px;font-size:13.5px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 3px 10px rgba(37,211,102,0.35);transition:all 0.15s ease;">
+            📋 Copy Message
+          </button>
+          <button type="button" onclick="window.openWhatsAppWebBlossom()" style="background:#0F172A;color:#ffffff;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 6px rgba(15,23,42,0.2);">
+            💬 WhatsApp Web ➔
+          </button>
+          <button type="button" class="outline" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="padding:10px 16px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid #CBD5E1;background:#fff;color:#475569;cursor:pointer;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.updateBlossomStatusText = function() {
+  const chkTags = document.getElementById('chkBlossomTags');
+  const chkKey = document.getElementById('chkBlossomKeyNote');
+  const chkVillas = document.getElementById('chkBlossomVillas');
+  const txt = document.getElementById('blossomStatusText');
+  if (!txt) return;
+
+  const s = window._blossomStatusSettings;
+  s.includeTags = chkTags ? chkTags.checked : true;
+  s.defaultKeyNote = chkKey ? chkKey.checked : true;
+  s.includeVillas = chkVillas ? chkVillas.checked : false;
+
+  txt.value = generateBlossomStatusText(s.includeTags, s.defaultKeyNote, s.includeVillas);
+};
+
+window.insertBlossomSnippet = function(snippet) {
+  const txt = document.getElementById('blossomStatusText');
+  if (!txt) return;
+  const start = txt.selectionStart || txt.value.length;
+  const end = txt.selectionEnd || txt.value.length;
+  const val = txt.value;
+  txt.value = val.substring(0, start) + snippet + val.substring(end);
+  txt.focus();
+  txt.setSelectionRange(start + snippet.length, start + snippet.length);
+};
+
+window.copyBlossomStatusText = async function() {
+  const txt = document.getElementById('blossomStatusText');
+  const btn = document.getElementById('btnCopyBlossomStatus');
+  if (!txt) return;
+
+  try {
+    await navigator.clipboard.writeText(txt.value);
+    if (navigator.vibrate) navigator.vibrate(50);
+    if (btn) {
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '✅ Copied to Clipboard!';
+      btn.style.background = '#059669';
+      setTimeout(() => {
+        btn.innerHTML = oldHtml;
+        btn.style.background = '#25D366';
+      }, 2500);
+    }
+    if (window.fsn && typeof window.fsn.success === 'function') {
+      window.fsn.success('Copied!', 'WhatsApp Booking Status copied. Paste into Booking Data group!');
+    }
+  } catch (e) {
+    txt.select();
+    document.execCommand('copy');
+    if (window.fsn) window.fsn.info('Copied', 'Text selected & copied.');
+  }
+};
+
+window.openWhatsAppWebBlossom = function() {
+  const txt = document.getElementById('blossomStatusText');
+  const text = txt ? txt.value : '';
+  window.copyBlossomStatusText();
+  // Open WhatsApp Web
+  window.open('https://web.whatsapp.com', '_blank');
+};
+
+window.openBlossomSkylineDailyStatusModal = openBlossomSkylineDailyStatusModal;

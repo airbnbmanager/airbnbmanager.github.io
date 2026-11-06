@@ -339,6 +339,16 @@
       action: () => window.openDailyReportShortcut()
     },
     {
+      id: 'blossomWhatsAppStatus',
+      type: 'menu',
+      group: 'Reports & Analytics',
+      icon: '📋',
+      title: 'WhatsApp Booking Status (Blossom Skyline 101–501)',
+      sub: '1-click copy daily booking status for WhatsApp "Booking Data" group',
+      keywords: ['whatsapp status', 'booking data', 'whatsapp group', 'blossom skyline', 'updated booking status', 'status message', 'daily status'],
+      action: () => typeof window.openBlossomSkylineDailyStatusModal === 'function' ? window.openBlossomSkylineDailyStatusModal() : (window.navigate('daily-report'), setTimeout(() => window.openBlossomSkylineDailyStatusModal?.(), 500))
+    },
+    {
       id: 'analytics',
       type: 'menu',
       group: 'Reports & Analytics',

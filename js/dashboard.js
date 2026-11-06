@@ -1623,6 +1623,10 @@ async function renderDashboard() {
           <button type="button" class="btn-sm" onclick="navigate('analytics')" style="background:#0F172A;color:#ffffff;border:none;border-radius:999px;padding:7px 18px;font-size:12.5px;font-weight:700;box-shadow:0 2px 6px rgba(15,23,42,0.18);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;">
             <span>📊 Financial Dashboard ➔</span>
           </button>
+
+          <button type="button" class="btn-sm" onclick="typeof window.openBlossomSkylineDailyStatusModal === 'function' ? window.openBlossomSkylineDailyStatusModal() : (window.navigate('daily-report'), setTimeout(() => window.openBlossomSkylineDailyStatusModal?.(), 500))" style="background:#25D366;color:#ffffff;border:none;border-radius:999px;padding:7px 18px;font-size:12.5px;font-weight:700;box-shadow:0 2px 8px rgba(37,211,102,0.35);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;" title="Generate 1-Click WhatsApp Booking Data Status (Flats 101–501)">
+            <span>📋 WhatsApp Status</span>
+          </button>
         </div>
 
         ${globalProp ? `
