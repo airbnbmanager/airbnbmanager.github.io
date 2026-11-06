@@ -1474,14 +1474,80 @@ async function quickClean(roomId, newStatus, btnEl = null) {
     }).eq('room_id', roomId);
   }
 
+  // 🧹 When marking Clean: show "Cleaned By Staff" picker modal
+  if (newStatus === 'Clean') {
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳'; }
+    // Fetch per-flat cleaning staff from employees (or use defaults)
+    let cleaners = [];
+    try {
+      const { data: emps } = await sb.from('employees').select('emp_id,name,role,property_role,salary_type').eq('status','active');
+      if (emps && emps.length) {
+        cleaners = emps.filter(e => {
+          const n = (e.name || '').toLowerCase();
+          const r = ((e.role || '') + (e.property_role || '')).toLowerCase();
+          return e.salary_type === 'per_flat' || n.includes('kanchan') || n.includes('shalu') || n.includes('laxmi') || r.includes('maid') || r.includes('clean') || r.includes('housekeep');
+        });
+      }
+    } catch(_) {}
+    // Fallback defaults if no DB cleaners found
+    if (!cleaners.length) cleaners = [{ emp_id: 'kanchan_default', name: 'Kanchan' }];
+
+    const opts = cleaners.map((c, i) =>
+      `<option value="${c.emp_id}" data-name="${c.name}" ${i === 0 ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;">
+        <div style="font-size:18px;font-weight:900;color:#0F172A;margin-bottom:4px;">🧹 Mark as Clean</div>
+        <div style="font-size:12.5px;color:#64748B;margin-bottom:16px;">Room <strong>${roomId}</strong> · Select who cleaned it</div>
+        <label style="font-size:12px;font-weight:700;color:#334155;display:block;margin-bottom:6px;">Cleaned By Staff <span style="color:#0284C7;font-size:10px;">(Links to Salary @ ₹133/flat)</span></label>
+        <select id="quickCleanerSelect" style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:9px;font-size:14px;font-weight:600;color:#0F172A;background:#F8FAFC;margin-bottom:16px;">
+          ${opts}
+        </select>
+        <div style="display:flex;gap:8px;">
+          <button id="quickCleanConfirmBtn" style="flex:2;background:#059669;color:#fff;font-weight:800;font-size:13px;padding:10px;border:none;border-radius:9px;cursor:pointer;">✅ Confirm Clean</button>
+          <button onclick="this.closest('.modal-overlay').remove();if(document.getElementById('qcBtnRef'))document.getElementById('qcBtnRef').disabled=false;" style="flex:1;background:#F1F5F9;color:#334155;font-weight:700;font-size:13px;padding:10px;border:none;border-radius:9px;cursor:pointer;">Cancel</button>
+        </div>
+      </div>`;
+    // Store btn ref to re-enable on cancel
+    if (btnEl) { btnEl.id = 'qcBtnRef'; }
+    document.body.appendChild(overlay);
+
+    document.getElementById('quickCleanConfirmBtn').onclick = async () => {
+      const sel = document.getElementById('quickCleanerSelect');
+      const cleanerEmpId = sel.value;
+      const cleanerName = sel.options[sel.selectedIndex].dataset.name || sel.options[sel.selectedIndex].text;
+      overlay.remove();
+      // Log cleaner turnaround → links to salary
+      const today = new Date().toISOString().slice(0, 10);
+      if (window.logCleanerTurnaround) window.logCleanerTurnaround(roomId, cleanerEmpId, cleanerName, today);
+      // Save to DB
+      const msgEl = document.getElementById('flatActionMsg');
+      try {
+        const updates = { cleaning_status: 'Clean', last_cleaned: today };
+        const { error } = await sb.from('flats_status').update(updates).eq('room_id', roomId);
+        if (error) throw error;
+        if (window.fsn) fsn.success('✅ Cleaned!', `${roomId} marked Clean · Logged to ${cleanerName}'s salary`);
+        renderFlatsStatus();
+      } catch (err) {
+        if (msgEl) msgEl.innerHTML = `<div class="error">❌ Failed: ${err.message}</div>`;
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Retry'; }
+      }
+    };
+    return; // Don't proceed — handled in modal
+  }
+
+  // For non-Clean statuses (Dirty, In Progress), update directly
   const msgEl = document.getElementById('flatActionMsg');
   try {
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳'; }
-    const updates = { cleaning_status: newStatus };
-    if (newStatus === 'Clean') updates.last_cleaned = new Date().toISOString().slice(0, 10);
-    const { error } = await sb.from('flats_status').update(updates).eq('room_id', roomId);
+    const { error } = await sb.from('flats_status').update({ cleaning_status: newStatus }).eq('room_id', roomId);
     if (error) throw error;
     if (window.fsn) fsn.success('Updated', `Room ${roomId} marked ${newStatus}`);
+    if (btnEl) { btnEl.disabled = false; }
     renderFlatsStatus();
   } catch (err) {
     if (msgEl) msgEl.innerHTML = `<div class="error">❌ Failed: ${err.message}</div>`;
