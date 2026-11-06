@@ -895,26 +895,28 @@ function renderBlossomStatusModalUI(repDate) {
     <div class="modal-box" style="max-width:720px;width:95%;max-height:92vh;overflow-y:auto;padding:24px 26px;border-radius:20px;box-shadow:0 24px 50px rgba(0,0,0,0.3);background:var(--card,#ffffff);border:1px solid var(--border,#E2E8F0);">
       
       <!-- Top Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:44px;height:44px;border-radius:12px;background:#25D366;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 3px 10px rgba(37,211,102,0.35);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;position:relative;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <div style="width:40px;height:40px;border-radius:12px;background:#25D366;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;box-shadow:0 3px 10px rgba(37,211,102,0.35);">
             📋
           </div>
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <h2 style="margin:0;font-size:18px;font-weight:900;color:var(--text,#0F172A);letter-spacing:-0.2px;">
-                WhatsApp Booking Status
-              </h2>
-              <span style="background:#25D366;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">
-                1-Click Ready
-              </span>
-            </div>
-            <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">
+          <div style="min-width:0;flex:1;">
+            <h2 style="margin:0;font-size:16px;font-weight:900;color:var(--text,#0F172A);letter-spacing:-0.2px;line-height:1.2;">
+              WhatsApp Booking Status
+            </h2>
+            <div style="font-size:11.5px;color:var(--muted,#64748B);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
               Blossom Skyline (101–501) • ${dateFormatted}
             </div>
           </div>
         </div>
-        <button class="modal-close" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="font-size:20px;color:#94A3B8;background:transparent;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;">✕</button>
+
+        <!-- Action / Close area: Clear separated layout so X never overlaps! -->
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button type="button" onclick="window.copyBlossomStatusText()" style="background:#25D366;color:#ffffff;border:none;padding:6px 12px;border-radius:10px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(37,211,102,0.3);white-space:nowrap;letter-spacing:0.3px;">
+            📋 1-Click Copy
+          </button>
+          <button type="button" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="width:30px;height:30px;border-radius:50%;background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;flex-shrink:0;padding:0;line-height:1;" title="Close">✕</button>
+        </div>
       </div>
 
       <!-- 🔴 EXECUTIVE HIGHLIGHT BANNER: RED FOR PENDING DUES -->
