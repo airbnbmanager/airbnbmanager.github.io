@@ -566,8 +566,8 @@ window.UserActivityTracker = {
     this._syncRecord(allLogs[today][userId]);
   },
 
-  _tableAvailable: null,
-  _appSettingsAvailable: null,
+  _tableAvailable: (typeof localStorage !== 'undefined' && localStorage.getItem('uh_user_act_tbl_avail') === 'false') ? false : null,
+  _appSettingsAvailable: (typeof localStorage !== 'undefined' && localStorage.getItem('uh_app_set_avail') === 'false') ? false : null,
 
   async _syncRecord(rec) {
     if (!rec || !rec.userId) return;
@@ -588,9 +588,10 @@ window.UserActivityTracker = {
         }, { onConflict: 'user_id,log_date' });
 
         if (error) {
-          // If table does not exist or unauthorized (404 / 401 / 42P01), remember and stop querying it
+          // If table does not exist or unauthorized (404 / 401 / 42P01), remember in localStorage and stop querying it
           if (error.code === '42P01' || error.status === 404 || error.status === 401 || error.code === '404' || error.message?.includes('does not exist')) {
             this._tableAvailable = false;
+            try { localStorage.setItem('uh_user_act_tbl_avail', 'false'); } catch(e) {}
           }
           if (this._appSettingsAvailable !== false) {
             this._syncToAppSettings(rec);
@@ -604,6 +605,7 @@ window.UserActivityTracker = {
       }
     } catch(e) {
       this._tableAvailable = false;
+      try { localStorage.setItem('uh_user_act_tbl_avail', 'false'); } catch(err) {}
       if (this._appSettingsAvailable !== false) {
         this._syncToAppSettings(rec);
       }
@@ -623,6 +625,7 @@ window.UserActivityTracker = {
       if (selErr) {
         if (selErr.status === 403 || selErr.status === 401 || selErr.code === '42501' || selErr.status === 404) {
           this._appSettingsAvailable = false;
+          try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(e) {}
           return;
         }
       }
@@ -648,12 +651,14 @@ window.UserActivityTracker = {
         // If app_settings upsert forbidden or unauthorized (401 / 403), stop querying it
         if (upErr.status === 403 || upErr.status === 401 || upErr.code === '42501' || upErr.status === 404) {
           this._appSettingsAvailable = false;
+          try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(e) {}
         }
       } else {
         this._appSettingsAvailable = true;
       }
     } catch(e) {
       this._appSettingsAvailable = false;
+      try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(err) {}
     }
   },
 

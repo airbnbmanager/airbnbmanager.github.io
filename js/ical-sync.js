@@ -116,6 +116,7 @@ window.ICAL_SYNC = {
     const match = (room.notes || '').match(/\[CUSTOM_ICAL:\s*([^\]]+)\]/);
     if (match) return match[1].trim();
     return localStorage.getItem('tuhh_custom_ical_' + room.room_id) || null;
+  },
 
   // Outbound 2-Way Calendar Feed Generator (.ics)
   async generateOutboundIcal(roomId) {
@@ -324,16 +325,6 @@ window.ICAL_SYNC = {
     if (customUrl) {
       await this.syncChannelUrl(room, customUrl, 'Other OTA', result);
     }
-      return result;
-    }
-    
-    if (room.airbnb_ical_url) {
-      await this.syncChannelUrl(room, room.airbnb_ical_url, 'Airbnb', result);
-    }
-    if (bcomUrl) {
-      await this.syncChannelUrl(room, bcomUrl, 'Booking.com', result);
-    }
-    
     return result;
   },
   
