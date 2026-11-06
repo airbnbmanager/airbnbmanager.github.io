@@ -586,7 +586,7 @@ window.whatsappDailyReport = whatsappDailyReport;
 // ══════════════════════════════════════════════════════════════════════
 window._blossomStatusSettings = {
   includeTags: true,
-  defaultKeyNote: true,
+  vacantLabel: 'Khali',
   includeVillas: false
 };
 
@@ -679,10 +679,10 @@ async function openBlossomSkylineDailyStatusModal(targetDate) {
   }
 }
 
-function generateBlossomStatusText(includeTags, defaultKeyNote, includeVillas) {
+function generateBlossomStatusText(includeTags, vacantLabel, includeVillas) {
   const cache = window._blossomStatusCache;
   if (!cache) return '';
-  const { repDate, bks, paidMap, flatStatusMap, units } = cache;
+  const { repDate, bks, paidMap, units } = cache;
 
   const lines = [];
   if (includeTags) {
@@ -701,14 +701,14 @@ function generateBlossomStatusText(includeTags, defaultKeyNote, includeVillas) {
 
     const activeBk = roomBks[0];
     if (!activeBk) {
-      const fs = u.roomIds.map(rid => flatStatusMap[rid]).find(Boolean);
-      const note = fs?.notes ? ` (${fs.notes})` : (defaultKeyNote ? ' (Key Not Received)' : '');
-      lines.push(`${u.num} – Vacant${note}`);
+      // Clean vacant label: default "Khali"
+      lines.push(`${u.num} – ${vacantLabel || 'Khali'}`);
       return;
     }
 
     let gName = (activeBk.guest_name || '').trim();
-    const isInfluencer = activeBk.is_review_booking || /influencer/i.test(gName);
+    // Only tag influencer if review booking or specifically noted as influencer
+    const isInfluencer = activeBk.is_review_booking || /\binfluencer\b/i.test(gName) || /\binfluencer\b/i.test(activeBk.notes || '');
     gName = gName.replace(/\s*\(?\s*influencer\s*\)?/i, '').trim();
 
     if (isInfluencer) {
@@ -717,18 +717,26 @@ function generateBlossomStatusText(includeTags, defaultKeyNote, includeVillas) {
     }
 
     const total = activeBk.total_amount || 0;
-    const paid = paidMap[activeBk.booking_id] || 0;
-    const fmtTotal = '₹' + total.toLocaleString('en-IN');
-    const fmtPaid = '₹' + paid.toLocaleString('en-IN');
+    let paid = paidMap[activeBk.booking_id] || 0;
 
-    if (paid >= total && total > 0) {
-      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPaid} ✅`);
-    } else if (paid === 0) {
-      // If fully unpaid
-      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ₹0`);
+    // Respect payment_status flag from guest_register
+    if (activeBk.payment_status === 'Paid' && paid < total) {
+      paid = total;
+    } else if (activeBk.payment_status === 'Unpaid' && paid === 0) {
+      paid = 0;
+    }
+
+    // PENDING AMOUNT: guest se kitna lena baaki hai
+    // 0 pending means fully paid -> marked with ✅
+    // >0 pending means payment to collect from guest -> NO checkmark
+    const pending = Math.max(0, total - paid);
+    const fmtTotal = '₹' + total.toLocaleString('en-IN');
+    const fmtPending = '₹' + pending.toLocaleString('en-IN');
+
+    if (pending === 0 && total > 0) {
+      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ₹0 ✅`);
     } else {
-      // Partial payment
-      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPaid}`);
+      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPending}`);
     }
   });
 
@@ -748,14 +756,16 @@ function generateBlossomStatusText(includeTags, defaultKeyNote, includeVillas) {
     villaUnits.forEach(v => {
       const vbk = bks.find(b => b.room_id === v.num);
       if (!vbk) {
-        lines.push(`${v.num} – Vacant`);
+        lines.push(`${v.num} – ${vacantLabel || 'Khali'}`);
       } else {
-        const vPaid = paidMap[vbk.booking_id] || 0;
         const vTot = vbk.total_amount || 0;
-        if (vPaid >= vTot && vTot > 0) {
-          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPaid.toLocaleString('en-IN')} ✅`);
+        let vPaid = paidMap[vbk.booking_id] || 0;
+        if (vbk.payment_status === 'Paid' && vPaid < vTot) vPaid = vTot;
+        const vPending = Math.max(0, vTot - vPaid);
+        if (vPending === 0 && vTot > 0) {
+          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹0 ✅`);
         } else {
-          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPaid.toLocaleString('en-IN')}`);
+          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPending.toLocaleString('en-IN')}`);
         }
       }
     });
@@ -769,7 +779,7 @@ function renderBlossomStatusModalUI(repDate) {
   if (!modal) return;
 
   const s = window._blossomStatusSettings;
-  const initialText = generateBlossomStatusText(s.includeTags, s.defaultKeyNote, s.includeVillas);
+  const initialText = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas);
   const dateFormatted = new Date(repDate).toLocaleDateString('en-IN', {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
@@ -810,10 +820,14 @@ function renderBlossomStatusModalUI(repDate) {
             <input type="checkbox" id="chkBlossomTags" ${s.includeTags ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
             <span>Owner Tags</span>
           </label>
-          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="chkBlossomKeyNote" ${s.defaultKeyNote ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
-            <span>(Key Not Received)</span>
-          </label>
+          <div style="display:inline-flex;align-items:center;gap:4px;">
+            <span style="font-size:11px;color:var(--muted,#64748B);">Vacant text:</span>
+            <select id="selBlossomVacant" onchange="window.updateBlossomStatusText()" style="padding:3px 8px;font-size:11.5px;font-weight:700;border-radius:6px;border:1px solid #CBD5E1;background:#fff;color:var(--text,#0F172A);">
+              <option value="Khali" ${s.vacantLabel === 'Khali' ? 'selected' : ''}>Khali</option>
+              <option value="Not Booked" ${s.vacantLabel === 'Not Booked' ? 'selected' : ''}>Not Booked</option>
+              <option value="Vacant" ${s.vacantLabel === 'Vacant' ? 'selected' : ''}>Vacant</option>
+            </select>
+          </div>
           <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
             <input type="checkbox" id="chkBlossomVillas" ${s.includeVillas ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
             <span>+ Villas</span>
@@ -829,16 +843,19 @@ function renderBlossomStatusModalUI(repDate) {
       <!-- Quick Text helper chips -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
         <span style="font-size:11px;font-weight:700;color:var(--muted,#64748B);margin-right:2px;">Quick Insert:</span>
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | ₹0 ✅')" style="background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;" title="0 pending = fully paid">
+          + ₹0 ✅ (Fully Paid)
+        </button>
         <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | Payment Pending')" style="background:#FFFBEB;border:1px solid #FDE68A;color:#B45309;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
           + Payment Pending
         </button>
-        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' ✅')" style="background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
-          + ✅ Paid
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' – Khali')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + Khali
         </button>
         <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Influencer)')" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#4338CA;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
           + (Influencer)
         </button>
-        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Key Not Received)')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Key Not Received)')" style="background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;" title="Only use if caretaker missed key">
           + (Key Not Received)
         </button>
       </div>
@@ -846,7 +863,7 @@ function renderBlossomStatusModalUI(repDate) {
       <!-- Action Footer -->
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border,#E2E8F0);">
         <div style="font-size:11.5px;color:var(--muted,#64748B);">
-          💡 Click <strong>Copy</strong> and paste into <strong>📑 Booking Data</strong>
+          💡 Formula: <strong>Total Amount / Pending Amount</strong> (0 pending = <strong>✅ Fully Paid</strong>)
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <button type="button" onclick="window.copyBlossomStatusText()" id="btnCopyBlossomStatus" style="background:#25D366;color:#ffffff;border:none;padding:10px 22px;border-radius:10px;font-size:13.5px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 3px 10px rgba(37,211,102,0.35);transition:all 0.15s ease;">
@@ -866,17 +883,17 @@ function renderBlossomStatusModalUI(repDate) {
 
 window.updateBlossomStatusText = function() {
   const chkTags = document.getElementById('chkBlossomTags');
-  const chkKey = document.getElementById('chkBlossomKeyNote');
+  const selVacant = document.getElementById('selBlossomVacant');
   const chkVillas = document.getElementById('chkBlossomVillas');
   const txt = document.getElementById('blossomStatusText');
   if (!txt) return;
 
   const s = window._blossomStatusSettings;
   s.includeTags = chkTags ? chkTags.checked : true;
-  s.defaultKeyNote = chkKey ? chkKey.checked : true;
+  s.vacantLabel = selVacant ? selVacant.value : 'Khali';
   s.includeVillas = chkVillas ? chkVillas.checked : false;
 
-  txt.value = generateBlossomStatusText(s.includeTags, s.defaultKeyNote, s.includeVillas);
+  txt.value = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas);
 };
 
 window.insertBlossomSnippet = function(snippet) {
