@@ -587,7 +587,8 @@ window.whatsappDailyReport = whatsappDailyReport;
 window._blossomStatusSettings = {
   includeTags: true,
   vacantLabel: 'Khali',
-  includeVillas: false
+  includeVillas: false,
+  useRedEmoji: true
 };
 
 async function openBlossomSkylineDailyStatusModal(targetDate) {
@@ -604,12 +605,12 @@ async function openBlossomSkylineDailyStatusModal(targetDate) {
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.style.display = 'flex';
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:640px;width:94%;padding:26px;border-radius:18px;box-shadow:0 20px 45px rgba(0,0,0,0.25);background:var(--card,#ffffff);">
+    <div class="modal-box" style="max-width:680px;width:94%;padding:26px;border-radius:18px;box-shadow:0 20px 45px rgba(0,0,0,0.25);background:var(--card,#ffffff);">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:24px;height:24px;border:3px solid #CBD5E1;border-top-color:#25D366;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <div style="width:24px;height:24px;border:3px solid #CBD5E1;border-top-color:#EF4444;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
         <div>
           <div style="font-size:15px;font-weight:800;color:var(--text,#0F172A);">Generating WhatsApp Booking Status...</div>
-          <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">Syncing Blossom Skyline flats (101–501) with live bookings & payments for ${repDate}</div>
+          <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">Analyzing live bookings, dues & payments for ${repDate}</div>
         </div>
       </div>
     </div>
@@ -679,20 +680,20 @@ async function openBlossomSkylineDailyStatusModal(targetDate) {
   }
 }
 
-function generateBlossomStatusText(includeTags, vacantLabel, includeVillas) {
+function computeBlossomUnitDetails() {
   const cache = window._blossomStatusCache;
-  if (!cache) return '';
+  if (!cache) return { items: [], totalPending: 0, totalPaid: 0, pendingCount: 0, paidCount: 0, vacantCount: 0 };
   const { repDate, bks, paidMap, units } = cache;
 
-  const lines = [];
-  if (includeTags) {
-    lines.push('@Arman Commander @Abraham Khan (Raja) @Mr. Firoz khan @Mr. Shahanshah Khan ');
-  }
-  lines.push('📋 UPDATED BOOKING STATUS\n');
+  const items = [];
+  let totalPending = 0;
+  let totalPaid = 0;
+  let pendingCount = 0;
+  let paidCount = 0;
+  let vacantCount = 0;
 
   units.forEach(u => {
     const roomBks = bks.filter(b => u.roomIds.includes(b.room_id));
-    // Priority: today check-in first (repDate), then staying, then checking out
     roomBks.sort((a, b) => {
       const aPri = a.check_in === repDate ? 2 : (a.check_out > repDate ? 1 : 0);
       const bPri = b.check_in === repDate ? 2 : (b.check_out > repDate ? 1 : 0);
@@ -701,42 +702,89 @@ function generateBlossomStatusText(includeTags, vacantLabel, includeVillas) {
 
     const activeBk = roomBks[0];
     if (!activeBk) {
-      // Clean vacant label: default "Khali"
-      lines.push(`${u.num} – ${vacantLabel || 'Khali'}`);
+      vacantCount++;
+      items.push({
+        num: u.num,
+        isVacant: true,
+        guestName: '',
+        total: 0,
+        paid: 0,
+        pending: 0,
+        isInfluencer: false
+      });
       return;
     }
 
     let gName = (activeBk.guest_name || '').trim();
-    // Only tag influencer if review booking or specifically noted as influencer
     const isInfluencer = activeBk.is_review_booking || /\binfluencer\b/i.test(gName) || /\binfluencer\b/i.test(activeBk.notes || '');
     gName = gName.replace(/\s*\(?\s*influencer\s*\)?/i, '').trim();
-
-    if (isInfluencer) {
-      lines.push(`${u.num} – ${gName} (Influencer)`);
-      return;
-    }
 
     const total = activeBk.total_amount || 0;
     let paid = paidMap[activeBk.booking_id] || 0;
 
-    // Respect payment_status flag from guest_register
     if (activeBk.payment_status === 'Paid' && paid < total) {
       paid = total;
     } else if (activeBk.payment_status === 'Unpaid' && paid === 0) {
       paid = 0;
     }
 
-    // PENDING AMOUNT: guest se kitna lena baaki hai
-    // 0 pending means fully paid -> marked with ✅
-    // >0 pending means payment to collect from guest -> NO checkmark
     const pending = Math.max(0, total - paid);
-    const fmtTotal = '₹' + total.toLocaleString('en-IN');
-    const fmtPending = '₹' + pending.toLocaleString('en-IN');
 
-    if (pending === 0 && total > 0) {
-      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ₹0 ✅`);
+    if (pending > 0) {
+      pendingCount++;
+      totalPending += pending;
+    } else if (total > 0) {
+      paidCount++;
+      totalPaid += total;
+    }
+
+    items.push({
+      num: u.num,
+      isVacant: false,
+      guestName: gName,
+      total,
+      paid,
+      pending,
+      isInfluencer
+    });
+  });
+
+  return { items, totalPending, totalPaid, pendingCount, paidCount, vacantCount };
+}
+
+function generateBlossomStatusText(includeTags, vacantLabel, includeVillas, useRedEmoji = true) {
+  const cache = window._blossomStatusCache;
+  if (!cache) return '';
+  const { repDate, bks, paidMap } = cache;
+  const { items } = computeBlossomUnitDetails();
+
+  const lines = [];
+  if (includeTags) {
+    lines.push('@Arman Commander @Abraham Khan (Raja) @Mr. Firoz khan @Mr. Shahanshah Khan ');
+  }
+  lines.push('📋 UPDATED BOOKING STATUS\n');
+
+  items.forEach(item => {
+    if (item.isVacant) {
+      lines.push(`${item.num} – ${vacantLabel || 'Khali'}`);
+      return;
+    }
+
+    if (item.isInfluencer) {
+      lines.push(`${item.num} – ${item.guestName} (Influencer)`);
+      return;
+    }
+
+    const fmtTotal = '₹' + item.total.toLocaleString('en-IN');
+    const fmtPending = '₹' + item.pending.toLocaleString('en-IN');
+
+    if (item.pending === 0 && item.total > 0) {
+      // 0 pending means fully paid -> marked with ✅
+      lines.push(`${item.num} – ${item.guestName} | ${fmtTotal} / ₹0 ✅`);
     } else {
-      lines.push(`${u.num} – ${gName} | ${fmtTotal} / ${fmtPending}`);
+      // Pending money to collect -> marked with 🔴 (Red dot highlights who owes money)
+      const redMarker = useRedEmoji ? ' 🔴' : '';
+      lines.push(`${item.num} – ${item.guestName} | ${fmtTotal} / ${fmtPending}${redMarker}`);
     }
   });
 
@@ -765,7 +813,8 @@ function generateBlossomStatusText(includeTags, vacantLabel, includeVillas) {
         if (vPending === 0 && vTot > 0) {
           lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹0 ✅`);
         } else {
-          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPending.toLocaleString('en-IN')}`);
+          const redMarker = useRedEmoji ? ' 🔴' : '';
+          lines.push(`${v.num} – ${vbk.guest_name} | ₹${vTot.toLocaleString('en-IN')} / ₹${vPending.toLocaleString('en-IN')}${redMarker}`);
         }
       }
     });
@@ -779,22 +828,81 @@ function renderBlossomStatusModalUI(repDate) {
   if (!modal) return;
 
   const s = window._blossomStatusSettings;
-  const initialText = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas);
+  const initialText = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas, s.useRedEmoji);
+  const { items, totalPending, totalPaid, pendingCount, paidCount } = computeBlossomUnitDetails();
+
   const dateFormatted = new Date(repDate).toLocaleDateString('en-IN', {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
 
+  // Generate visual cards: RED for pending payments, GREEN for paid, GRAY for Khali
+  const visualCardsHtml = items.map(it => {
+    if (it.isVacant) {
+      return `
+        <div style="background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:12.5px;color:#64748B;">Flat ${it.num}</div>
+          <span style="background:#E2E8F0;color:#475569;font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;">${s.vacantLabel || 'Khali'}</span>
+        </div>
+      `;
+    }
+    if (it.isInfluencer) {
+      return `
+        <div style="background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:800;font-size:12.5px;color:#3730A3;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
+            <div style="font-size:10.5px;color:#6366F1;font-weight:600;">Influencer Stay</div>
+          </div>
+          <span style="background:#6366F1;color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;">Influencer</span>
+        </div>
+      `;
+    }
+    if (it.pending > 0) {
+      // 🔴 RED HIGHLIGHT: GUEST SE PAISA LENA HAI
+      return `
+        <div style="background:#FEF2F2;border:2px solid #EF4444;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(239,68,68,0.12);">
+          <div>
+            <div style="font-weight:900;font-size:13px;color:#991B1B;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
+            <div style="font-size:11px;color:#B91C1C;font-weight:600;margin-top:1px;">
+              Total: ₹${it.total.toLocaleString('en-IN')} • Paid: ₹${it.paid.toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="background:#EF4444;color:#FFFFFF;font-size:11.5px;font-weight:900;padding:3px 9px;border-radius:8px;display:inline-block;letter-spacing:0.3px;">
+              ₹${it.pending.toLocaleString('en-IN')} LENA HAI 🔴
+            </span>
+          </div>
+        </div>
+      `;
+    } else {
+      // 🟢 GREEN HIGHLIGHT: FULLY PAID
+      return `
+        <div style="background:#F0FDF4;border:1.5px solid #22C55E;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:800;font-size:12.5px;color:#166534;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
+            <div style="font-size:11px;color:#15803D;font-weight:500;margin-top:1px;">
+              Total: ₹${it.total.toLocaleString('en-IN')} • Full Paid
+            </div>
+          </div>
+          <span style="background:#16A34A;color:#FFFFFF;font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;">
+            ₹0 DUE ✅
+          </span>
+        </div>
+      `;
+    }
+  }).join('');
+
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:680px;width:94%;padding:24px 26px;border-radius:18px;box-shadow:0 24px 50px rgba(0,0,0,0.28);background:var(--card,#ffffff);border:1px solid var(--border,#E2E8F0);">
-      <!-- Header -->
+    <div class="modal-box" style="max-width:720px;width:95%;max-height:92vh;overflow-y:auto;padding:24px 26px;border-radius:20px;box-shadow:0 24px 50px rgba(0,0,0,0.3);background:var(--card,#ffffff);border:1px solid var(--border,#E2E8F0);">
+      
+      <!-- Top Header -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:42px;height:42px;border-radius:12px;background:#DCFCE7;color:#15803D;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          <div style="width:44px;height:44px;border-radius:12px;background:#25D366;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 3px 10px rgba(37,211,102,0.35);">
             📋
           </div>
           <div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--text,#0F172A);letter-spacing:-0.2px;">
+              <h2 style="margin:0;font-size:18px;font-weight:900;color:var(--text,#0F172A);letter-spacing:-0.2px;">
                 WhatsApp Booking Status
               </h2>
               <span style="background:#25D366;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">
@@ -802,15 +910,53 @@ function renderBlossomStatusModalUI(repDate) {
               </span>
             </div>
             <div style="font-size:12px;color:var(--muted,#64748B);margin-top:2px;">
-              For <strong>📑 Booking Data</strong> group • Blossom Skyline (101–501) • ${dateFormatted}
+              Blossom Skyline (101–501) • ${dateFormatted}
             </div>
           </div>
         </div>
-        <button class="modal-close" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="font-size:18px;color:#94A3B8;background:transparent;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;">✕</button>
+        <button class="modal-close" onclick="document.getElementById('blossomStatusModalOverlay').remove()" style="font-size:20px;color:#94A3B8;background:transparent;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;">✕</button>
+      </div>
+
+      <!-- 🔴 EXECUTIVE HIGHLIGHT BANNER: RED FOR PENDING DUES -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="background:#FEF2F2;border:2px solid #EF4444;border-radius:12px;padding:12px 14px;box-shadow:0 2px 6px rgba(239,68,68,0.12);">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#991B1B;letter-spacing:0.5px;display:flex;align-items:center;gap:5px;">
+            <span>🔴</span> <span>Total Paisa Lena Hai (Pending):</span>
+          </div>
+          <div style="font-size:20px;font-weight:900;color:#DC2626;margin-top:3px;">
+            ₹${totalPending.toLocaleString('en-IN')}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#B91C1C;margin-top:1px;">
+            ${pendingCount} Guests se payment lena baaki hai
+          </div>
+        </div>
+
+        <div style="background:#F0FDF4;border:1.5px solid #22C55E;border-radius:12px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#166534;letter-spacing:0.5px;display:flex;align-items:center;gap:5px;">
+            <span>🟢</span> <span>Total Fully Paid:</span>
+          </div>
+          <div style="font-size:20px;font-weight:900;color:#16A34A;margin-top:3px;">
+            ₹${totalPaid.toLocaleString('en-IN')}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#15803D;margin-top:1px;">
+            ${paidCount} Guests poora pay kar chuke hain ✅
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔴 VISUAL LIST OF FLATS: RED HIGHLIGHT FOR WHO OWES MONEY -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11.5px;font-weight:800;color:var(--text,#334155);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">
+          <span>Flat-by-Flat Payment Status:</span>
+          <span style="font-size:11px;color:#DC2626;font-weight:800;">🔴 Red = Paisa Lena Hai</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:8px;">
+          ${visualCardsHtml}
+        </div>
       </div>
 
       <!-- Controls bar: Date & Filters -->
-      <div style="background:var(--bg,#F8FAFC);border:1px solid var(--border,#E2E8F0);padding:10px 14px;border-radius:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="background:var(--bg,#F8FAFC);border:1px solid var(--border,#E2E8F0);padding:10px 14px;border-radius:12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <label style="font-size:12px;font-weight:700;color:var(--text,#334155);">📅 Date:</label>
           <input type="date" value="${repDate}" onchange="openBlossomSkylineDailyStatusModal(this.value)" style="padding:4px 10px;font-size:12.5px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;font-weight:600;color:var(--text,#0F172A);">
@@ -820,12 +966,15 @@ function renderBlossomStatusModalUI(repDate) {
             <input type="checkbox" id="chkBlossomTags" ${s.includeTags ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
             <span>Owner Tags</span>
           </label>
+          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;" title="Include 🔴 Red circle emoji on pending lines">
+            <input type="checkbox" id="chkBlossomRedEmoji" ${s.useRedEmoji ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
+            <span>🔴 Red Marker</span>
+          </label>
           <div style="display:inline-flex;align-items:center;gap:4px;">
             <span style="font-size:11px;color:var(--muted,#64748B);">Vacant text:</span>
             <select id="selBlossomVacant" onchange="window.updateBlossomStatusText()" style="padding:3px 8px;font-size:11.5px;font-weight:700;border-radius:6px;border:1px solid #CBD5E1;background:#fff;color:var(--text,#0F172A);">
               <option value="Khali" ${s.vacantLabel === 'Khali' ? 'selected' : ''}>Khali</option>
               <option value="Not Booked" ${s.vacantLabel === 'Not Booked' ? 'selected' : ''}>Not Booked</option>
-              <option value="Vacant" ${s.vacantLabel === 'Vacant' ? 'selected' : ''}>Vacant</option>
             </select>
           </div>
           <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
@@ -835,19 +984,24 @@ function renderBlossomStatusModalUI(repDate) {
         </div>
       </div>
 
-      <!-- Textarea with Live Message -->
+      <!-- Textarea with Live WhatsApp Message -->
       <div style="position:relative;margin-bottom:10px;">
-        <textarea id="blossomStatusText" rows="12" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.55;padding:14px 16px;border-radius:12px;border:1.5px solid var(--border,#CBD5E1);background:#FFFFFF;color:#0F172A;resize:vertical;box-sizing:border-box;box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">${initialText}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <label style="font-size:11px;font-weight:800;color:var(--muted,#64748B);text-transform:uppercase;">
+            WhatsApp Formatted Message (Editable):
+          </label>
+        </div>
+        <textarea id="blossomStatusText" rows="11" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.55;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border,#CBD5E1);background:#FFFFFF;color:#0F172A;resize:vertical;box-sizing:border-box;box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">${initialText}</textarea>
       </div>
 
       <!-- Quick Text helper chips -->
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
         <span style="font-size:11px;font-weight:700;color:var(--muted,#64748B);margin-right:2px;">Quick Insert:</span>
-        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | ₹0 ✅')" style="background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;" title="0 pending = fully paid">
-          + ₹0 ✅ (Fully Paid)
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' 🔴')" style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:800;cursor:pointer;" title="Mark pending red">
+          + 🔴 Paisa Lena Hai
         </button>
-        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | Payment Pending')" style="background:#FFFBEB;border:1px solid #FDE68A;color:#B45309;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
-          + Payment Pending
+        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' | ₹0 ✅')" style="background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
+          + ₹0 ✅ (Fully Paid)
         </button>
         <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' – Khali')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
           + Khali
@@ -855,18 +1009,15 @@ function renderBlossomStatusModalUI(repDate) {
         <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Influencer)')" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#4338CA;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;">
           + (Influencer)
         </button>
-        <button type="button" class="btn-sm" onclick="window.insertBlossomSnippet(' (Key Not Received)')" style="background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;" title="Only use if caretaker missed key">
-          + (Key Not Received)
-        </button>
       </div>
 
       <!-- Action Footer -->
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border,#E2E8F0);">
         <div style="font-size:11.5px;color:var(--muted,#64748B);">
-          💡 Formula: <strong>Total Amount / Pending Amount</strong> (0 pending = <strong>✅ Fully Paid</strong>)
+          💡 Single-click: <strong>Copy Message</strong> karke direct WhatsApp mein paste karein
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <button type="button" onclick="window.copyBlossomStatusText()" id="btnCopyBlossomStatus" style="background:#25D366;color:#ffffff;border:none;padding:10px 22px;border-radius:10px;font-size:13.5px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 3px 10px rgba(37,211,102,0.35);transition:all 0.15s ease;">
+          <button type="button" onclick="window.copyBlossomStatusText()" id="btnCopyBlossomStatus" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#ffffff;border:none;padding:10px 24px;border-radius:10px;font-size:13.5px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 3px 12px rgba(37,211,102,0.4);transition:all 0.15s ease;">
             📋 Copy Message
           </button>
           <button type="button" onclick="window.openWhatsAppWebBlossom()" style="background:#0F172A;color:#ffffff;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 6px rgba(15,23,42,0.2);">
@@ -883,6 +1034,7 @@ function renderBlossomStatusModalUI(repDate) {
 
 window.updateBlossomStatusText = function() {
   const chkTags = document.getElementById('chkBlossomTags');
+  const chkRed = document.getElementById('chkBlossomRedEmoji');
   const selVacant = document.getElementById('selBlossomVacant');
   const chkVillas = document.getElementById('chkBlossomVillas');
   const txt = document.getElementById('blossomStatusText');
@@ -890,10 +1042,11 @@ window.updateBlossomStatusText = function() {
 
   const s = window._blossomStatusSettings;
   s.includeTags = chkTags ? chkTags.checked : true;
+  s.useRedEmoji = chkRed ? chkRed.checked : true;
   s.vacantLabel = selVacant ? selVacant.value : 'Khali';
   s.includeVillas = chkVillas ? chkVillas.checked : false;
 
-  txt.value = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas);
+  txt.value = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas, s.useRedEmoji);
 };
 
 window.insertBlossomSnippet = function(snippet) {

@@ -1777,6 +1777,12 @@ function renderShell(content, activePage = 'dashboard') {
               ` : ''}
             </div>
 
+            <!-- 1-Click WhatsApp Status Generator (Blossom Skyline) -->
+            <button type="button" class="topbar-wa-status-btn" onclick="typeof window.openBlossomSkylineDailyStatusModal === 'function' ? window.openBlossomSkylineDailyStatusModal() : (window.navigate('daily-report'), setTimeout(() => window.openBlossomSkylineDailyStatusModal?.(), 500))" title="1-Click WhatsApp Booking Data Status (Flats 101–501)" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#ffffff;border:none;border-radius:10px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(37,211,102,0.3);white-space:nowrap;transition:all 0.15s ease;">
+              <i class="ti ti-brand-whatsapp" style="font-size:15px;"></i>
+              <span class="topbar-wa-status-text">📋 WA Status</span>
+            </button>
+
             <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
             <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
               <span class="topbar-new-booking-icon"><i class="ti ti-plus"></i></span> <span class="topbar-new-booking-text">New Booking</span>
