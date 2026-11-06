@@ -626,13 +626,15 @@ async function renderDashboard() {
       tbody.innerHTML = sorted.map(p => `
       <tr>
         <td class="hh-prop-cell-name">
-          ${p.thumb ? `<img src="${p.thumb}" alt="${p.rName}" style="width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">` : `<div style="width:34px;height:34px;border-radius:8px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">${p.unit}</div>`}
-          <div>
-            <div style="font-weight:700;color:#0F172A;font-size:13px;">${p.rName}</div>
-            <div style="font-size:11px;color:#64748B;">${p.unit}</div>
+          <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:10px;min-width:0;max-width:210px;">
+            ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:#E0F2FE;color:#0284C7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
+            <div style="min-width:0;flex:1;overflow:hidden;">
+              <div style="font-weight:700;color:#0F172A;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
+              <div style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.unit || '')}</div>
+            </div>
           </div>
         </td>
-        <td style="font-weight:800;color:#0F172A;">₹${p.rRev.toLocaleString('en-IN')}</td>
+        <td style="font-weight:800;color:#0F172A;text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rRev.toLocaleString('en-IN')}</td>
         <td>
           <div class="hh-occ-bar-wrap">
             <span style="font-weight:700;font-size:12px;min-width:32px;">${p.rOcc}%</span>
@@ -641,7 +643,7 @@ async function renderDashboard() {
             </div>
           </div>
         </td>
-        <td style="font-weight:800;color:#10B981;">₹${p.rNet.toLocaleString('en-IN')}</td>
+        <td style="font-weight:800;color:#10B981;text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rNet.toLocaleString('en-IN')}</td>
       </tr>
     `).join('');
 
@@ -2220,26 +2222,28 @@ window.renderExecutiveDashboard = async function () {
                 </div>
 
                 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
-                  <table class="hh-leaderboard-table" style="width:100%;min-width:540px;border-collapse:collapse;">
+                  <table class="hh-leaderboard-table" style="width:100%;min-width:480px;border-collapse:collapse;">
                     <thead>
                       <tr>
-                        <th style="min-width:160px;">PROPERTY</th>
-                        <th style="min-width:110px;">NET REVENUE</th>
-                        <th style="min-width:140px;">OCCUPANCY</th>
-                        <th style="min-width:110px;">NET OP. INCOME</th>
+                        <th style="min-width:170px;text-align:left;">PROPERTY</th>
+                        <th style="min-width:110px;text-align:right;padding-right:12px;">NET REVENUE</th>
+                        <th style="min-width:130px;">OCCUPANCY</th>
+                        <th style="min-width:110px;text-align:right;">NET OP. INCOME</th>
                       </tr>
                     </thead>
                     <tbody id="hhLeaderboardBody">
                       ${propRankingList.sort((a, b) => b.rRev - a.rRev).map((p, idx) => `
                         <tr>
                           <td class="hh-prop-cell-name">
-                            ${p.thumb ? `<img src="${p.thumb}" alt="${p.rName}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:#F1F5F9;color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">${p.unit || p.rId}</div>`}
-                            <div>
-                              <div style="font-weight:700;color:#0F172A;font-size:13px;">${p.rName}</div>
-                              <div style="font-size:11px;color:#64748B;">${p.unit || ''}</div>
+                            <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:10px;min-width:0;max-width:210px;">
+                              ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:#F1F5F9;color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
+                              <div style="min-width:0;flex:1;overflow:hidden;">
+                                <div style="font-weight:700;color:#0F172A;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
+                                <div style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.unit || '')}</div>
+                              </div>
                             </div>
                           </td>
-                          <td style="font-weight:800;color:#0F172A;">₹${p.rRev.toLocaleString('en-IN')}</td>
+                          <td style="font-weight:800;color:#0F172A;text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rRev.toLocaleString('en-IN')}</td>
                           <td>
                             <div class="hh-occ-bar-wrap" style="display:flex;align-items:center;gap:8px;">
                               <div class="hh-occ-bar-track" style="flex:1;height:6px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
@@ -2248,8 +2252,8 @@ window.renderExecutiveDashboard = async function () {
                               <span style="font-weight:700;font-size:11.5px;color:#64748B;min-width:28px;">${p.rOcc}%</span>
                             </div>
                           </td>
-                          <td style="font-weight:800;color:#0F172A;">
-                            <div style="display:flex;align-items:center;gap:6px;">
+                          <td style="font-weight:800;color:#0F172A;text-align:right;white-space:nowrap;padding:10px 12px;">
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
                               <span>₹${p.rNet.toLocaleString('en-IN')}</span>
                               ${idx === 0 ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Top</span>` : (p.rOcc < 45 && p.rOcc > 0 ? `<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Occ -${50 - p.rOcc}%</span>` : '')}
                             </div>

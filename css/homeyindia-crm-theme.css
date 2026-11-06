@@ -1573,9 +1573,40 @@ html, body {
   }
 
   /* 4. Responsive Leaderboard Refinements */
+  .hh-leaderboard-card {
+    padding: 14px 10px !important;
+  }
+  .hh-leaderboard-table {
+    display: table !important;
+    min-width: 460px !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  .hh-leaderboard-table th:first-child,
+  .hh-leaderboard-table td:first-child {
+    width: 50% !important;
+    min-width: 170px !important;
+    max-width: 210px !important;
+    overflow: hidden !important;
+  }
+  .hh-leaderboard-table th:nth-child(2),
+  .hh-leaderboard-table td:nth-child(2) {
+    width: 25% !important;
+    min-width: 95px !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+    padding-right: 12px !important;
+  }
   .hh-leaderboard-table th:nth-child(3),
   .hh-leaderboard-table td:nth-child(3) {
     display: none !important; /* Hide occupancy bar on very small screens to save space */
+  }
+  .hh-leaderboard-table th:nth-child(4),
+  .hh-leaderboard-table td:nth-child(4) {
+    width: 25% !important;
+    min-width: 95px !important;
+    text-align: right !important;
+    white-space: nowrap !important;
   }
 
   /* Suppress pseudo-card ::before labels that were breaking tables */
@@ -3002,9 +3033,16 @@ html, body {
 
 .hh-prop-cell-name {
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: table-cell !important;
+  vertical-align: middle !important;
+  max-width: 220px;
+}
+
+.hh-prop-cell-inner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
 }
 
 .hh-occ-bar-wrap {
