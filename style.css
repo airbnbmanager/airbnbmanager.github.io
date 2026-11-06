@@ -6913,7 +6913,7 @@ textarea:focus {
   .hub-subnav-strip {
     top: calc(56px + env(safe-area-inset-top, 0px));
     padding: 8px 14px;
-    margin: -16px -16px 14px -16px;
+    margin: 0 0 14px 0;
   }
   .hub-subnav-tab {
     padding: 6px 13px;
@@ -6923,9 +6923,9 @@ textarea:focus {
 
 @media (max-width: 640px) {
   .hub-subnav-strip {
-    top: calc(52px + env(safe-area-inset-top, 0px));
+    top: calc(56px + env(safe-area-inset-top, 0px));
     padding: 6px 10px;
-    margin: -12px -12px 12px -12px;
+    margin: 0 0 12px 0;
   }
   .hub-subnav-tab {
     padding: 5px 12px;
