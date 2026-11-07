@@ -760,6 +760,12 @@ async function loadProfile(userId) {
     return;
   }
 
+  // 🚫 DOUBLE LOCK: Even if is_approved=true, block suspended/banned/fired roles
+  if (p.role === 'suspended' || p.role === 'banned' || p.role === 'fired' || p.role === 'terminated' || p.role === 'revoked') {
+    renderAccessSuspendedScreen(p.display_name || userName, userEmail);
+    return;
+  }
+
   SESSION.userId = userId;
   SESSION.role = p.role;
   SESSION.empId = p.emp_id;
@@ -1310,14 +1316,15 @@ function renderShell(content, activePage = 'dashboard') {
 
   const isAdmin = SESSION.role === 'admin' || SESSION.role === 'developer';
   const isOwner = SESSION.role === 'owner' || isAdmin;
+  const isPureOwner = SESSION.role === 'owner'; // owner only — NOT admin/developer
   const isBookingStaff = SESSION.role === 'booking_staff';
   const isViewer = (SESSION.role === 'viewer' || SESSION.role === 'subowner') && !SESSION.investorId;
   const isCheckin = SESSION.role === 'checkin_manager';
 
   let nav;
 
-  // Settings visible to owner, admin, and developer
-  const showSettings = isOwner || isAdmin;
+  // Settings visible to admin and developer only (NOT plain owner)
+  const showSettings = isAdmin;
 
   // ═══════════════════════════════════════════════════════════
   // 🏛️ UHHS CRM POWER HUBS CONFIGURATION (Hub & Tab Architecture)
@@ -1419,8 +1426,30 @@ function renderShell(content, activePage = 'dashboard') {
   ];
   window._UHHS_HUBS = UHHS_HUBS;
 
+  // 👑 OWNER ROLE: Filter out restricted tabs from hub definitions
+  if (isPureOwner) {
+    // Remove Laundry tab from Expenses hub
+    const expHub = UHHS_HUBS.find(h => h.id === 'expenses');
+    if (expHub) expHub.tabs = expHub.tabs.filter(t => t.id !== 'laundry');
+    // Remove GST & Audit tab from Finances hub
+    const finHub = UHHS_HUBS.find(h => h.id === 'claims');
+    if (finHub) finHub.tabs = finHub.tabs.filter(t => t.id !== 'ca-audit');
+  }
+
   // Minimal, uncluttered left drawer list as requested by user
-  if (isOwner) {
+  if (isPureOwner) {
+    // 👑 OWNER ROLE (Firoz, Shanshah) — Full business access, restricted admin pages
+    // Hidden: User Management, Laundry, GST Audit, HRMS & Tasks, WhatsApp Hub, Help & Guide
+    nav = [
+      ['dashboard', 'Today · Operations'],
+      ['bookings', 'Bookings / Calendar'],
+      ['rooms', 'Properties'],
+      ['expenses', 'Expenses'],
+      ['claims', 'Finances'],
+      ['settings', 'Global Settings'],
+    ];
+  } else if (isAdmin) {
+    // 🛠️ DEVELOPER / ADMIN — Full access to everything
     nav = [
       ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
@@ -1429,9 +1458,9 @@ function renderShell(content, activePage = 'dashboard') {
       ['claims', 'Finances'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
+      ['user-mgmt', 'User Management'],
+      ['settings', 'Global Settings'],
       ['help', 'Help & Guide'],
-      ...(isAdmin ? [['user-mgmt', 'User Management']] : []),
-      ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   } else if (SESSION.role === 'moderator') {
     nav = [
@@ -2198,6 +2227,15 @@ function renderShell(content, activePage = 'dashboard') {
 }
 
 function navigate(page) {
+  // 🔒 OWNER ROLE PAGE GUARD — block restricted pages for 'owner' role
+  if (SESSION.role === 'owner') {
+    const OWNER_BLOCKED = ['user-mgmt', 'employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop', 'whatsapp-hub', 'whatsapp', 'help', 'laundry', 'ca-audit'];
+    if (OWNER_BLOCKED.includes(page)) {
+      if (window.fsn) fsn.error('Access Restricted', 'This page is not available for your role.');
+      else alert('Access Restricted: This page is not available for your role.');
+      return;
+    }
+  }
   SESSION.currentPage = page;
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   if (window.trackPageVisit) window.trackPageVisit(page);
@@ -3377,7 +3415,7 @@ window.revokeAllFiredStaffAccess = async function() {
 
   try {
     for (const uid of ids) {
-      await sb.from('profiles').update({ is_approved: false }).eq('user_id', uid);
+      await sb.from('profiles').update({ is_approved: false, role: 'suspended' }).eq('user_id', uid);
     }
     if (window.fsn) fsn.success('Success', `✅ Fired staff access block kar diya gaya hai.`);
     renderUserManagement();
@@ -3534,7 +3572,18 @@ window.toggleUserActive = async function(userId, isCurrentlyApproved, name) {
   if (!confirm(`${actionText} "${name}"?`)) return;
 
   try {
-    const { error } = await sb.from('profiles').update({ is_approved: newStatus }).eq('user_id', userId);
+    // When suspending: also set role to 'suspended' as double-lock security
+    // When activating: restore role only if it was 'suspended' (don't override a real role)
+    let updatePayload = { is_approved: newStatus };
+    if (!newStatus) {
+      // Suspending — force role to 'suspended' so double-lock in auth blocks them
+      updatePayload.role = 'suspended';
+    } else {
+      // Re-activating — clear suspended role back to 'staff' (admin can then set proper role)
+      const { data: curProfile } = await sb.from('profiles').select('role').eq('user_id', userId).single();
+      if (curProfile?.role === 'suspended') updatePayload.role = 'staff';
+    }
+    const { error } = await sb.from('profiles').update(updatePayload).eq('user_id', userId);
     if (error) throw error;
     if (window.fsn) fsn.success('Status Updated', `✅ ${name} is now ${newStatus ? 'Active' : 'Suspended'}`);
     renderUserManagement();
