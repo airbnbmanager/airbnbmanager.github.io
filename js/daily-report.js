@@ -693,7 +693,18 @@ function computeBlossomUnitDetails() {
   let vacantCount = 0;
 
   units.forEach(u => {
-    const roomBks = bks.filter(b => u.roomIds.includes(b.room_id));
+    // Only bookings that are ACTUALLY ACTIVE on repDate:
+    // 1) Guest check_in is on repDate (whether multi-day stay or day-stay where check_in === check_out === repDate)
+    // 2) OR Guest checked in before repDate AND check_out is strictly after repDate (overnight staying guest)
+    // Guests where check_in < repDate AND check_out <= repDate have ALREADY CHECKED OUT today morning/earlier,
+    // so the flat is VACANT today!
+    const roomBks = bks.filter(b => {
+      if (!u.roomIds.includes(b.room_id)) return false;
+      if (b.check_in === repDate) return true;
+      if (b.check_in < repDate && b.check_out > repDate) return true;
+      return false;
+    });
+
     roomBks.sort((a, b) => {
       const aPri = a.check_in === repDate ? 2 : (a.check_out > repDate ? 1 : 0);
       const bPri = b.check_in === repDate ? 2 : (b.check_out > repDate ? 1 : 0);
@@ -717,7 +728,10 @@ function computeBlossomUnitDetails() {
 
     let gName = (activeBk.guest_name || '').trim();
     const isInfluencer = activeBk.is_review_booking || /\binfluencer\b/i.test(gName) || /\binfluencer\b/i.test(activeBk.notes || '');
-    gName = gName.replace(/\s*\(?\s*influencer\s*\)?/i, '').trim();
+    if (isInfluencer && !/\(influencer\)/i.test(gName)) {
+      const cleanBase = gName.replace(/\s*\(?\s*influencer\s*\)?/i, '').trim();
+      gName = cleanBase ? `${cleanBase} (Influencer)` : 'Influencer';
+    }
 
     const total = activeBk.total_amount || 0;
     let paid = paidMap[activeBk.booking_id] || 0;
@@ -770,11 +784,6 @@ function generateBlossomStatusText(includeTags, vacantLabel, includeVillas, useR
       return;
     }
 
-    if (item.isInfluencer) {
-      lines.push(`${item.num} – ${item.guestName} (Influencer)`);
-      return;
-    }
-
     const fmtTotal = '₹' + item.total.toLocaleString('en-IN');
     const fmtPending = '₹' + item.pending.toLocaleString('en-IN');
 
@@ -802,7 +811,12 @@ function generateBlossomStatusText(includeTags, vacantLabel, includeVillas, useR
       { num: 'LUL-101', name: 'The Luxe Haven' }
     ];
     villaUnits.forEach(v => {
-      const vbk = bks.find(b => b.room_id === v.num);
+      const vbk = bks.find(b => {
+        if (b.room_id !== v.num) return false;
+        if (b.check_in === repDate) return true;
+        if (b.check_in < repDate && b.check_out > repDate) return true;
+        return false;
+      });
       if (!vbk) {
         lines.push(`${v.num} – ${vacantLabel || 'Khali'}`);
       } else {
@@ -845,23 +859,15 @@ function renderBlossomStatusModalUI(repDate) {
         </div>
       `;
     }
-    if (it.isInfluencer) {
-      return `
-        <div style="background:#EEF2FF;border:1.5px solid #A5B4FC;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-weight:800;font-size:12.5px;color:#3730A3;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
-            <div style="font-size:10.5px;color:#6366F1;font-weight:600;">Influencer Stay</div>
-          </div>
-          <span style="background:#6366F1;color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;">Influencer</span>
-        </div>
-      `;
-    }
     if (it.pending > 0) {
       // 🔴 RED HIGHLIGHT: GUEST SE PAISA LENA HAI
       return `
         <div style="background:#FEF2F2;border:2px solid #EF4444;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(239,68,68,0.12);">
           <div>
-            <div style="font-weight:900;font-size:13px;color:#991B1B;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
+            <div style="font-weight:900;font-size:13px;color:#991B1B;display:flex;align-items:center;gap:6px;">
+              <span>Flat ${it.num} – ${escapeHtml(it.guestName)}</span>
+              ${it.isInfluencer ? '<span style="background:#6366F1;color:#fff;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px;">Influencer</span>' : ''}
+            </div>
             <div style="font-size:11px;color:#B91C1C;font-weight:600;margin-top:1px;">
               Total: ₹${it.total.toLocaleString('en-IN')} • Paid: ₹${it.paid.toLocaleString('en-IN')}
             </div>
@@ -878,7 +884,10 @@ function renderBlossomStatusModalUI(repDate) {
       return `
         <div style="background:#F0FDF4;border:1.5px solid #22C55E;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
           <div>
-            <div style="font-weight:800;font-size:12.5px;color:#166534;">Flat ${it.num} – ${escapeHtml(it.guestName)}</div>
+            <div style="font-weight:800;font-size:12.5px;color:#166534;display:flex;align-items:center;gap:6px;">
+              <span>Flat ${it.num} – ${escapeHtml(it.guestName)}</span>
+              ${it.isInfluencer ? '<span style="background:#6366F1;color:#fff;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px;">Influencer</span>' : ''}
+            </div>
             <div style="font-size:11px;color:#15803D;font-weight:500;margin-top:1px;">
               Total: ₹${it.total.toLocaleString('en-IN')} • Full Paid
             </div>
