@@ -663,20 +663,19 @@ window.UserActivityTracker = {
 
   async fetchLogsForDate(dateStr) {
     dateStr = dateStr || this._currentDateStr();
-    let records = [];
+    const userMap = {}; // key: userId -> unified log record
 
-    // 1. Try dedicated table user_activity_logs if not known to be missing
-    if (this._tableAvailable !== false) {
-      try {
-        if (window.sb) {
-          const { data, error } = await sb.from('user_activity_logs')
-            .select('*')
-            .eq('log_date', dateStr)
-            .order('last_active_at', { ascending: false });
-          if (!error && data && data.length > 0) {
-            this._tableAvailable = true;
-            return data.map(d => ({
-              userId: d.user_id,
+    // 1. Fetch dedicated table user_activity_logs
+    try {
+      if (window.sb) {
+        const { data, error } = await sb.from('user_activity_logs')
+          .select('*')
+          .eq('log_date', dateStr);
+        if (!error && data && data.length > 0) {
+          data.forEach(d => {
+            const uid = d.user_id;
+            userMap[uid] = {
+              userId: uid,
               displayName: d.display_name,
               role: d.role,
               logDate: d.log_date,
@@ -684,41 +683,132 @@ window.UserActivityTracker = {
               activeSeconds: d.active_seconds || 0,
               firstLoginAt: d.first_login_at,
               lastActiveAt: d.last_active_at
-            }));
-          } else if (error && (error.code === '42P01' || error.status === 404)) {
-            this._tableAvailable = false;
+            };
+          });
+        }
+      }
+    } catch(e) {}
+
+    // 2. MERGE app_settings central fallback (user_daily_activity_logs) — captures all remote users!
+    try {
+      if (window.sb) {
+        const { data: setRows } = await sb.from('app_settings')
+          .select('value')
+          .eq('key', 'user_daily_activity_logs')
+          .limit(1);
+        if (setRows?.[0]?.value) {
+          const remoteMap = JSON.parse(setRows[0].value);
+          if (remoteMap[dateStr]) {
+            Object.values(remoteMap[dateStr]).forEach(r => {
+              const uid = r.userId || r.user_id;
+              if (uid) {
+                const prev = userMap[uid] || {};
+                userMap[uid] = {
+                  userId: uid,
+                  displayName: r.displayName || r.display_name || prev.displayName || 'Staff',
+                  role: r.role || prev.role || 'staff',
+                  logDate: dateStr,
+                  loginCount: Math.max(prev.loginCount || 0, r.loginCount || r.login_count || 1),
+                  activeSeconds: Math.max(prev.activeSeconds || 0, r.activeSeconds || r.active_seconds || 0),
+                  firstLoginAt: prev.firstLoginAt || r.firstLoginAt || r.first_login_at,
+                  lastActiveAt: r.lastActiveAt || r.last_active_at || prev.lastActiveAt
+                };
+              }
+            });
           }
         }
-      } catch(e) {}
-    }
+      }
+    } catch(e) {}
 
-    // 2. Try app_settings fallback if not known to be forbidden
-    if (this._appSettingsAvailable !== false) {
-      try {
-        if (window.sb) {
-          const { data: setRows, error } = await sb.from('app_settings')
-            .select('value')
-            .eq('key', 'user_daily_activity_logs')
-            .limit(1);
-          if (!error && setRows && setRows[0] && setRows[0].value) {
-            this._appSettingsAvailable = true;
-            const map = JSON.parse(setRows[0].value);
-            if (map[dateStr]) {
-              records = Object.values(map[dateStr]);
-              return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
+    // 3. MERGE developer login alerts for today
+    try {
+      if (window.DevLoginAlert) {
+        const alerts = await window.DevLoginAlert.fetchAlerts(80);
+        alerts.forEach(a => {
+          const aDate = a.timestamp ? a.timestamp.slice(0, 10) : '';
+          if (aDate === dateStr && a.user_id) {
+            const uid = a.user_id;
+            const prev = userMap[uid] || {};
+            userMap[uid] = {
+              userId: uid,
+              displayName: a.user_name || prev.displayName || 'Staff',
+              role: a.user_role || prev.role || 'staff',
+              logDate: dateStr,
+              loginCount: Math.max(prev.loginCount || 0, 1),
+              activeSeconds: Math.max(prev.activeSeconds || 0, 180),
+              firstLoginAt: prev.firstLoginAt || a.timestamp,
+              lastActiveAt: (a.timestamp && (!prev.lastActiveAt || new Date(a.timestamp) > new Date(prev.lastActiveAt))) ? a.timestamp : (prev.lastActiveAt || a.timestamp)
+            };
+          }
+        });
+      }
+    } catch(e) {}
+
+    // 4. MERGE active users from profiles table (who has last_seen today)
+    try {
+      if (window.sb) {
+        const { data: profs } = await sb.from('profiles')
+          .select('user_id, display_name, role, last_seen')
+          .not('last_seen', 'is', null);
+
+        if (profs && profs.length) {
+          profs.forEach(p => {
+            const seenDate = p.last_seen ? p.last_seen.slice(0, 10) : '';
+            if (seenDate === dateStr) {
+              const uid = p.user_id;
+              const prev = userMap[uid] || {};
+              userMap[uid] = {
+                userId: uid,
+                displayName: p.display_name || prev.displayName || 'Staff',
+                role: p.role || prev.role || 'staff',
+                logDate: dateStr,
+                loginCount: Math.max(prev.loginCount || 0, 1),
+                activeSeconds: Math.max(prev.activeSeconds || 0, 180),
+                firstLoginAt: prev.firstLoginAt || p.last_seen,
+                lastActiveAt: p.last_seen
+              };
             }
-          } else if (error && (error.status === 403 || error.code === '42501')) {
-            this._appSettingsAvailable = false;
-          }
+          });
         }
-      } catch(e) {}
-    }
+      }
+    } catch(e) {}
 
-    // 3. Fallback to localStorage
-    const local = this._getLocalLogs();
-    if (local[dateStr]) {
-      records = Object.values(local[dateStr]);
-    }
+    // 5. MERGE localStorage
+    try {
+      const local = this._getLocalLogs();
+      if (local[dateStr]) {
+        Object.values(local[dateStr]).forEach(r => {
+          const uid = r.userId || r.user_id;
+          if (uid) {
+            const prev = userMap[uid] || {};
+            userMap[uid] = {
+              userId: uid,
+              displayName: r.displayName || prev.displayName || 'Staff',
+              role: r.role || prev.role || 'staff',
+              logDate: dateStr,
+              loginCount: Math.max(prev.loginCount || 0, r.loginCount || 1),
+              activeSeconds: Math.max(prev.activeSeconds || 0, r.activeSeconds || 0),
+              firstLoginAt: prev.firstLoginAt || r.firstLoginAt,
+              lastActiveAt: r.lastActiveAt || prev.lastActiveAt
+            };
+          }
+        });
+      }
+    } catch(e) {}
+
+    // Finalize duration based on true session span
+    const records = Object.values(userMap);
+    records.forEach(r => {
+      let sec = r.activeSeconds || 0;
+      if (r.firstLoginAt && r.lastActiveAt) {
+        const diff = Math.round((new Date(r.lastActiveAt).getTime() - new Date(r.firstLoginAt).getTime()) / 1000);
+        if (diff > 0 && diff < 86400) {
+          sec = Math.max(sec, diff);
+        }
+      }
+      r.activeSeconds = Math.max(sec, (r.loginCount || 1) * 120);
+    });
+
     return records.sort((a, b) => new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0));
   }
 };
