@@ -801,6 +801,9 @@ async function loadProfile(userId) {
   if (window.UserActivityTracker) {
     window.UserActivityTracker.recordLogin(userId, SESSION.displayName, p.role);
   }
+  if (window.DevLoginAlert && p.role !== 'developer') {
+    window.DevLoginAlert.notifyDevOnLogin(userId, SESSION.displayName, p.role, SESSION.email);
+  }
 
   if (p.role === 'employee') renderEmployeeView();
   else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
@@ -2888,10 +2891,18 @@ async function renderUserManagement() {
         style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
         ⏱️ Daily Logins & Screen Time Logs
       </button>
+      <button type="button" class="btn-sm" onclick="setUserMgmtTab('alerts')"
+        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
+        🔔 Login Alerts
+      </button>
     </div>
 
-    ${currentTab === 'users' ? renderUsersTabContent() : renderActivityTabContent()}
+    ${currentTab === 'users' ? renderUsersTabContent() : currentTab === 'activity' ? renderActivityTabContent() : '<div id="alertsTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div></div>'}
   `, 'user-mgmt');
+
+  if (currentTab === 'alerts' && typeof window.renderAlertsTabContent === 'function') {
+    window.renderAlertsTabContent();
+  }
 
   // -------------------------------------------------------------
   // TAB 1: USERS & ROLES CONTENT
@@ -3105,6 +3116,9 @@ async function renderUserManagement() {
                   <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
                     🔧 Role
                   </button>
+                  <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
+                    📊 Audit
+                  </button>
                   ${!isCurrentUser ? `
                     ${u.isFiredStaff && u.is_approved ? `
                       <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
@@ -3187,6 +3201,7 @@ async function renderUserManagement() {
                       </td>
                       <td class="table-actions" style="text-align:right;">
                         <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
+                        <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
                         ${!isCurrentUser ? `
                           ${u.isFiredStaff && u.is_approved ? `
                             <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
@@ -4117,12 +4132,18 @@ async function startHeartbeat() {
   if (window.UserActivityTracker) {
     window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
   }
+  if (SESSION.role === 'developer' && window.DevLoginAlert?.pollNewAlertsForDev) {
+    window.DevLoginAlert.pollNewAlertsForDev();
+  }
   // Then every 30 seconds
   setInterval(async () => {
     if (SESSION.userId) {
       await sb.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', SESSION.userId);
       if (window.UserActivityTracker) {
         window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
+      }
+      if (SESSION.role === 'developer' && window.DevLoginAlert?.pollNewAlertsForDev) {
+        window.DevLoginAlert.pollNewAlertsForDev();
       }
     }
   }, 30000);
