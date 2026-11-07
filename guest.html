@@ -698,7 +698,8 @@
     }
 
     // ─── SEARCH SCREEN ───
-    window.renderPortalSearchScreen = function(statusMsg = '', isError = false) {
+    function renderPortalSearchScreen(statusMsg = '', isError = false) {
+    window.renderPortalSearchScreen = renderPortalSearchScreen;
       const root = document.getElementById('passRoot');
       if (!root) return;
 
@@ -798,7 +799,8 @@
     };
 
     // ─── EXECUTE PORTAL SEARCH ───
-    window.doPortalSearch = async function() {
+    async function doPortalSearch() {
+    window.doPortalSearch = doPortalSearch;
       const inp = document.getElementById('portalSearchInput');
       const feedback = document.getElementById('portalSearchFeedback');
       if (!inp) return;
@@ -843,7 +845,8 @@
     }
 
     // ─── LOAD BOOKING BY ID ───
-    window.loadBookingById = async function(bookingId) {
+    async function loadBookingById(bookingId) {
+    window.loadBookingById = loadBookingById;
       const root = document.getElementById('passRoot');
       if (root) {
         root.innerHTML = `
@@ -881,7 +884,8 @@
     };
 
     // ─── LOAD BOOKINGS BY PHONE ───
-    window.loadBookingsByPhone = async function(cleanPhone) {
+    async function loadBookingsByPhone(cleanPhone) {
+    window.loadBookingsByPhone = loadBookingsByPhone;
       const root = document.getElementById('passRoot');
       if (root) {
         root.innerHTML = `
@@ -923,7 +927,8 @@
     };
 
     // ─── MULTIPLE BOOKINGS LIST ───
-    window.renderMultipleBookingsList = function(bookings, phone) {
+    function renderMultipleBookingsList(bookings, phone) {
+    window.renderMultipleBookingsList = renderMultipleBookingsList;
       const root = document.getElementById('passRoot');
       if (!root) return;
 
@@ -994,7 +999,8 @@
     };
 
     // ─── RENDER STAY PASS TICKET ───
-    window.renderStayPassTicket = function(bk, room) {
+    function renderStayPassTicket(bk, room) {
+    window.renderStayPassTicket = renderStayPassTicket;
       _currentStayBk = bk;
       _currentStayRoom = room;
       _activeBookingId = bk.booking_id;
@@ -1235,7 +1241,8 @@
     };
 
     // ─── TAX RECEIPT MODAL ───
-    window.openTaxReceiptModal = function(bk, room) {
+    function openTaxReceiptModal(bk, room) {
+    window.openTaxReceiptModal = openTaxReceiptModal;
       if (!bk) return;
       document.querySelectorAll('#taxReceiptModalOverlay').forEach(el => el.remove());
 
@@ -1376,7 +1383,11 @@
       document.body.appendChild(overlay);
     };
 
-    window.addEventListener('DOMContentLoaded', initGuestPass);
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initGuestPass);
+    } else {
+      initGuestPass();
+    }
 
 
 
