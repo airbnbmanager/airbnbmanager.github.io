@@ -1861,17 +1861,26 @@ window.renderExecutiveDashboard = async function () {
       sb.from("payment_history").select("booking_id, amount, payment_date")
     ]);
 
+    let realExpenses = [];
+    try {
+      const expRes = await sb.from("expenses").select("id, amount, entry_date, room_id");
+      if (expRes?.data && Array.isArray(expRes.data)) {
+        realExpenses = expRes.data;
+      }
+    } catch (e) {}
+
     const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? (window.getGlobalSelectedProperty() || '').trim() : '';
 
     const matchesRoom = (item, targetProp) => {
-      if (!targetProp) return true;
+      if (!targetProp || targetProp === 'all') return true;
       if (!item) return false;
       const t = String(targetProp).trim().toUpperCase();
       const r = item.room_id ? String(item.room_id).trim().toUpperCase() : '';
       const sr = item.source_room_id ? String(item.source_room_id).trim().toUpperCase() : '';
       const ro = item.rooms?.room_id ? String(item.rooms.room_id).trim().toUpperCase() : '';
-      const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : '';
-      return r === t || sr === t || ro === t || (un && un === t);
+      const un = item.rooms?.unit_no ? String(item.rooms.unit_no).trim().toUpperCase() : (item.unit ? String(item.unit).trim().toUpperCase() : '');
+      const nn = item.rooms?.nickname ? String(item.rooms.nickname).trim().toUpperCase() : (item.rName ? String(item.rName).trim().toUpperCase() : '');
+      return r === t || sr === t || ro === t || (un && un === t) || (nn && nn === t);
     };
 
     const allBookingsRaw = bookings || [];
@@ -1903,7 +1912,13 @@ window.renderExecutiveDashboard = async function () {
     const hhAdr = totalBookedNights > 0 ? Math.round(monthRevenue / totalBookedNights) : (monthRevenue > 0 ? Math.round(monthRevenue / Math.max(1, monthCheckinBookings.length)) : 0);
     const totalAvailRoomNights = Math.max(1, totalProps * periodDays);
     const hhRevPar = Math.round(monthRevenue / totalAvailRoomNights);
-    const hhEstExpenses = Math.round(monthRevenue * 0.38);
+
+    const monthExpensesList = realExpenses.filter(e => {
+      const ed = e.entry_date || '';
+      return ed >= periodStart && ed <= periodEnd && (!globalProp || matchesRoom(e, globalProp));
+    });
+    const realExpTotal = monthExpensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const hhEstExpenses = realExpTotal > 0 ? realExpTotal : Math.round(monthRevenue * 0.38);
     const hhNetOpIncome = Math.max(0, monthRevenue - hhEstExpenses);
     const periodOccupancyPct = totalAvailRoomNights > 0 ? Math.min(100, Math.round((totalBookedNights / totalAvailRoomNights) * 100)) : 0;
     const occupancyPct = totalProps > 0 ? Math.round(bookedNow.length / totalProps * 100) : 0;
@@ -1918,13 +1933,18 @@ window.renderExecutiveDashboard = async function () {
     const prevAdr = prevBookedNights > 0 ? Math.round(prevRevenue / prevBookedNights) : 0;
     const prevAvailRoomNights = Math.max(1, totalProps * periodDays);
     const prevRevPar = Math.round(prevRevenue / prevAvailRoomNights);
-    const prevNetOpIncome = Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
+    const prevExpensesList = realExpenses.filter(e => {
+      const ed = e.entry_date || '';
+      return ed >= prevPeriodStart && ed <= prevPeriodEnd && (!globalProp || matchesRoom(e, globalProp));
+    });
+    const prevRealExpTotal = prevExpensesList.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const prevNetOpIncome = prevRealExpTotal > 0 ? Math.max(0, prevRevenue - prevRealExpTotal) : Math.max(0, prevRevenue - Math.round(prevRevenue * 0.38));
     const prevOccPct = Math.min(100, Math.round((prevBookedNights / prevAvailRoomNights) * 100));
 
-    const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+14.2' : '0.0');
-    const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+9.8' : '0.0');
-    const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : '+3.1';
-    const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : '-2.4';
+    const revChangePct = prevRevenue > 0 ? (((monthRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : (monthRevenue > 0 ? '+100.0' : '0.0');
+    const netChangePct = prevNetOpIncome > 0 ? (((hhNetOpIncome - prevNetOpIncome) / prevNetOpIncome) * 100).toFixed(1) : (hhNetOpIncome > 0 ? '+100.0' : '0.0');
+    const adrChangePct = prevAdr > 0 ? (((hhAdr - prevAdr) / prevAdr) * 100).toFixed(1) : (hhAdr > 0 ? '+100.0' : '0.0');
+    const revParChangePct = prevRevPar > 0 ? (((hhRevPar - prevRevPar) / prevRevPar) * 100).toFixed(1) : (hhRevPar > 0 ? '+100.0' : '0.0');
     const occDiffPts = (periodOccupancyPct - prevOccPct).toFixed(0);
 
     function formatDeltaTag(val, isPts = false) {
@@ -1996,13 +2016,21 @@ window.renderExecutiveDashboard = async function () {
       'VIL-107': 'the-velvet-house', 'LUL-101': 'the-luxe-haven'
     };
 
-    const propRankingList = allFlats.map(fl => {
+    const propRankingList = allFlatsRaw.map(fl => {
       const rId = fl.room_id;
-      const rBks = monthCheckinBookings.filter(b => b.room_id === rId);
-      const rRev = rBks.reduce((s, b) => s + (b.total_amount || 0), 0);
-      const rNights = rBks.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
+      const rBks = allBookingsRaw.filter(b => b.room_id === rId && !b.is_cancelled);
+      const rMonthBks = rBks.filter(b => {
+        const ci = b.check_in || '';
+        return ci >= periodStart && ci <= periodEnd;
+      });
+      const rRev = rMonthBks.reduce((s, b) => s + (b.total_amount || 0), 0);
+      const rNights = rMonthBks.reduce((s, b) => s + Math.max(1, Math.round((new Date(b.check_out || b.check_in) - new Date(b.check_in)) / 86400000)), 0);
       const rOcc = Math.min(100, Math.round((rNights / periodDays) * 100));
-      const rNet = Math.round(rRev * 0.62);
+
+      const propExps = realExpenses.filter(e => matchesRoom(e, rId) && e.entry_date >= periodStart && e.entry_date <= periodEnd);
+      const propExpSum = propExps.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const rNet = propExpSum > 0 ? Math.max(0, rRev - propExpSum) : Math.round(rRev * 0.62);
+
       const rName = propLabel(fl.rooms) || fl.room_id || 'Unit';
       const slug = fl.rooms?.slug || ROOM_SLUG_MAP[rId] || '';
       const thumb = slug ? `assets/properties/${slug}/cover.jpg` : '';
@@ -2012,6 +2040,109 @@ window.renderExecutiveDashboard = async function () {
 
     window._hhPropRanking = propRankingList;
     window._hhSortBy = window._hhSortBy || 'revenue';
+
+    function renderLeaderboardRows(list, sortBy = 'revenue') {
+      const sorted = [...list].sort((a, b) => sortBy === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
+      return sorted.map((p, idx) => {
+        const isCurSelected = globalProp && matchesRoom(p, globalProp);
+        return `
+          <tr onclick="window.setAnalyticsPropertyFilter('${escapeHtml(p.rId)}')" style="cursor:pointer;background:${isCurSelected ? '#EFF6FF' : 'transparent'};transition:background 0.15s ease;" title="Click to filter analytics to ${escapeHtml(p.rName)}">
+            <td class="hh-prop-cell-name">
+              <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:10px;min-width:0;max-width:210px;">
+                ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:${isCurSelected ? '#BFDBFE' : '#F1F5F9'};color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
+                <div style="min-width:0;flex:1;overflow:hidden;">
+                  <div style="font-weight:700;color:#0F172A;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
+                  <div style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">
+                    <span>${escapeHtml(p.unit || '')}</span>
+                    ${isCurSelected ? `<span style="background:#2563EB;color:#ffffff;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:4px;">FILTERED</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="font-weight:800;color:${sortBy === 'revenue' ? '#059669' : '#0F172A'};text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rRev.toLocaleString('en-IN')}</td>
+            <td>
+              <div class="hh-occ-bar-wrap" style="display:flex;align-items:center;gap:8px;">
+                <div class="hh-occ-bar-track" style="flex:1;height:6px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
+                  <div class="hh-occ-bar-fill" style="width:${p.rOcc}%;height:100%;background:${p.rOcc >= 70 ? '#10B981' : (p.rOcc >= 45 ? '#F59E0B' : '#EF4444')};border-radius:999px;"></div>
+                </div>
+                <span style="font-weight:700;font-size:11.5px;color:#64748B;min-width:28px;">${p.rOcc}%</span>
+              </div>
+            </td>
+            <td style="font-weight:800;color:${sortBy === 'profit' ? '#4F46E5' : '#0F172A'};text-align:right;white-space:nowrap;padding:10px 12px;">
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                <span>₹${p.rNet.toLocaleString('en-IN')}</span>
+                ${idx === 0 ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">#1 Top</span>` : (p.rOcc < 45 && p.rOcc > 0 ? `<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Occ -${50 - p.rOcc}%</span>` : '')}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.toggleHHSort = function (mode) {
+      window._hhSortBy = mode;
+      const btnRev = document.getElementById('btnHHSortRev');
+      const btnProfit = document.getElementById('btnHHSortProfit');
+      if (btnRev && btnProfit) {
+        if (mode === 'revenue') {
+          btnRev.classList.add('active');
+          btnProfit.classList.remove('active');
+        } else {
+          btnProfit.classList.add('active');
+          btnRev.classList.remove('active');
+        }
+      }
+
+      const tbody = document.getElementById('hhLeaderboardBody');
+      if (tbody && window._hhPropRanking) {
+        tbody.innerHTML = renderLeaderboardRows(window._hhPropRanking, mode);
+      }
+
+      if (typeof window.updatePropBarChart === 'function') {
+        window.updatePropBarChart(mode);
+      }
+    };
+
+    window.setAnalyticsPropertyFilter = function (propId) {
+      const cleanId = (propId || '').trim();
+      if (typeof window.handleGlobalPropertyFilterChange === 'function') {
+        window.handleGlobalPropertyFilterChange(cleanId);
+      } else {
+        try { localStorage.setItem('uhhs_global_prop_filter', cleanId); } catch(e){}
+        if (typeof window.renderExecutiveDashboard === 'function') {
+          window.renderExecutiveDashboard();
+        }
+      }
+    };
+
+    // Filter Property display label & select options
+    let selectedPropDisplay = `All properties · ${allFlatsRaw.length}`;
+    if (globalProp) {
+      const matched = allFlatsRaw.find(f => matchesRoom(f, globalProp));
+      if (matched) {
+        const un = matched.rooms?.unit_no || matched.unit_no || '';
+        const nn = matched.rooms?.nickname || '';
+        selectedPropDisplay = un ? `${un} – ${nn || matched.room_id}` : (nn || matched.room_id);
+      } else {
+        selectedPropDisplay = globalProp;
+      }
+    }
+
+    const flatsSkyline = allFlatsRaw.filter(f => {
+      const u = (f.rooms?.unit_no || f.unit_no || '').toLowerCase();
+      const r = (f.room_id || '').toLowerCase();
+      return r.includes('gom') || u.includes('flat') || /^\d{3}$/.test(u);
+    });
+    const villasAndOthers = allFlatsRaw.filter(f => !flatsSkyline.includes(f));
+
+    function formatPropOpt(f) {
+      const pid = f.room_id;
+      const un = f.rooms?.unit_no || f.unit_no || '';
+      const nn = f.rooms?.nickname || '';
+      const label = un ? `${un} – ${nn || pid}` : (nn || pid);
+      const isSel = globalProp && matchesRoom(f, globalProp);
+      return `<option value="${escapeHtml(pid)}" ${isSel ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+    }
 
     const sortedByRev = [...propRankingList].sort((a, b) => b.rRev - a.rRev);
     const sortedByOcc = [...propRankingList].sort((a, b) => a.rOcc - b.rOcc);
@@ -2055,17 +2186,38 @@ window.renderExecutiveDashboard = async function () {
           <!-- Window Body: Full-Width Luxury Analytics Suite -->
           <div class="hh-window-body">
             <!-- TOP FILTER BAR -->
-              <div class="hh-analytics-filter-bar">
-                <div class="hh-analytics-filters-left">
-                  <div class="hh-analytics-pill-select" onclick="if(window.renderManageRooms) renderManageRooms();" title="Filter properties">
-                    <span>@</span>
-                    <span>All properties · ${totalProps}</span>
+              <div class="hh-analytics-filter-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+                <div class="hh-analytics-filters-left" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  
+                  <!-- Dynamic Property Selector Pill -->
+                  <div class="hh-analytics-pill-select ${globalProp ? 'active-filter' : ''}" style="position:relative;cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:${globalProp ? '#EFF6FF' : '#F8FAFC'};border:1px solid ${globalProp ? '#3B82F6' : '#CBD5E1'};padding:6px 14px;border-radius:999px;" title="Filter analytics by specific property or view all">
+                    <span style="color:${globalProp ? '#2563EB' : '#0284C7'};font-weight:900;">@</span>
+                    <span style="font-weight:700;color:${globalProp ? '#1E40AF' : '#0F172A'};max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(selectedPropDisplay)}</span>
+                    <i class="ti ti-chevron-down" style="font-size:12px;color:#64748B;"></i>
+                    <select onchange="window.setAnalyticsPropertyFilter(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:3;">
+                      <option value="" ${!globalProp ? 'selected' : ''}>All Properties (${allFlatsRaw.length})</option>
+                      <optgroup label="🏢 Blossom Skyline Flats">
+                        ${flatsSkyline.map(formatPropOpt).join('')}
+                      </optgroup>
+                      <optgroup label="🏡 Luxury Villas & Estates">
+                        ${villasAndOthers.map(formatPropOpt).join('')}
+                      </optgroup>
+                    </select>
                   </div>
+
+                  ${globalProp ? `
+                    <button type="button" onclick="window.setAnalyticsPropertyFilter('')" title="Reset to All Properties" style="background:#FEE2E2;border:1px solid #FECACA;color:#991B1B;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all 0.15s ease;">
+                      ✕ All Properties
+                    </button>
+                  ` : ''}
+
+                  <!-- Month Selector Pill -->
                   <div class="hh-analytics-pill-select" style="position:relative;cursor:pointer;" title="Click to pick a custom month">
                     <i class="ti ti-calendar"></i>
                     <span>${periodDisplayLabel}</span>
                     <input type="month" value="${periodMode === 'custom' ? window._dashCustomMonth : today.slice(0, 7)}" onchange="setDashboardCustomMonth(this.value)" title="Select month" />
                   </div>
+
                   <div style="background:#F1F5F9;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:#64748B;">
                     vs previous period
                   </div>
@@ -2134,17 +2286,21 @@ window.renderExecutiveDashboard = async function () {
                 </div>
               </div>
 
-              <!-- MIDDLE ROW: CHARTS (Revenue vs Expenses + Channel Breakdown) -->
+              <!-- MIDDLE ROW: CHARTS (Revenue vs Expenses/Profit + Channel Breakdown) -->
               <div class="hh-charts-row">
-                <!-- Left: Revenue vs Expenses Area Chart -->
+                <!-- Left: Revenue, Profit & Expenses Area Chart -->
                 <div class="hh-chart-card">
                   <div class="hh-chart-card-head">
                     <div>
-                      <h3 class="hh-chart-title">Revenue vs expenses</h3>
+                      <h3 class="hh-chart-title">Revenue, Profit &amp; Expenses</h3>
+                      <div class="hh-chart-sub">6-Month Financial Trajectory (Area &amp; Line Trends)</div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;font-weight:700;">
+                    <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;font-weight:700;flex-wrap:wrap;">
                       <span style="display:inline-flex;align-items:center;gap:4px;color:#10B981;">
                         <span style="width:8px;height:8px;border-radius:50%;background:#10B981;"></span> Net revenue
+                      </span>
+                      <span style="display:inline-flex;align-items:center;gap:4px;color:#6366F1;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#6366F1;"></span> Net profit
                       </span>
                       <span style="display:inline-flex;align-items:center;gap:4px;color:#F43F5E;">
                         <span style="width:8px;height:8px;border-radius:50%;background:#F43F5E;"></span> Expenses
@@ -2156,71 +2312,100 @@ window.renderExecutiveDashboard = async function () {
                   </div>
                 </div>
 
-                <!-- Right: Net Revenue by Channel -->
+                <!-- Right: Net Revenue by Channel (Donut Chart + Progress Bars) -->
                 <div class="hh-chart-card">
                   <div class="hh-chart-card-head">
                     <div>
                       <h3 class="hh-chart-title">Net revenue by channel</h3>
-                      <div class="hh-chart-sub">After OTA commission</div>
+                      <div class="hh-chart-sub">Direct vs OTAs Distribution (After Commission)</div>
                     </div>
                   </div>
 
-                  <!-- Direct -->
-                  <div class="hh-channel-row">
-                    <div class="hh-channel-info">
-                      <span class="hh-channel-name"><span style="width:7px;height:7px;border-radius:50%;background:#10B981;display:inline-block;"></span> Direct</span>
-                      <span class="hh-channel-val">₹${directRev.toLocaleString('en-IN')}</span>
+                  <div style="display:flex;align-items:center;gap:18px;margin-top:6px;flex-wrap:wrap;">
+                    <!-- Donut Chart -->
+                    <div style="position:relative;width:115px;height:115px;flex-shrink:0;margin:0 auto;">
+                      <canvas id="dashChannelDonutChart"></canvas>
+                      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+                        <span style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">Direct</span>
+                        <span style="font-size:14px;font-weight:900;color:#10B981;">${directPct}%</span>
+                      </div>
                     </div>
-                    <div class="hh-channel-bar-track">
-                      <div class="hh-channel-bar-fill" style="width:${directPct}%;background:#10B981;"></div>
-                    </div>
-                  </div>
 
-                  <!-- Airbnb -->
-                  <div class="hh-channel-row">
-                    <div class="hh-channel-info">
-                      <span class="hh-channel-name"><span style="width:7px;height:7px;border-radius:50%;background:#FF385C;display:inline-block;"></span> Airbnb</span>
-                      <span class="hh-channel-val">₹${abRev.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div class="hh-channel-bar-track">
-                      <div class="hh-channel-bar-fill" style="width:${abPct}%;background:#FF385C;"></div>
-                    </div>
-                  </div>
+                    <!-- Channel Details List -->
+                    <div style="flex:1;min-width:180px;">
+                      <!-- Direct -->
+                      <div class="hh-channel-row" style="margin-bottom:10px;">
+                        <div class="hh-channel-info">
+                          <span class="hh-channel-name"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;display:inline-block;"></span> Direct</span>
+                          <span class="hh-channel-val">₹${directRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${directPct}%)</span></span>
+                        </div>
+                        <div class="hh-channel-bar-track">
+                          <div class="hh-channel-bar-fill" style="width:${directPct}%;background:#10B981;"></div>
+                        </div>
+                      </div>
 
-                  <!-- Booking.com -->
-                  <div class="hh-channel-row">
-                    <div class="hh-channel-info">
-                      <span class="hh-channel-name"><span style="width:7px;height:7px;border-radius:50%;background:#003580;display:inline-block;"></span> Booking.com</span>
-                      <span class="hh-channel-val">₹${bcomRev.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div class="hh-channel-bar-track">
-                      <div class="hh-channel-bar-fill" style="width:${bcomPct}%;background:#003580;"></div>
-                    </div>
-                  </div>
+                      <!-- Airbnb -->
+                      <div class="hh-channel-row" style="margin-bottom:10px;">
+                        <div class="hh-channel-info">
+                          <span class="hh-channel-name"><span style="width:8px;height:8px;border-radius:50%;background:#FF385C;display:inline-block;"></span> Airbnb</span>
+                          <span class="hh-channel-val">₹${abRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${abPct}%)</span></span>
+                        </div>
+                        <div class="hh-channel-bar-track">
+                          <div class="hh-channel-bar-fill" style="width:${abPct}%;background:#FF385C;"></div>
+                        </div>
+                      </div>
 
-                  <!-- Agoda / Other -->
-                  <div class="hh-channel-row">
-                    <div class="hh-channel-info">
-                      <span class="hh-channel-name"><span style="width:7px;height:7px;border-radius:50%;background:#7C3AED;display:inline-block;"></span> Agoda</span>
-                      <span class="hh-channel-val">₹${agodaRev.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div class="hh-channel-bar-track">
-                      <div class="hh-channel-bar-fill" style="width:${agodaPct}%;background:#7C3AED;"></div>
+                      <!-- Booking.com -->
+                      <div class="hh-channel-row" style="margin-bottom:10px;">
+                        <div class="hh-channel-info">
+                          <span class="hh-channel-name"><span style="width:8px;height:8px;border-radius:50%;background:#003580;display:inline-block;"></span> Booking.com</span>
+                          <span class="hh-channel-val">₹${bcomRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${bcomPct}%)</span></span>
+                        </div>
+                        <div class="hh-channel-bar-track">
+                          <div class="hh-channel-bar-fill" style="width:${bcomPct}%;background:#003580;"></div>
+                        </div>
+                      </div>
+
+                      <!-- Agoda -->
+                      <div class="hh-channel-row" style="margin-bottom:0;">
+                        <div class="hh-channel-info">
+                          <span class="hh-channel-name"><span style="width:8px;height:8px;border-radius:50%;background:#7C3AED;display:inline-block;"></span> Agoda / OTAs</span>
+                          <span class="hh-channel-val">₹${agodaRev.toLocaleString('en-IN')} <span style="font-size:11px;color:#64748B;font-weight:600;">(${agodaPct}%)</span></span>
+                        </div>
+                        <div class="hh-channel-bar-track">
+                          <div class="hh-channel-bar-fill" style="width:${agodaPct}%;background:#7C3AED;"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- BOTTOM ROW: PROPERTIES LEADERBOARD -->
+              <!-- BOTTOM ROW: PROPERTIES LEADERBOARD & COMPARATIVE BAR CHART -->
               <div class="hh-leaderboard-card">
-                <div class="hh-leaderboard-head">
-                  <h3 class="hh-chart-title">Properties</h3>
+                <div class="hh-leaderboard-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                  <div>
+                    <h3 class="hh-chart-title">Properties Performance</h3>
+                    <div class="hh-chart-sub">Portfolio comparison by Revenue, Profit &amp; Occupancy</div>
+                  </div>
                   <div class="hh-cal-toggle-group">
-                    <button type="button" id="btnHHSortRev" class="hh-cal-toggle-btn active" onclick="toggleHHSort('revenue')">By revenue</button>
-                    <button type="button" id="btnHHSortProfit" class="hh-cal-toggle-btn" onclick="toggleHHSort('profit')">By profit</button>
+                    <button type="button" id="btnHHSortRev" class="hh-cal-toggle-btn ${window._hhSortBy !== 'profit' ? 'active' : ''}" onclick="toggleHHSort('revenue')">By revenue</button>
+                    <button type="button" id="btnHHSortProfit" class="hh-cal-toggle-btn ${window._hhSortBy === 'profit' ? 'active' : ''}" onclick="toggleHHSort('profit')">By profit</button>
                   </div>
                 </div>
 
+                <!-- Horizontal Bar Chart: Top Properties Comparison -->
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 16px 10px;margin-bottom:18px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                    <span style="font-size:12.5px;font-weight:800;color:#0F172A;" id="propBarChartTitle">📊 Top Properties by Net Revenue</span>
+                    <span style="font-size:11px;color:#64748B;font-weight:600;">Click any bar or table row to filter unit</span>
+                  </div>
+                  <div style="position:relative;height:200px;width:100%;">
+                    <canvas id="dashPropBarChart"></canvas>
+                  </div>
+                </div>
+
+                <!-- Responsive Table -->
                 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
                   <table class="hh-leaderboard-table" style="width:100%;min-width:480px;border-collapse:collapse;">
                     <thead>
@@ -2232,34 +2417,7 @@ window.renderExecutiveDashboard = async function () {
                       </tr>
                     </thead>
                     <tbody id="hhLeaderboardBody">
-                      ${propRankingList.sort((a, b) => b.rRev - a.rRev).map((p, idx) => `
-                        <tr>
-                          <td class="hh-prop-cell-name">
-                            <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:10px;min-width:0;max-width:210px;">
-                              ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:#F1F5F9;color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
-                              <div style="min-width:0;flex:1;overflow:hidden;">
-                                <div style="font-weight:700;color:#0F172A;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
-                                <div style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.unit || '')}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style="font-weight:800;color:#0F172A;text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rRev.toLocaleString('en-IN')}</td>
-                          <td>
-                            <div class="hh-occ-bar-wrap" style="display:flex;align-items:center;gap:8px;">
-                              <div class="hh-occ-bar-track" style="flex:1;height:6px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
-                                <div class="hh-occ-bar-fill" style="width:${p.rOcc}%;height:100%;background:${p.rOcc >= 70 ? '#10B981' : (p.rOcc >= 45 ? '#F59E0B' : '#EF4444')};border-radius:999px;"></div>
-                              </div>
-                              <span style="font-weight:700;font-size:11.5px;color:#64748B;min-width:28px;">${p.rOcc}%</span>
-                            </div>
-                          </td>
-                          <td style="font-weight:800;color:#0F172A;text-align:right;white-space:nowrap;padding:10px 12px;">
-                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-                              <span>₹${p.rNet.toLocaleString('en-IN')}</span>
-                              ${idx === 0 ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Top</span>` : (p.rOcc < 45 && p.rOcc > 0 ? `<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Occ -${50 - p.rOcc}%</span>` : '')}
-                            </div>
-                          </td>
-                        </tr>
-                      `).join('')}
+                      ${renderLeaderboardRows(propRankingList, window._hhSortBy || 'revenue')}
                     </tbody>
                   </table>
                 </div>
@@ -2272,8 +2430,18 @@ window.renderExecutiveDashboard = async function () {
     setTimeout(() => {
       if (typeof window.initExecutiveDashboardCharts === 'function') {
         window.initExecutiveDashboardCharts({
-          allBookings,
+          allBookings: allBookingsRaw,
+          filteredBookings: allBookings,
           propPayments,
+          propRankingList,
+          realExpenses,
+          directRev,
+          abRev,
+          bcomRev,
+          agodaRev,
+          periodMode,
+          selectedMonth: (periodMode === 'custom' && window._dashCustomMonth) ? window._dashCustomMonth : today.slice(0, 7),
+          globalProp,
           bookedNow: bookedNow.length,
           freeClean: freeClean.length,
           dirty: dirty.length,
@@ -3003,53 +3171,70 @@ function initExecutiveDashboardCharts(data) {
     return;
   }
 
-  // 1. Line Chart: 6-Month Revenue & Expense Trend
+  // 1. Line & Area Chart: 6-Month Revenue, Net Profit & Expense Trend
   const revCtx = document.getElementById('dashRevenueExpenseChart');
   if (revCtx) {
     if (window._dashRevChartInstance) {
       window._dashRevChartInstance.destroy();
     }
 
-    const months = [];
-    const now = new Date();
+    const [selY, selM] = (data.selectedMonth || new Date().toISOString().slice(0, 7)).split('-').map(Number);
+    const anchorDate = new Date(selY, selM - 1, 1);
+
+    const monthLabels = [];
+    const monthKeys = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(d.toLocaleString('en-IN', { month: 'short' }) + ' ' + d.getFullYear());
+      const d = new Date(anchorDate.getFullYear(), anchorDate.getMonth() - i, 1);
+      monthLabels.push(d.toLocaleString('en-IN', { month: 'short' }) + ' ' + d.getFullYear());
+      const mStr = String(d.getMonth() + 1).padStart(2, '0');
+      monthKeys.push(`${d.getFullYear()}-${mStr}`);
     }
 
-    // Calculate monthly collected revenue from payments
     const revData = [0, 0, 0, 0, 0, 0];
     const expData = [0, 0, 0, 0, 0, 0];
+    const profitData = [0, 0, 0, 0, 0, 0];
 
-    (data.propPayments || []).forEach(p => {
-      if (!p.payment_date) return;
-      const pDate = new Date(p.payment_date);
-      for (let i = 0; i < 6; i++) {
-        const mDate = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-        if (pDate.getFullYear() === mDate.getFullYear() && pDate.getMonth() === mDate.getMonth()) {
-          revData[i] += Number(p.amount || 0);
-          break;
-        }
+    const targetBookings = data.filteredBookings || data.allBookings || [];
+    const realExps = Array.isArray(data.realExpenses) ? data.realExpenses : [];
+
+    monthKeys.forEach((mKey, idx) => {
+      // Confirmed bookings in month
+      const bksInMonth = targetBookings.filter(b => {
+        const ci = b.check_in || '';
+        return ci.startsWith(mKey) && !b.is_cancelled;
+      });
+      const bookRev = bksInMonth.reduce((s, b) => s + (Number(b.total_amount) || 0), 0);
+
+      // Payments in month
+      let payRev = 0;
+      if (Array.isArray(data.propPayments)) {
+        payRev = data.propPayments.filter(p => {
+          const pd = p.payment_date || '';
+          return pd.startsWith(mKey);
+        }).reduce((s, p) => s + (Number(p.amount) || 0), 0);
       }
+
+      const finalRev = bookRev > 0 ? bookRev : payRev;
+      revData[idx] = Math.round(finalRev);
+
+      // Month expenses
+      const mExps = realExps.filter(e => {
+        const ed = e.entry_date || '';
+        return ed.startsWith(mKey) && (!data.globalProp || (typeof matchesRoom === 'function' && matchesRoom(e, data.globalProp)));
+      });
+      const mExpSum = mExps.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      expData[idx] = mExpSum > 0 ? mExpSum : Math.round(finalRev * 0.38);
+
+      profitData[idx] = Math.max(0, revData[idx] - expData[idx]);
     });
-
-    // Approximate expenses for visual representation
-    for (let i = 0; i < 6; i++) {
-      expData[i] = Math.round(revData[i] * 0.42);
-      if (revData[i] === 0) {
-        // Fallback realistic baseline if fresh account
-        revData[i] = [45000, 78000, 112000, 140000, 154400, 173960][i];
-        expData[i] = [21000, 32000, 48000, 56000, 68000, 78760][i];
-      }
-    }
 
     window._dashRevChartInstance = new Chart(revCtx, {
       type: 'line',
       data: {
-        labels: months,
+        labels: monthLabels,
         datasets: [
           {
-            label: 'Revenue (₹)',
+            label: 'Net Revenue (₹)',
             data: revData,
             borderColor: '#10B981',
             backgroundColor: 'rgba(16, 185, 129, 0.12)',
@@ -3061,14 +3246,27 @@ function initExecutiveDashboardCharts(data) {
             fill: true
           },
           {
+            label: 'Net Profit (₹)',
+            data: profitData,
+            borderColor: '#6366F1',
+            backgroundColor: 'rgba(99, 102, 241, 0.08)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#6366F1',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.35,
+            fill: true
+          },
+          {
             label: 'Expenses (₹)',
             data: expData,
             borderColor: '#F43F5E',
-            backgroundColor: 'rgba(244, 63, 94, 0.04)',
+            backgroundColor: 'transparent',
             borderWidth: 2,
+            borderDash: [5, 4],
             pointBackgroundColor: '#F43F5E',
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 3,
+            pointHoverRadius: 5,
             tension: 0.35,
             fill: false
           }
@@ -3077,16 +3275,20 @@ function initExecutiveDashboardCharts(data) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
           legend: {
-            position: 'top',
-            labels: {
-              boxWidth: 12,
-              font: { size: 11.5, weight: '600' },
-              color: '#475569'
-            }
+            display: false
           },
           tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 10,
+            cornerRadius: 8,
+            titleFont: { size: 12, weight: '700' },
+            bodyFont: { size: 11.5, weight: '600' },
             callbacks: {
               label: function (context) {
                 return ' ' + context.dataset.label + ': ₹' + Number(context.raw).toLocaleString('en-IN');
@@ -3114,7 +3316,152 @@ function initExecutiveDashboardCharts(data) {
     });
   }
 
-  // 2. Donut Chart: Occupancy & Room Status
+  // 2. Channel Donut Chart: Direct vs Airbnb vs Booking vs Agoda
+  const chanCtx = document.getElementById('dashChannelDonutChart');
+  if (chanCtx) {
+    if (window._dashChanChartInstance) {
+      window._dashChanChartInstance.destroy();
+    }
+
+    const direct = Number(data.directRev) || 0;
+    const ab = Number(data.abRev) || 0;
+    const bcom = Number(data.bcomRev) || 0;
+    const agoda = Number(data.agodaRev) || 0;
+    const total = direct + ab + bcom + agoda;
+
+    window._dashChanChartInstance = new Chart(chanCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Direct', 'Airbnb', 'Booking.com', 'Agoda / OTAs'],
+        datasets: [{
+          data: total > 0 ? [direct, ab, bcom, agoda] : [1, 0, 0, 0],
+          backgroundColor: total > 0 ? ['#10B981', '#FF385C', '#003580', '#7C3AED'] : ['#E2E8F0', '#E2E8F0', '#E2E8F0', '#E2E8F0'],
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 9,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (ctx) {
+                if (total <= 0) return ' No bookings recorded';
+                const val = [direct, ab, bcom, agoda][ctx.dataIndex];
+                const pct = Math.round((val / total) * 100);
+                return ` ${ctx.label}: ₹${val.toLocaleString('en-IN')} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Properties Comparative Horizontal Bar Chart (By Revenue / By Profit)
+  const propCtx = document.getElementById('dashPropBarChart');
+  if (propCtx) {
+    if (window._dashPropChartInstance) {
+      window._dashPropChartInstance.destroy();
+    }
+
+    const rankingList = data.propRankingList || window._hhPropRanking || [];
+    const currentMode = window._hhSortBy || 'revenue';
+
+    function getBarData(mode) {
+      const sorted = [...rankingList].sort((a, b) => mode === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
+      const top = sorted.slice(0, 8); // Top 8 properties
+      return {
+        labels: top.map(p => p.unit ? `${p.unit} - ${(p.rName || '').slice(0, 14)}` : (p.rName || '').slice(0, 16)),
+        values: top.map(p => mode === 'revenue' ? p.rRev : p.rNet),
+        ids: top.map(p => p.rId)
+      };
+    }
+
+    const initial = getBarData(currentMode);
+
+    window._dashPropChartInstance = new Chart(propCtx, {
+      type: 'bar',
+      data: {
+        labels: initial.labels,
+        datasets: [{
+          label: currentMode === 'revenue' ? 'Net Revenue (₹)' : 'Net Operating Income (₹)',
+          data: initial.values,
+          backgroundColor: currentMode === 'revenue' ? '#10B981' : '#6366F1',
+          hoverBackgroundColor: currentMode === 'revenue' ? '#059669' : '#4F46E5',
+          borderRadius: 6,
+          barThickness: 14
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        onClick: (event, elements) => {
+          if (elements && elements.length > 0) {
+            const idx = elements[0].index;
+            const bd = getBarData(window._hhSortBy || 'revenue');
+            if (bd.ids && bd.ids[idx] && typeof window.setAnalyticsPropertyFilter === 'function') {
+              window.setAnalyticsPropertyFilter(bd.ids[idx]);
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A',
+            padding: 9,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (ctx) {
+                return ' ' + ctx.dataset.label + ': ₹' + Number(ctx.raw).toLocaleString('en-IN');
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(0, 0, 0, 0.04)' },
+            ticks: {
+              font: { size: 10.5 },
+              color: '#64748B',
+              callback: function (v) {
+                return '₹' + (v >= 1000 ? (v / 1000) + 'k' : v);
+              }
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: '700' }, color: '#334155' }
+          }
+        }
+      }
+    });
+
+    window.updatePropBarChart = function (mode) {
+      if (!window._dashPropChartInstance) return;
+      const bd = getBarData(mode);
+      const titleEl = document.getElementById('propBarChartTitle');
+      if (titleEl) {
+        titleEl.innerText = mode === 'revenue' ? '📊 Top Properties by Net Revenue' : '📊 Top Properties by Net Operating Income (Profit)';
+      }
+      window._dashPropChartInstance.data.labels = bd.labels;
+      window._dashPropChartInstance.data.datasets[0].label = mode === 'revenue' ? 'Net Revenue (₹)' : 'Net Operating Income (₹)';
+      window._dashPropChartInstance.data.datasets[0].data = bd.values;
+      window._dashPropChartInstance.data.datasets[0].backgroundColor = mode === 'revenue' ? '#10B981' : '#6366F1';
+      window._dashPropChartInstance.data.datasets[0].hoverBackgroundColor = mode === 'revenue' ? '#059669' : '#4F46E5';
+      window._dashPropChartInstance.update();
+    };
+  }
+
+  // 4. Donut Chart: Occupancy & Room Status (if element exists)
   const donutCtx = document.getElementById('dashOccupancyDonutChart');
   if (donutCtx) {
     if (window._dashDonutChartInstance) {
