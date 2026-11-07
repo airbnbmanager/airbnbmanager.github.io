@@ -263,7 +263,7 @@ window.isPraveenUser = function(userId, email, displayName, role) {
 
 window.isCurrentSessionPraveen = function() {
   if (!window.SESSION) return false;
-  return window.isPraveenUser(SESSION.userId, SESSION.email, SESSION.displayName, SESSION.role) || SESSION.role === 'developer';
+  return window.isPraveenUser(SESSION.userId, SESSION.email, SESSION.displayName, SESSION.role);
 };
 
 
@@ -912,7 +912,9 @@ async function loadProfile(userId) {
     window.UserActivityTracker.recordLogin(userId, SESSION.displayName, p.role);
   }
   // 🔔 DYNAMIC LOGIN NOTIFICATION: Send alert whenever ANY user logs in (ANY ROLE: admin, owner, manager, staff, etc.) who is not Praveen
-  const isPraveenLoggingIn = window.isPraveenUser ? window.isPraveenUser(userId, SESSION.email, SESSION.displayName, p.role) : (p.role === 'developer');
+  const isPraveenLoggingIn = window.isPraveenUser
+    ? window.isPraveenUser(userId, SESSION.email, SESSION.displayName, p.role)
+    : ((SESSION.displayName || '').toLowerCase().includes('praveen') || (SESSION.email || '').toLowerCase().includes('praveensingh'));
   if (!isPraveenLoggingIn) {
     if (window.DevLoginAlert && typeof window.DevLoginAlert.notifyDevOnLogin === 'function') {
       window.DevLoginAlert.notifyDevOnLogin(userId, SESSION.displayName, p.role, SESSION.email);
@@ -921,17 +923,26 @@ async function loadProfile(userId) {
     }
   }
 
-  if (p.role === 'employee') renderEmployeeView();
-  else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) renderInvestorView();
-  else if (p.role === 'ca') renderFYSummary();
-  else if (p.role === 'checkin_manager' || p.role === 'caretaker') renderCheckinManagerViewNew();
-    else {
+  if (p.role === 'employee') {
+    renderEmployeeView();
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'employee-portal'); } catch(e) {}
+  } else if (p.role === 'investor' || (p.role === 'viewer' && p.investor_id)) {
+    renderInvestorView();
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'investors'); } catch(e) {}
+  } else if (p.role === 'ca') {
+    renderFYSummary();
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'ca-audit'); } catch(e) {}
+  } else if (p.role === 'checkin_manager' || p.role === 'caretaker') {
+    renderCheckinManagerViewNew();
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'checkin'); } catch(e) {}
+  } else {
     const hashPage = (window.location.hash || '').replace('#', '').trim();
     const lastPage = localStorage.getItem('uh_last_page');
     const cleanHash = (hashPage && hashPage !== 'dashboard' && hashPage !== 'today') ? hashPage : '';
     const cleanLast = (lastPage && lastPage !== 'dashboard' && lastPage !== 'today') ? lastPage : '';
     const targetPage = cleanHash || cleanLast || 'bookings';
     navigate(targetPage);
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, targetPage); } catch(e) {}
   }
 }
 
@@ -2358,6 +2369,17 @@ function navigate(page) {
   SESSION.currentPage = page;
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   if (window.trackPageVisit) window.trackPageVisit(page);
+  // 🧭 USER AUDIT PAGE TRACKER — Instant per-user page visit recording
+  try {
+    if (window.SESSION?.userId) {
+      if (window.UserPageAudit && typeof window.UserPageAudit.trackVisit === 'function') {
+        window.UserPageAudit.trackVisit(window.SESSION.userId, window.SESSION.displayName, window.SESSION.role, page);
+      }
+      if (window.UserActivityTracker && typeof window.UserActivityTracker.pulseActivity === 'function') {
+        window.UserActivityTracker.pulseActivity(window.SESSION.userId, window.SESSION.displayName, window.SESSION.role);
+      }
+    }
+  } catch(e) {}
   try {
     if (window.location.hash !== '#' + page) {
       window.location.hash = '#' + page;

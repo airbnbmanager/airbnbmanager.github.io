@@ -132,8 +132,9 @@
     // Polled by Praveen's device every 10-12s
     async pollNewAlertsForDev() {
       const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-        window.SESSION?.role === 'developer' ||
-        (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+        (window.isPraveenUser && window.isPraveenUser(window.SESSION?.userId, window.SESSION?.email, window.SESSION?.displayName, window.SESSION?.role)) ||
+        (window.SESSION?.displayName || '').toLowerCase().includes('praveen') ||
+        (window.SESSION?.email || '').toLowerCase().includes('praveensingh');
       if (!isRecipient) return;
 
       try {
@@ -277,20 +278,23 @@
   // ═════════════════════════════════════════════════════════════
   // 3. PER-USER PAGE AUDIT SYSTEM
   // ═════════════════════════════════════════════════════════════
+  // 3. PER-USER PAGE AUDIT SYSTEM
+  // ═════════════════════════════════════════════════════════════
   window.UserPageAudit = {
     _buffer: [],
     _timer: null,
 
     trackVisit(userId, displayName, role, page) {
       if (!userId || !page) return;
-      if (['menu', 'dashboard'].includes(page)) return;
+      page = String(page).trim().toLowerCase();
+      if (!page) return;
 
       const now = new Date();
       const today = now.toISOString().slice(0, 10);
       const curMonth = today.slice(0, 7);
 
       const entry = {
-        userId,
+        userId: String(userId),
         displayName: displayName || 'User',
         role: role || 'staff',
         page,
@@ -303,20 +307,26 @@
       try {
         const key = `uh_audit_pages_${userId}_${curMonth}`;
         const local = JSON.parse(localStorage.getItem(key) || '[]');
-        local.push(entry);
-        if (local.length > 600) local.splice(0, local.length - 600);
-        localStorage.setItem(key, JSON.stringify(local));
+        const last = local[local.length - 1];
+        // Ignore same page clicks within 2 seconds
+        if (!last || last.page !== page || (now.getTime() - new Date(last.timestamp).getTime() > 2000)) {
+          local.push(entry);
+          if (local.length > 800) local.splice(0, local.length - 800);
+          localStorage.setItem(key, JSON.stringify(local));
+        }
       } catch(e) {}
 
-      // 2. Buffer & flush to central app_settings
+      // 2. Buffer & flush quickly to central app_settings
       this._buffer.push(entry);
-      if (!this._timer) {
-        this._timer = setTimeout(() => this._flush(), 8000);
-      }
+      if (this._timer) clearTimeout(this._timer);
+      this._timer = setTimeout(() => this._flush(), 600);
     },
 
     async _flush() {
-      this._timer = null;
+      if (this._timer) {
+        clearTimeout(this._timer);
+        this._timer = null;
+      }
       if (!this._buffer.length || !window.sb) return;
       const batch = this._buffer.splice(0);
       const curMonth = new Date().toISOString().slice(0, 7);
@@ -329,37 +339,64 @@
           try { list = JSON.parse(rows[0].value); } catch(e) {}
         }
         list.push(...batch);
-        if (list.length > 2500) list = list.slice(-2500); // keep recent 2500
+        if (list.length > 3000) list = list.slice(-3000); // keep recent 3000
         await window.sb.from('app_settings').upsert({
           key,
-          value: JSON.stringify(list)
+          value: JSON.stringify(list),
+          updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
-      } catch(e) {}
+      } catch(e) {
+        console.warn('UserPageAudit _flush warning:', e);
+        // Put unwritten batch back in buffer
+        this._buffer.unshift(...batch);
+      }
     },
 
-    async getVisitsForUser(userId, monthStr) {
-      // 1. Try central app_settings
+    async getVisitsForUser(userId, displayName, monthStr) {
+      let remoteVisits = [];
+      // 1. Central app_settings
       try {
         if (window.sb) {
           const key = `uh_audit_visits_${monthStr}`;
           const { data: rows } = await window.sb.from('app_settings').select('value').eq('key', key).limit(1);
           if (rows?.[0]?.value) {
             const list = JSON.parse(rows[0].value);
-            const userVisits = list.filter(v => v.userId === userId);
-            if (userVisits.length > 0) return userVisits;
+            const targetId = (userId || '').toLowerCase();
+            const targetName = (displayName || '').trim().toLowerCase();
+            remoteVisits = list.filter(v => {
+              const vId = (v.userId || '').toLowerCase();
+              const vName = (v.displayName || '').trim().toLowerCase();
+              return (targetId && vId === targetId) || (targetName && vName === targetName);
+            });
           }
         }
       } catch(e) {}
 
-      // 2. Fallback to localStorage
+      // 2. LocalStorage visits
+      let localVisits = [];
       try {
         const key = `uh_audit_pages_${userId}_${monthStr}`;
-        return JSON.parse(localStorage.getItem(key) || '[]');
-      } catch(e) {
-        return [];
-      }
+        localVisits = JSON.parse(localStorage.getItem(key) || '[]');
+      } catch(e) {}
+
+      // 3. Merge and deduplicate by timestamp + page
+      const visitMap = new Map();
+      [...remoteVisits, ...localVisits].forEach(v => {
+        const dedupKey = `${v.timestamp}_${v.page}`;
+        if (!visitMap.has(dedupKey)) {
+          visitMap.set(dedupKey, v);
+        }
+      });
+      return Array.from(visitMap.values()).sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
     }
   };
+
+  // Synchronous flush on page exit/refresh
+  window.addEventListener('beforeunload', () => {
+    if (window.UserPageAudit?._buffer?.length) {
+      window.UserPageAudit._flush();
+    }
+  });
 
   // ═════════════════════════════════════════════════════════════
   // 4. MONTHLY USER AUDIT MODAL (For Praveen / Developer)
@@ -367,6 +404,11 @@
   window.openUserAuditModal = async function(userId, displayName, role) {
     const existing = document.getElementById('userAuditModalOverlay');
     if (existing) existing.remove();
+
+    // Flush any pending in-memory visits to Supabase immediately so modal has up-to-the-second data!
+    if (window.UserPageAudit && typeof window.UserPageAudit._flush === 'function') {
+      try { await window.UserPageAudit._flush(); } catch(e) {}
+    }
 
     const now = new Date();
     const currentMonth = now.toISOString().slice(0, 7); // e.g. "2026-11"
@@ -431,6 +473,8 @@
     bodyEl.innerHTML = `<div style="text-align:center;padding:40px;color:#64748B;">⏳ Loading data for ${monthStr}...</div>`;
 
     const dailyMap = {}; // Key: "YYYY-MM-DD" -> Record
+    const targetUid = (userId || '').toLowerCase();
+    const targetName = (displayName || '').trim().toLowerCase();
 
     // 1. Fetch daily activity logs from Supabase table if available
     try {
@@ -466,44 +510,90 @@
         if (setRows?.[0]?.value) {
           const remoteMap = JSON.parse(setRows[0].value);
           Object.keys(remoteMap).forEach(date => {
-            if (date.startsWith(monthStr) && remoteMap[date][userId]) {
-              const r = remoteMap[date][userId];
-              const prev = dailyMap[date] || {};
-              dailyMap[date] = {
-                log_date: date,
-                login_count: Math.max(prev.login_count || 0, r.loginCount || r.login_count || 1),
-                active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || r.active_seconds || 0),
-                first_login_at: prev.first_login_at || r.firstLoginAt || r.first_login_at,
-                last_active_at: r.lastActiveAt || r.last_active_at || prev.last_active_at
-              };
+            if (date.startsWith(monthStr)) {
+              const dayEntries = remoteMap[date] || {};
+              // Match by userId or displayName
+              Object.values(dayEntries).forEach(r => {
+                const rUid = (r.userId || '').toLowerCase();
+                const rName = (r.displayName || '').trim().toLowerCase();
+                if ((targetUid && rUid === targetUid) || (targetName && rName === targetName)) {
+                  const prev = dailyMap[date] || {};
+                  dailyMap[date] = {
+                    log_date: date,
+                    login_count: Math.max(prev.login_count || 0, r.loginCount || r.login_count || 1),
+                    active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || r.active_seconds || 0),
+                    first_login_at: prev.first_login_at || r.firstLoginAt || r.first_login_at,
+                    last_active_at: r.lastActiveAt || r.last_active_at || prev.last_active_at
+                  };
+                }
+              });
             }
           });
         }
       }
     } catch(e) {}
 
-    // 3. Fallback to localStorage activity logs (for current device)
+    // 3. Cross-reference dev_login_alerts from Supabase app_settings (every logged alert)
+    try {
+      if (window.sb) {
+        const { data: alertRows } = await window.sb.from('app_settings')
+          .select('value')
+          .eq('key', 'dev_login_alerts')
+          .limit(1);
+
+        if (alertRows?.[0]?.value) {
+          const alertList = JSON.parse(alertRows[0].value);
+          if (Array.isArray(alertList)) {
+            alertList.forEach(a => {
+              const aUid = (a.user_id || '').toLowerCase();
+              const aName = (a.user_name || '').trim().toLowerCase();
+              if ((targetUid && aUid === targetUid) || (targetName && aName === targetName)) {
+                const d = (a.timestamp || '').slice(0, 10);
+                if (d && d.startsWith(monthStr)) {
+                  const prev = dailyMap[d] || {};
+                  dailyMap[d] = {
+                    log_date: d,
+                    login_count: (prev.login_count || 0) + 1,
+                    active_seconds: Math.max(prev.active_seconds || 0, 180),
+                    first_login_at: prev.first_login_at || a.timestamp,
+                    last_active_at: a.timestamp || prev.last_active_at
+                  };
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch(e) {}
+
+    // 4. Fallback to localStorage activity logs (for current device)
     try {
       const local = JSON.parse(localStorage.getItem('uh_user_activity_logs') || '{}');
       Object.keys(local).forEach(date => {
-        if (date.startsWith(monthStr) && local[date][userId]) {
-          const r = local[date][userId];
-          const prev = dailyMap[date] || {};
-          dailyMap[date] = {
-            log_date: date,
-            login_count: Math.max(prev.login_count || 0, r.loginCount || 1),
-            active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || 0),
-            first_login_at: prev.first_login_at || r.firstLoginAt,
-            last_active_at: r.lastActiveAt || prev.last_active_at
-          };
+        if (date.startsWith(monthStr)) {
+          const dayEntries = local[date] || {};
+          Object.values(dayEntries).forEach(r => {
+            const rUid = (r.userId || '').toLowerCase();
+            const rName = (r.displayName || '').trim().toLowerCase();
+            if ((targetUid && rUid === targetUid) || (targetName && rName === targetName)) {
+              const prev = dailyMap[date] || {};
+              dailyMap[date] = {
+                log_date: date,
+                login_count: Math.max(prev.login_count || 0, r.loginCount || 1),
+                active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || 0),
+                first_login_at: prev.first_login_at || r.firstLoginAt,
+                last_active_at: r.lastActiveAt || prev.last_active_at
+              };
+            }
+          });
         }
       });
     } catch(e) {}
 
-    // 4. Fetch page visits from central app_settings + localStorage
-    const visits = await window.UserPageAudit.getVisitsForUser(userId, monthStr);
+    // 5. Fetch page visits from central app_settings + localStorage (Matching ID or Name)
+    const visits = await window.UserPageAudit.getVisitsForUser(userId, displayName, monthStr);
 
-    // 5. Cross-correlate Page Visits into dailyMap!
+    // 6. Cross-correlate Page Visits into dailyMap!
     // Every day that has verified page actions MUST be counted as an active day with true timings
     const visitsByDate = {};
     visits.forEach(v => {
@@ -549,7 +639,7 @@
       }
     });
 
-    // 6. Convert dailyMap into sorted dailyRecords array with human-accurate duration
+    // 7. Convert dailyMap into sorted dailyRecords array with human-accurate duration
     const dailyRecords = Object.values(dailyMap).sort((a, b) => b.log_date.localeCompare(a.log_date));
 
     // Calculate realistic, accurate seconds for each record
@@ -567,7 +657,7 @@
       r.computedSeconds = Math.max(sec, minSession);
     });
 
-    // 7. Calculate Monthly Totals
+    // 8. Calculate Monthly Totals
     const totalDaysLoggedIn = dailyRecords.length;
     const totalSecondsOnline = dailyRecords.reduce((sum, r) => sum + r.computedSeconds, 0);
     const totalLoginsCount = dailyRecords.reduce((sum, r) => sum + (r.login_count || 1), 0);
@@ -586,30 +676,56 @@
     // Summarize page counts
     const pageCounts = {};
     visits.forEach(v => {
-      pageCounts[v.page] = (pageCounts[v.page] || 0) + 1;
+      const p = (v.page || '').trim().toLowerCase();
+      if (p) pageCounts[p] = (pageCounts[p] || 0) + 1;
     });
     const sortedPages = Object.entries(pageCounts).sort((a,b) => b[1] - a[1]);
 
     const PAGE_HUMAN_NAMES = {
+      'dashboard': '📊 Operations Dashboard',
+      'today': '📊 Operations Dashboard',
+      'menu': '⚙️ App & Profile Menu',
       'bookings': '📅 Bookings / Calendar',
       'calendar': '🗓️ Timeline Gantt View',
+      'reports': '🗓️ Timeline Gantt View',
       'rooms': '🏢 Properties & Rates',
       'flats': '🛏️ Flat Status & Cleaning',
+      'properties': '🏢 Properties & Rates',
       'expenses': '🧾 Expenses & Outflows',
+      'monthly-expenses': '🧾 Monthly Expenses',
+      'emp-expenses': '🧾 Staff Expenses',
       'claims': '💰 TUHH-OD & Finances',
+      'finance': '💰 TUHH-OD & Finances',
+      'finances': '💰 TUHH-OD & Finances',
+      'cashbook': '💰 Cashbook & Reimbursements',
+      'investors': '💼 Investor Portfolios',
+      'invester': '💼 Investor Portfolios',
       'employees': '👥 HRMS Staff Roster',
       'attendance': '📋 Attendance Log',
+      'att-summary': '📋 Attendance Summary',
       'tasks': '🧰 Task Manager',
+      'task-and-housekeeping': '🧰 Task & Housekeeping',
+      'tasks-and-housekeeping': '🧰 Task & Housekeeping',
+      'housekeeping': '🧰 Housekeeping',
       'employee-ledger': '📒 Cleaner & Staff Ledger',
       'whatsapp-hub': '📱 WhatsApp Hub',
+      'whatsapp': '📱 WhatsApp Hub',
       'laundry': '🧺 Laundry Operations',
       'maintenance': '🔧 Maintenance Tickets',
       'ca-audit': '💼 GST & Audit Pack',
       'analytics': '📊 Financial Analytics',
       'daily-report': '📄 Daily Booking Report',
+      'dailyreport': '📄 Daily Booking Report',
       'user-mgmt': '👤 User Management',
       'settings': '⚙️ Global Settings',
-      'help': '❓ Operating Guide'
+      'help': '❓ Operating Guide',
+      'sop': '📋 Operating Procedures',
+      'reminders': '⏰ System Reminders',
+      'salary': '💳 Salary Tracker',
+      'advance': '💵 Advance Tracker',
+      'employee-portal': '📱 Employee Portal',
+      'checkin': '🔑 Check-in Manager Desk',
+      'reviews-followup': '⭐ Airbnb Review Followup'
     };
 
     bodyEl.innerHTML = `
@@ -736,7 +852,9 @@
       const origRecordLogin = window.UserActivityTracker.recordLogin.bind(window.UserActivityTracker);
       window.UserActivityTracker.recordLogin = async function(userId, displayName, role) {
         await origRecordLogin(userId, displayName, role);
-        const isSelfPraveen = window.isPraveenUser ? window.isPraveenUser(userId, window.SESSION?.email, displayName, role) : (role === 'developer');
+        const isSelfPraveen = window.isPraveenUser
+          ? window.isPraveenUser(userId, window.SESSION?.email, displayName, role)
+          : ((displayName || '').toLowerCase().includes('praveen') || (window.SESSION?.email || '').toLowerCase().includes('praveensingh'));
         if (!isSelfPraveen) {
           await window.DevLoginAlert.notifyDevOnLogin(userId, displayName, role, window.SESSION?.email);
         }
@@ -771,12 +889,24 @@
     }
   };
 
+  // Track on hashchange
+  window.addEventListener('hashchange', () => {
+    const hash = (window.location.hash || '').replace('#', '').trim();
+    if (hash && window.SESSION?.userId && window.UserPageAudit?.trackVisit) {
+      window.UserPageAudit.trackVisit(window.SESSION.userId, window.SESSION.displayName, window.SESSION.role, hash);
+    }
+  });
+
   // Run hooks on load and DOMContentLoaded
   checkAndHookTracker();
   checkAndHookNavigate();
   document.addEventListener('DOMContentLoaded', () => {
     checkAndHookTracker();
     checkAndHookNavigate();
+    // Track current page if already present
+    if (window.SESSION?.userId && window.SESSION?.currentPage && window.UserPageAudit?.trackVisit) {
+      window.UserPageAudit.trackVisit(window.SESSION.userId, window.SESSION.displayName, window.SESSION.role, window.SESSION.currentPage);
+    }
   });
 
   // Check pending login alert queued before this script finished loading
@@ -790,22 +920,23 @@
     window._pendingLoginAlert = null;
   }
 
+  const isCurrentPraveenSession = () => {
+    return (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+      (window.isPraveenUser && window.isPraveenUser(window.SESSION?.userId, window.SESSION?.email, window.SESSION?.displayName, window.SESSION?.role)) ||
+      (window.SESSION?.displayName || '').toLowerCase().includes('praveen') ||
+      (window.SESSION?.email || '').toLowerCase().includes('praveensingh');
+  };
+
   // Fast poller for Praveen alerts (every 10 seconds)
   setInterval(() => {
-    const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-      window.SESSION?.role === 'developer' ||
-      (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
-    if (isRecipient && window.DevLoginAlert?.pollNewAlertsForDev) {
+    if (isCurrentPraveenSession() && window.DevLoginAlert?.pollNewAlertsForDev) {
       window.DevLoginAlert.pollNewAlertsForDev();
     }
   }, 10000);
 
   // Poll immediately when Praveen switches to the tab or focuses window
   window.addEventListener('focus', () => {
-    const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-      window.SESSION?.role === 'developer' ||
-      (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
-    if (isRecipient && window.DevLoginAlert?.pollNewAlertsForDev) {
+    if (isCurrentPraveenSession() && window.DevLoginAlert?.pollNewAlertsForDev) {
       window.DevLoginAlert.pollNewAlertsForDev();
     }
   });
@@ -816,10 +947,7 @@
       const bc = new BroadcastChannel('tuhh_login_channel');
       bc.onmessage = function(ev) {
         if (ev?.data?.type === 'NEW_LOGIN' && ev.data.alert) {
-          const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-            window.SESSION?.role === 'developer' ||
-            (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
-          if (isRecipient) {
+          if (isCurrentPraveenSession()) {
             playLoginChime();
             window.DevLoginAlert.showFloatingToast(ev.data.alert);
             window.DevLoginAlert.updateBellBadge(1);
@@ -834,10 +962,7 @@
     if (e.key === 'uh_latest_login_alert' && e.newValue) {
       try {
         const alert = JSON.parse(e.newValue);
-        const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-          window.SESSION?.role === 'developer' ||
-          (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
-        if (isRecipient && alert) {
+        if (isCurrentPraveenSession() && alert) {
           playLoginChime();
           window.DevLoginAlert.showFloatingToast(alert);
           window.DevLoginAlert.updateBellBadge(1);
