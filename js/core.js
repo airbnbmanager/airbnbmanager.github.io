@@ -770,6 +770,11 @@ async function loadProfile(userId) {
   SESSION.role = p.role;
   SESSION.empId = p.emp_id;
   SESSION.investorId = p.investor_id;
+  SESSION.loginTimestamp = parseInt(sessionStorage.getItem('uh_session_start_ts') || '0', 10);
+  if (!SESSION.loginTimestamp) {
+    SESSION.loginTimestamp = Date.now();
+    try { sessionStorage.setItem('uh_session_start_ts', String(SESSION.loginTimestamp)); } catch(e) {}
+  }
 
   try {
     const { data: { user } } = await sb.auth.getUser();
@@ -4967,7 +4972,7 @@ window.chartCard = function(canvasId, title, height) {
 
 
 // ═══════════════════════════════════════════════════════════
-// 🚪 FORCE LOGOUT — Developer only
+// 🔒 REAL-TIME MULTI-TAB & CROSS-DEVICE FORCE LOGOUT SYSTEM
 // ═══════════════════════════════════════════════════════════
 window.forceLogoutUser = async function(userId, name) {
   if (!window.canDelete || !window.canDelete()) {
@@ -4978,15 +4983,35 @@ window.forceLogoutUser = async function(userId, name) {
     if (window.fsn) fsn.warning('Cannot', 'You cannot force-logout yourself');
     return;
   }
-  if (!confirm('Force logout "' + name + '"?\n\nThey will be immediately logged out.')) return;
+  if (!confirm(`Force logout "${name}"?\n\nThey will be immediately logged out across all tabs and devices.`)) return;
 
+  const now = Date.now();
+  const issuerId = SESSION.userId;
+  const signal = { target: userId, issuer: issuerId, issuedAt: now };
+
+  // 1. Broadcast immediately to any other tab in this browser (0ms instant logout!)
   try {
-    const { error } = await sb.from('profiles').update({ is_approved: false }).eq('user_id', userId);
-    if (error) throw error;
-    setTimeout(async () => {
-      await sb.from('profiles').update({ is_approved: true }).eq('user_id', userId);
-    }, 3000);
-    if (window.fsn) fsn.success('Success', name + ' has been logged out');
+    if (window.BroadcastChannel) {
+      const bc = new BroadcastChannel('tuhh_session_channel');
+      bc.postMessage({ type: 'FORCE_LOGOUT', ...signal });
+    }
+  } catch(e) {}
+
+  // 2. LocalStorage storage event (instant fallback across same browser tabs)
+  try {
+    localStorage.setItem('uh_force_logout_signal', JSON.stringify(signal));
+  } catch(e) {}
+
+  // 3. Central Supabase app_settings (realtime sync to all other devices/browsers)
+  try {
+    if (window.sb) {
+      await window.sb.from('app_settings').upsert({
+        key: 'force_logout_signal',
+        value: JSON.stringify(signal),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+    }
+    if (window.fsn) fsn.success('Logged Out', `✅ ${name} has been immediately logged out on all devices.`);
     if (typeof renderUserManagement === 'function') renderUserManagement();
   } catch (e) {
     if (window.fsn) fsn.error('Failed', e.message);
@@ -4998,21 +5023,35 @@ window.forceLogoutAll = async function() {
     if (window.fsn) fsn.error('Denied', 'Only Developer can force logout users');
     return;
   }
-  if (!confirm('Force logout ALL users (except yourself)?\n\nEveryone will need to login again.')) return;
+  if (!confirm('Force logout ALL users (except yourself)?\n\nAll other devices and tabs will be logged out immediately.')) return;
 
+  const now = Date.now();
+  const issuerId = SESSION.userId;
+  const signal = { target: 'ALL', issuer: issuerId, issuedAt: now };
+
+  // 1. Broadcast immediately to any other open tab in this browser (0ms instant logout!)
   try {
-    const { data: users } = await sb.from('profiles').select('user_id, display_name').neq('user_id', SESSION.userId);
-    if (!users || users.length === 0) {
-      if (window.fsn) fsn.info('Info', 'No other users');
-      return;
+    if (window.BroadcastChannel) {
+      const bc = new BroadcastChannel('tuhh_session_channel');
+      bc.postMessage({ type: 'FORCE_LOGOUT', ...signal });
     }
-    const userIds = users.map(u => u.user_id);
-    const { error } = await sb.from('profiles').update({ is_approved: false }).in('user_id', userIds);
-    if (error) throw error;
-    setTimeout(async () => {
-      await sb.from('profiles').update({ is_approved: true }).in('user_id', userIds);
-    }, 3000);
-    if (window.fsn) fsn.success('Success', users.length + ' users logged out');
+  } catch(e) {}
+
+  // 2. LocalStorage storage event (instant fallback across same browser tabs)
+  try {
+    localStorage.setItem('uh_force_logout_signal', JSON.stringify(signal));
+  } catch(e) {}
+
+  // 3. Central Supabase app_settings (syncs to all phones, iPads, other PCs within 2-3s)
+  try {
+    if (window.sb) {
+      await window.sb.from('app_settings').upsert({
+        key: 'force_logout_signal',
+        value: JSON.stringify(signal),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+    }
+    if (window.fsn) fsn.success('Success', '✅ All other users force-logged out across all devices and tabs.');
     if (typeof renderUserManagement === 'function') renderUserManagement();
   } catch (e) {
     if (window.fsn) fsn.error('Failed', e.message);
@@ -5020,38 +5059,112 @@ window.forceLogoutAll = async function() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🔒 AUTO LOGOUT WATCHER — Check if force-logged-out by admin
+// 🔒 AUTO LOGOUT WATCHER — Real-Time Multi-Tab & Device Listener
 // ═══════════════════════════════════════════════════════════
 (function() {
   let logoutCheckTimer = null;
+  let _forceLoggingOut = false;
+
+  async function executeImmediateTermination(customMsg) {
+    if (_forceLoggingOut) return;
+    _forceLoggingOut = true;
+    if (logoutCheckTimer) clearInterval(logoutCheckTimer);
+
+    console.warn('🚨 Force logout signal executed:', customMsg || 'Session terminated by Developer');
+    const msg = customMsg || 'Aapka login session Developer dwara terminate / logout kar diya gaya hai.';
+
+    if (window.fsn) {
+      window.fsn.warning('Logged Out', msg);
+    } else {
+      alert(msg);
+    }
+
+    try { sessionStorage.clear(); } catch(e) {}
+    try {
+      if (window.sb) await window.sb.auth.signOut();
+    } catch(e) {}
+
+    setTimeout(() => {
+      window.location.hash = '';
+      window.location.reload();
+    }, 1000);
+  }
+
+  // 1. Listen via BroadcastChannel (Instant 0ms across same-browser tabs)
+  try {
+    if (window.BroadcastChannel) {
+      const bc = new BroadcastChannel('tuhh_session_channel');
+      bc.onmessage = function(ev) {
+        const data = ev.data;
+        if (!data || data.type !== 'FORCE_LOGOUT') return;
+        if (!SESSION.userId) return;
+        // Do not logout the issuer (Praveen)
+        if (SESSION.userId === data.issuer) return;
+
+        if (data.target === 'ALL' || data.target === SESSION.userId) {
+          executeImmediateTermination();
+        }
+      };
+    }
+  } catch(e) {}
+
+  // 2. Listen via localStorage storage event (Instant across same-browser tabs)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'uh_force_logout_signal' && e.newValue) {
+      try {
+        const sig = JSON.parse(e.newValue);
+        if (!SESSION.userId || SESSION.userId === sig.issuer) return;
+        if (sig.target === 'ALL' || sig.target === SESSION.userId) {
+          executeImmediateTermination();
+        }
+      } catch(err) {}
+    }
+  });
+
+  // 3. Poller for external devices & window focus watcher
+  async function checkRemoteSignal() {
+    if (!SESSION.userId || !window.sb || _forceLoggingOut) return;
+    try {
+      // Check force_logout_signal in app_settings
+      const { data: rows } = await sb.from('app_settings')
+        .select('value')
+        .eq('key', 'force_logout_signal')
+        .limit(1);
+
+      if (rows?.[0]?.value) {
+        const sig = JSON.parse(rows[0].value);
+        if (sig && sig.issuedAt && SESSION.userId !== sig.issuer) {
+          if (sig.target === 'ALL' || sig.target === SESSION.userId) {
+            const mySessionStart = SESSION.loginTimestamp || parseInt(sessionStorage.getItem('uh_session_start_ts') || '0', 10);
+            if (sig.issuedAt > mySessionStart) {
+              executeImmediateTermination();
+              return;
+            }
+          }
+        }
+      }
+
+      // Also double-check if user was suspended/banned in profiles
+      const { data: p } = await sb.from('profiles').select('is_approved, role').eq('user_id', SESSION.userId).single();
+      if (p && (p.is_approved !== true || p.role === 'suspended' || p.role === 'banned')) {
+        executeImmediateTermination('Aapka account access suspend kar diya gaya hai.');
+      }
+    } catch(e) {}
+  }
 
   function startLogoutWatch() {
     if (logoutCheckTimer) clearInterval(logoutCheckTimer);
     if (!SESSION.userId) return;
 
-    logoutCheckTimer = setInterval(async () => {
-      if (!SESSION.userId || !sb) return;
-      try {
-        const { data, error } = await sb.from('profiles')
-          .select('is_approved')
-          .eq('user_id', SESSION.userId)
-          .single();
+    // Check immediately, then every 3.5 seconds
+    checkRemoteSignal();
+    logoutCheckTimer = setInterval(checkRemoteSignal, 3500);
 
-        if (error) return;
-
-        if (data && data.is_approved !== true) {
-          clearInterval(logoutCheckTimer);
-          console.log('🚪 Force logout detected: User is not approved');
-          if (window.fsn) {
-            fsn.warning('Logged Out', 'You have been logged out by admin');
-          }
-          setTimeout(() => {
-            if (typeof logout === 'function') logout();
-            else location.reload();
-          }, 2000);
-        }
-      } catch(e) {}
-    }, 10000); // Check every 10 seconds
+    // Also check immediately when tab becomes visible or gains focus
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkRemoteSignal();
+    });
+    window.addEventListener('focus', checkRemoteSignal);
   }
 
   // Start when SESSION ready
@@ -5059,9 +5172,9 @@ window.forceLogoutAll = async function() {
     if (window.SESSION && window.SESSION.userId && window.sb) {
       clearInterval(checkTimer);
       startLogoutWatch();
-      console.log('🔒 Logout watcher active (checks every 10s)');
+      console.log('🔒 Ultra-fast Multi-tab & Remote Logout watcher active');
     }
-  }, 1000);
+  }, 500);
 
   window.addEventListener('beforeunload', () => {
     if (logoutCheckTimer) clearInterval(logoutCheckTimer);
