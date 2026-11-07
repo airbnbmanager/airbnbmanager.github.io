@@ -191,7 +191,8 @@ async function renderReports() {
   // HOMEYHUTS UNIFIED TIMELINE MULTI-CALENDAR (GANTT VIEW) vs CLASSIC MONTH GRID
   // =========================================================================
   const isMobileScreen = window.innerWidth <= 768;
-  window._calViewMode = window._calViewMode || (isMobileScreen ? 'grid' : 'timeline');
+  // By default, Month Grid view is active across ALL devices (desktop, tablet, mobile)
+  window._calViewMode = window._calViewMode || 'grid';
   window.setCalViewMode = function(mode) {
     window._calViewMode = mode;
     renderReports();
