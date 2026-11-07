@@ -838,8 +838,8 @@ async function renderReports() {
                 ${payTagHtml}
               </div>
             </div>
-            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${isSameDay ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
-              ${isSameDay ? `<span class="cal-avatar" style="background:#EDE9FE;color:#6D28D9;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
+            <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
+              ${isSameDay ? `<span class="cal-avatar" style="background:rgba(255,255,255,0.25);color:#fff;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
               ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (!isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
               ${isBlocked ? `<span class="cal-name">🔒 Blocked</span>` : ''}
             </div>
