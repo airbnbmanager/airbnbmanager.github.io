@@ -15,6 +15,7 @@
   <script src="config.js"></script>
   <script src="js/showcase-data.js?v=216"></script>
   <script src="js/seasonal-pricing.js"></script>
+  <script src="js/sms-service.js?v=281"></script>
   <link rel="stylesheet" href="book.css?v=280"/>
 </head>
 <body>
@@ -51,6 +52,9 @@
 
     <!-- Header Actions -->
     <div class="nav-actions">
+      <a class="nav-my-booking-pill" href="guest.html" style="text-decoration:none;font-weight:700;font-size:12.5px;color:#0F172A;background:#F8FAFC;border:1px solid #CBD5E1;padding:7px 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;" title="Check your booking status, stay pass, and receipt">
+        <span>🔍</span> <span>My Booking</span>
+      </a>
       <div class="nav-direct-badge">
         <span>🛡️ Save 15% Direct</span>
       </div>
@@ -255,22 +259,42 @@
 
       <!-- Guest Details Form -->
       <section class="guest-onboarding-card">
-        <h3 class="detail-section-title" style="margin-bottom:6px;">Guest Information</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <h3 class="detail-section-title" style="margin:0;">Guest Information &amp; SMS Verification</h3>
+          <span style="font-size:11.5px;font-weight:700;background:#EEF2FF;color:#4F46E5;padding:3px 9px;border-radius:999px;">🔒 SMS Verified Booking</span>
+        </div>
         <p style="font-size:13.5px; color:var(--foggy); margin-bottom:14px;">
-          Direct reservation registered with property owner. Zero advance payment required right now.
+          Mandatory guest identity details for official stay registration &amp; instant digital tax receipt.
         </p>
 
         <div class="form-grid-two">
           <div class="form-field-group">
             <label class="form-label" for="guestName">Primary Guest Full Name *</label>
-            <input type="text" id="guestName" class="form-input" placeholder="e.g. Vikram Sharma" autocomplete="name" />
+            <input type="text" id="guestName" class="form-input" placeholder="e.g. Vikram Sharma" autocomplete="name" required />
           </div>
           <div class="form-field-group">
-            <label class="form-label" for="guestPhone">WhatsApp / Mobile Number *</label>
-            <div class="form-input-phone-wrap">
-              <span class="phone-prefix-tag">+91</span>
-              <input type="tel" id="guestPhone" class="phone-input-field" placeholder="10-digit mobile number" maxlength="15" autocomplete="tel" />
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <label class="form-label" for="guestPhone" style="margin:0;">Mobile Number (SMS OTP) *</label>
+              <span id="phoneVerifiedTag" style="display:none;background:#DCFCE7;color:#166534;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;">✓ Verified</span>
             </div>
+            <div class="form-input-phone-wrap" style="position:relative;display:flex;align-items:center;">
+              <span class="phone-prefix-tag">+91</span>
+              <input type="tel" id="guestPhone" class="phone-input-field" placeholder="10-digit mobile number" maxlength="15" autocomplete="tel" oninput="if(window.onPhoneInputChanged) window.onPhoneInputChanged()" required style="padding-right:90px;" />
+              <button type="button" id="btnVerifySms" onclick="triggerPhoneOtpVerification()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#0F172A;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;z-index:2;transition:all 0.15s ease;">
+                📲 Verify OTP
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-two" style="margin-top:14px;">
+          <div class="form-field-group">
+            <label class="form-label" for="guestCity">Guest City / State *</label>
+            <input type="text" id="guestCity" class="form-input" placeholder="e.g. Lucknow, Delhi, Bengaluru" required />
+          </div>
+          <div class="form-field-group">
+            <label class="form-label" for="guestCountry">Country *</label>
+            <input type="text" id="guestCountry" class="form-input" value="India" placeholder="e.g. India" required />
           </div>
         </div>
 

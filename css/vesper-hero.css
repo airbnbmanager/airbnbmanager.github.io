@@ -214,7 +214,7 @@ html, body {
 .vesper-nav-links {
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: clamp(10px, 1.25vw, 18px);
   white-space: nowrap;
 }
 

@@ -1130,20 +1130,72 @@ function removeCoupon() {
   updateSummary();
 }
 
+// ─── SMS OTP VERIFICATION HELPERS ───
+window.onPhoneInputChanged = function () {
+  const rawPhone = document.getElementById('guestPhone')?.value.trim().replace(/\D/g, '');
+  const tag = document.getElementById('phoneVerifiedTag');
+  const btn = document.getElementById('btnVerifySms');
+
+  if (window.TuhhSmsService && window.TuhhSmsService.isPhoneVerified(rawPhone)) {
+    if (tag) tag.style.display = 'inline-block';
+    if (btn) btn.style.display = 'none';
+  } else {
+    if (tag) tag.style.display = 'none';
+    if (btn) btn.style.display = 'inline-block';
+  }
+};
+
+window.triggerPhoneOtpVerification = function (onSuccessCallback) {
+  const rawPhone = document.getElementById('guestPhone')?.value.trim().replace(/\D/g, '');
+  const name = document.getElementById('guestName')?.value.trim() || 'Guest';
+
+  if (!rawPhone || rawPhone.length < 10) {
+    alert('Please enter a valid 10-digit mobile number first.');
+    document.getElementById('guestPhone')?.focus();
+    return;
+  }
+
+  if (window.TuhhSmsService) {
+    window.TuhhSmsService.showOtpModal(rawPhone, name, function (verifiedPhone) {
+      const tag = document.getElementById('phoneVerifiedTag');
+      const btn = document.getElementById('btnVerifySms');
+      if (tag) tag.style.display = 'inline-block';
+      if (btn) btn.style.display = 'none';
+      if (typeof onSuccessCallback === 'function') {
+        onSuccessCallback();
+      }
+    });
+  } else {
+    alert('SMS Verification service is initializing. Please wait a moment.');
+  }
+};
+
 // ─── SUBMISSION ENGINE ───
 async function submitBookingRequest() {
   const ci = document.getElementById('checkIn')?.value;
   const co = document.getElementById('checkOut')?.value;
   const name = document.getElementById('guestName')?.value.trim();
   const rawPhone = document.getElementById('guestPhone')?.value.trim().replace(/\D/g, '');
+  const city = document.getElementById('guestCity')?.value.trim();
+  const country = document.getElementById('guestCountry')?.value.trim() || 'India';
   const guests = document.getElementById('guestCount')?.value || 2;
   const purpose = document.getElementById('stayPurpose')?.value;
   const special = document.getElementById('specialReq')?.value.trim();
 
   if (!selectedProp) { alert('Please select a property.'); return; }
   if (!ci || !co) { alert('Please select your check-in and checkout dates.'); return; }
-  if (!name) { alert('Please enter your full name as on Government ID.'); return; }
-  if (!rawPhone || rawPhone.length < 10) { alert('Please enter a valid 10-digit mobile number.'); return; }
+  if (!name) { alert('Please enter your full name as on Government ID.'); document.getElementById('guestName')?.focus(); return; }
+  if (!rawPhone || rawPhone.length < 10) { alert('Please enter a valid 10-digit mobile number.'); document.getElementById('guestPhone')?.focus(); return; }
+  if (!city) { alert('Please enter your City / State (Mandatory for stay registration).'); document.getElementById('guestCity')?.focus(); return; }
+  if (!country) { alert('Please enter your Country (Mandatory).'); document.getElementById('guestCountry')?.focus(); return; }
+
+  // Check SMS OTP verification
+  if (window.TuhhSmsService && !window.TuhhSmsService.isPhoneVerified(rawPhone)) {
+    window.triggerPhoneOtpVerification(function () {
+      submitBookingRequest();
+    });
+    return;
+  }
 
   const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
   if (nights <= 0) { alert('Checkout date must be after check-in.'); return; }
@@ -1170,8 +1222,9 @@ async function submitBookingRequest() {
   const phone91 = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
 
   const noteParts = [
-    `Direct Website Booking (Airbnb Clone Page)`,
+    `Direct Website Booking (SMS Verified)`,
     `Property: ${selectedProp.name} (${selectedProp.id})`,
+    `Guest Location: ${city}, ${country}`,
     `Tariff: ₹${baseTotal} (${nights} nts @ ₹${effectiveRate}/nt) + ${gstRate}% GST (₹${gstAmt}) = Gross ₹${grossWithGst}`,
     `Purpose: ${purpose || 'Holiday/Leisure'}`
   ];
@@ -1205,9 +1258,9 @@ async function submitBookingRequest() {
         booking_mode: 'Direct-Website',
         payment_status: 'Unpaid',
         notes: notesText,
-        booked_by: 'Website Direct',
+        booked_by: 'Website Direct (SMS Verified)',
         is_cancelled: false,
-        verification_status: 'pending',
+        verification_status: 'phone_verified',
         checkout_confirmed: false
       }).select();
 
@@ -1219,6 +1272,17 @@ async function submitBookingRequest() {
         return;
       } else {
         console.log('✅ Booking successfully saved to guest_register as pending approval:', bData);
+
+        // Dispatch confirmation SMS via OpenSMS Android Gateway
+        if (window.TuhhSmsService) {
+          window.TuhhSmsService.sendBookingConfirmationSms({
+            phone: phone91,
+            guest_name: name,
+            booking_id: bookingId,
+            property_name: selectedProp.name,
+            check_in: ci
+          });
+        }
       }
     } catch(err) {
       console.warn('guest_register save error:', err);
@@ -1263,12 +1327,17 @@ async function submitBookingRequest() {
   const successEl = document.getElementById('successMsg');
   if (successEl) {
     successEl.innerHTML = `
-      Thank you <strong>${name}</strong>! Your reservation request for <strong>${selectedProp.name}</strong> (${nights} night${nights > 1 ? 's' : ''}) has been registered.<br><br>
-      <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; font-weight:700; color:#92400e; display:inline-block; margin-bottom:12px;">
+      Thank you <strong>${name}</strong>! Your reservation request for <strong>${selectedProp.name}</strong> (${nights} night${nights > 1 ? 's' : ''}) has been registered with phone <strong>+${phone91}</strong>.<br><br>
+      <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:12px; padding:12px 18px; font-weight:800; color:#92400e; display:inline-block; margin-bottom:12px;">
         Booking Reference ID: ${bookingId}
       </div><br>
-      <div style="font-size:13.5px; color:#059669; font-weight:600;">
-        Status: 🟡 Awaiting Host Approval & Allotment &middot; Founders Mr. Firoz Khan and Mr. Shahanshah will confirm your dates shortly on +91 ${phone91.slice(-10)}.
+      <div style="font-size:13.5px; color:#059669; font-weight:700; margin-bottom:14px;">
+        ✅ Mobile Verified via SMS &middot; Confirmation Sent to +91 ${phone91.slice(-10)}
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px;">
+        <a href="guest.html?b=${bookingId}" target="_blank" style="background:#0F172A; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:12px; font-weight:800; font-size:14px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 14px rgba(15,23,42,0.25);">
+          <span>🎟️</span> View Stay Pass &amp; Tax Receipt
+        </a>
       </div>
     `;
   }

@@ -516,7 +516,98 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Tax Receipt Modal & Screen Overlay */
+    .tax-receipt-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .receipt-print-container {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 16px;
+      max-width: 620px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: relative;
+      font-family: var(--font-body);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .receipt-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .receipt-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .receipt-btn.print-btn {
+      background: #2563EB;
+      color: #fff;
+    }
+    .receipt-btn.close-btn {
+      background: #E2E8F0;
+      color: #334155;
+    }
+
+    /* Portal Search Screen & Multiple Bookings List */
+    .booking-list-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .booking-list-item:hover {
+      border-color: rgba(255, 56, 92, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .booking-list-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Print Styles for Official Tax Invoice & Stay Receipt */
+    @media print {
+      body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+      body * { visibility: hidden !important; }
+      #taxReceiptModalOverlay, #taxReceiptModalOverlay * { visibility: visible !important; }
+      #taxReceiptModalOverlay {
+        position: absolute !important; left: 0 !important; top: 0 !important;
+        width: 100% !important; background: #fff !important; padding: 0 !important;
+      }
+      .receipt-print-container {
+        box-shadow: none !important; border: none !important; padding: 20px !important;
+      }
+      .no-print { display: none !important; }
+    }
   </style>
+  <script src="js/sms-service.js?v=281"></script>
 </head>
 <body>
 
@@ -537,65 +628,383 @@
     let _activeSbClient = null;
     let _activeBookingId = null;
     let _activeIdPhotos = [];
+    let _currentStayBk = null;
+    let _currentStayRoom = null;
 
-    (async function initGuestPass() {
-      const root = document.getElementById('passRoot');
-      const params = new URLSearchParams(window.location.search);
-      const bookingId = (params.get('id') || params.get('b') || params.get('booking_id') || '').trim();
-      _activeBookingId = bookingId;
+    const SAFE_FIELDS = `
+      booking_id, guest_name, phone, check_in, check_out, check_in_time, check_out_time,
+      guests, total_amount, per_day_rate, payment_status, notes,
+      id_proof_photo_path, id_proof_front_paths, id_proof_back_paths, id_proof_photo_paths,
+      rooms(nickname, property_name, unit_no, wifi_ssid, wifi_password, map_link, address, city)
+    `.replace(/\s+/g, ' ').trim();
 
-      // Setup Supabase
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function fmtDate(dStr) {
+      try {
+        return new Date(dStr + 'T12:00:00').toLocaleDateString('en-IN', {
+          weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+        });
+      } catch (e) { return dStr || ''; }
+    }
+
+    function extractGuestLocation(bk) {
+      let city = 'Lucknow';
+      let country = 'India';
+      if (bk && bk.notes) {
+        const cMatch = bk.notes.match(/City:\s*([^|\n]+)/i);
+        const coMatch = bk.notes.match(/Country:\s*([^|\n]+)/i);
+        if (cMatch && cMatch[1].trim()) city = cMatch[1].trim();
+        if (coMatch && coMatch[1].trim()) country = coMatch[1].trim();
+      }
+      return { city, country };
+    }
+
+    function getSb() {
+      if (_activeSbClient) return _activeSbClient;
       try {
         if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
           _activeSbClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
         }
-      } catch (err) {
-        console.warn('Supabase init fallback:', err);
+      } catch (e) {
+        console.warn('Supabase init error:', e);
+      }
+      return _activeSbClient;
+    }
+
+    // ─── MAIN INIT ───
+    async function initGuestPass() {
+      const params = new URLSearchParams(window.location.search);
+      const bId = (params.get('id') || params.get('b') || params.get('booking_id') || '').trim();
+      const phoneParam = (params.get('phone') || params.get('m') || '').trim();
+
+      getSb();
+
+      if (bId) {
+        await loadBookingById(bId);
+      } else if (phoneParam && window.TuhhSmsService && window.TuhhSmsService.isPhoneVerified(phoneParam)) {
+        await loadBookingsByPhone(phoneParam);
+      } else {
+        renderPortalSearchScreen();
+      }
+    }
+
+    // ─── SEARCH SCREEN ───
+    window.renderPortalSearchScreen = function(statusMsg = '', isError = false) {
+      const root = document.getElementById('passRoot');
+      if (!root) return;
+
+      root.innerHTML = `
+        <!-- Brand Header -->
+        <header class="brand-header">
+          <div class="brand-logo-wrap">
+            <img src="assets/logo-emblem.png" alt="Logo" class="brand-icon" style="width:38px;height:38px;border-radius:10px;object-fit:cover;border:1.5px solid rgba(245,158,11,0.5);box-shadow:0 0 12px rgba(245,158,11,0.3);" />
+            <div>
+              <div class="brand-name">THE UNIQUE HAVEN HOMES</div>
+              <div class="brand-sub">GUEST SELF-SERVICE PORTAL</div>
+            </div>
+          </div>
+          <div class="status-pill">
+            <span class="pulse-dot"></span> Secure Portal
+          </div>
+        </header>
+
+        <!-- Search Card -->
+        <div class="glass-card" style="border:1px solid rgba(255,255,255,0.18);">
+          <div style="text-align:center;margin-bottom:18px;">
+            <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+            <h1 style="font-size:20px;font-weight:800;font-family:var(--font-heading);color:#fff;">
+              Find Your Stay &amp; Tax Receipt
+            </h1>
+            <p style="font-size:12.5px;color:var(--text-sub);margin-top:6px;line-height:1.5;">
+              Enter your registered <strong>10-digit Mobile Number</strong> or <strong>Booking ID</strong> to access your Digital Stay Pass, WiFi credentials, Google Maps navigation, and official Tax Invoice.
+            </p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label for="portalSearchInput" style="font-size:12px;font-weight:700;color:#CBD5E1;display:block;margin-bottom:6px;">
+                Mobile Number or Booking ID
+              </label>
+              <input
+                type="text"
+                id="portalSearchInput"
+                placeholder="e.g. 9450055554 or BK-2603-XXXX"
+                autocomplete="tel"
+                style="width:100%;box-sizing:border-box;background:rgba(15,23,42,0.8);border:1.5px solid rgba(255,255,255,0.2);color:#fff;font-size:15px;padding:12px 14px;border-radius:12px;outline:none;"
+                onkeydown="if(event.key==='Enter') doPortalSearch();"
+              />
+            </div>
+
+            <button
+              type="button"
+              class="action-btn"
+              id="portalSearchBtn"
+              onclick="doPortalSearch()"
+              style="cursor:pointer;border:none;background:linear-gradient(135deg, #FF385C, #E00B41);color:#fff;font-weight:800;font-size:14.5px;padding:13px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;"
+            >
+              <span>🔐</span> Verify &amp; Find My Stay
+            </button>
+          </div>
+
+          <div id="portalSearchFeedback" style="display:${statusMsg ? 'block' : 'none'};margin-top:14px;padding:10px 12px;border-radius:10px;font-size:12.5px;font-weight:600;text-align:center;${isError ? 'background:rgba(239,68,68,0.15);color:#FCA5A5;border:1px solid rgba(239,68,68,0.3);' : 'background:rgba(16,185,129,0.15);color:#6EE7B7;border:1px solid rgba(16,185,129,0.3);'}">
+            ${statusMsg}
+          </div>
+
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:var(--text-sub);line-height:1.5;">
+            🔒 <strong>Strict Privacy Guard:</strong> For guest confidentiality, searching by phone number requires a fast 6-digit SMS OTP verification so only you can access your stay &amp; receipt details.
+          </div>
+        </div>
+
+        <!-- Direct Host Contact -->
+        <div class="glass-card" style="text-align:center;padding:16px;">
+          <div style="font-size:12px;color:var(--text-sub);">Having trouble finding your booking?</div>
+          <div style="margin-top:8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <a href="https://wa.me/919450055554?text=${encodeURIComponent('Hello Unique Haven Homes, I need assistance finding my stay pass.')}" target="_blank" style="text-decoration:none;font-size:12.5px;font-weight:700;color:#34D399;background:rgba(16,185,129,0.12);padding:8px 14px;border-radius:8px;border:1px solid rgba(16,185,129,0.3);">
+              💬 Chat with Host
+            </a>
+            <a href="mailto:hello@uniquehavenhomes.com" style="text-decoration:none;font-size:12.5px;font-weight:700;color:#A78BFA;background:rgba(124,58,237,0.15);padding:8px 14px;border-radius:8px;border:1px solid rgba(124,58,237,0.3);">
+              ✉️ hello@uniquehavenhomes.com
+            </a>
+            <a href="tel:+919450055554" style="text-decoration:none;font-size:12.5px;font-weight:700;color:#38BDF8;background:rgba(56,189,248,0.12);padding:8px 14px;border-radius:8px;border:1px solid rgba(56,189,248,0.3);">
+              📞 +91 94500 55554
+            </a>
+          </div>
+        </div>
+
+        <!-- Corporate Footer -->
+        <footer class="pass-footer">
+          <div style="font-weight:700;color:#F8FAFC;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+          <div style="font-size:10.5px;color:var(--text-sub);margin-top:3px;line-height:1.4;">
+            CIN: U55101UP2026PTC244637 &middot; ROC Kanpur<br>
+            Reg. Off: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP - 226016<br>
+            Email: <a href="mailto:hello@uniquehavenhomes.com" style="color:#38BDF8;">hello@uniquehavenhomes.com</a>
+          </div>
+        </footer>
+      `;
+
+      setTimeout(() => {
+        const inp = document.getElementById('portalSearchInput');
+        if (inp) inp.focus();
+      }, 100);
+    };
+
+    // ─── EXECUTE PORTAL SEARCH ───
+    window.doPortalSearch = async function() {
+      const inp = document.getElementById('portalSearchInput');
+      const feedback = document.getElementById('portalSearchFeedback');
+      if (!inp) return;
+
+      const val = inp.value.trim();
+      if (!val) {
+        showPortalError('Please enter your 10-digit mobile number or Booking ID.');
+        inp.focus();
+        return;
       }
 
-      let bk = null;
-      let room = null;
+      const digitsOnly = val.replace(/\D/g, '');
+      const isPhone = digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
 
-      if (_activeSbClient && bookingId) {
+      if (isPhone) {
+        const clean10 = digitsOnly.slice(-10);
+        if (window.TuhhSmsService && window.TuhhSmsService.isPhoneVerified(clean10)) {
+          await loadBookingsByPhone(clean10);
+        } else if (window.TuhhSmsService) {
+          window.TuhhSmsService.showOtpModal(clean10, 'Guest', async (verified) => {
+            if (verified) {
+              await loadBookingsByPhone(clean10);
+            }
+          });
+        } else {
+          await loadBookingsByPhone(clean10);
+        }
+      } else {
+        await loadBookingById(val);
+      }
+    };
+
+    function showPortalError(msg) {
+      const feedback = document.getElementById('portalSearchFeedback');
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(239,68,68,0.15)';
+        feedback.style.color = '#FCA5A5';
+        feedback.style.border = '1px solid rgba(239,68,68,0.3)';
+        feedback.innerHTML = '⚠️ ' + escapeHtml(msg);
+      }
+    }
+
+    // ─── LOAD BOOKING BY ID ───
+    window.loadBookingById = async function(bookingId) {
+      const root = document.getElementById('passRoot');
+      if (root) {
+        root.innerHTML = `
+          <div class="loader-wrap">
+            <div class="spinner"></div>
+            <div style="font-weight:600;font-size:15px;color:#fff;">Looking up Reservation #${escapeHtml(bookingId)}...</div>
+            <div style="font-size:12px;color:var(--text-sub);">Unique Haven Homes & Villas</div>
+          </div>
+        `;
+      }
+
+      const sb = getSb();
+      let bk = null;
+
+      if (sb) {
         try {
-          const { data: bData } = await _activeSbClient
+          const { data, error } = await sb
             .from('guest_register')
-            .select('*, rooms(*)')
-            .eq('booking_id', bookingId)
+            .select(SAFE_FIELDS)
+            .ilike('booking_id', bookingId)
             .maybeSingle();
 
-          if (bData) {
-            bk = bData;
-            room = bData.rooms || null;
-          }
+          if (data && !error) bk = data;
         } catch (e) {
-          console.warn('Error fetching booking:', e);
+          console.warn('loadBookingById error:', e);
         }
       }
 
-      // Fallback demo stay if ID is missing or offline
       if (!bk) {
-        bk = {
-          booking_id: bookingId || 'BK-DEMO',
-          guest_name: 'Distinguished Guest',
-          phone: '9450055554',
-          check_in: new Date().toISOString().slice(0, 10),
-          check_out: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-          check_in_time: '13:00',
-          check_out_time: '11:00',
-          rooms: {
-            nickname: 'Pink Paradise Villa',
-            unit_no: 'Unit 101',
-            wifi_ssid: 'UniqueHaven_PinkParadise',
-            wifi_password: 'Airbnb.in1',
-            property_name: 'Pink Paradise Villa 3BHK',
-            map_link: 'https://maps.google.com/?q=Lulu+Mall+Lucknow'
-          }
-        };
-        room = bk.rooms;
+        renderPortalSearchScreen(`No reservation found matching Booking ID "${escapeHtml(bookingId)}". Please double-check the ID or search using your 10-digit mobile number.`, true);
+        return;
       }
 
-      // Collect existing ID photo paths
+      renderStayPassTicket(bk, bk.rooms);
+    };
+
+    // ─── LOAD BOOKINGS BY PHONE ───
+    window.loadBookingsByPhone = async function(cleanPhone) {
+      const root = document.getElementById('passRoot');
+      if (root) {
+        root.innerHTML = `
+          <div class="loader-wrap">
+            <div class="spinner"></div>
+            <div style="font-weight:600;font-size:15px;color:#fff;">Fetching reservations for +91 ${escapeHtml(cleanPhone)}...</div>
+            <div style="font-size:12px;color:var(--text-sub);">Unique Haven Homes & Villas</div>
+          </div>
+        `;
+      }
+
+      const sb = getSb();
+      let bookings = [];
+
+      if (sb) {
+        try {
+          const { data, error } = await sb
+            .from('guest_register')
+            .select(SAFE_FIELDS)
+            .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.ilike.%${cleanPhone}%`)
+            .order('check_in', { ascending: false });
+
+          if (data && !error) bookings = data;
+        } catch (e) {
+          console.warn('loadBookingsByPhone error:', e);
+        }
+      }
+
+      if (!bookings.length) {
+        renderPortalSearchScreen(`No stays found associated with phone +91 ${escapeHtml(cleanPhone)}. If you booked via Airbnb or Agoda, please check your Booking ID on the confirmation email or chat with our host.`, true);
+        return;
+      }
+
+      if (bookings.length === 1) {
+        renderStayPassTicket(bookings[0], bookings[0].rooms);
+      } else {
+        renderMultipleBookingsList(bookings, cleanPhone);
+      }
+    };
+
+    // ─── MULTIPLE BOOKINGS LIST ───
+    window.renderMultipleBookingsList = function(bookings, phone) {
+      const root = document.getElementById('passRoot');
+      if (!root) return;
+
+      const listHtml = bookings.map((bk) => {
+        const r = bk.rooms || {};
+        const pName = r.nickname || r.property_name || 'Unique Haven Villa';
+        const unit = r.unit_no ? 'Unit ' + r.unit_no : 'Private Suite';
+        return `
+          <div class="booking-list-item">
+            <div class="booking-list-item-header">
+              <span style="font-family:monospace;font-size:12px;font-weight:700;color:#38BDF8;">#${escapeHtml(bk.booking_id)}</span>
+              <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(16,185,129,0.15);color:#34D399;border:1px solid rgba(16,185,129,0.3);">
+                ${escapeHtml(bk.payment_status || 'Confirmed')}
+              </span>
+            </div>
+            <div style="font-weight:700;font-size:15px;color:#fff;">${escapeHtml(pName)}</div>
+            <div style="font-size:12px;color:var(--text-sub);">📍 ${escapeHtml(unit)} &middot; ${fmtDate(bk.check_in)} ➔ ${fmtDate(bk.check_out)}</div>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button
+                type="button"
+                class="action-btn"
+                style="flex:1;cursor:pointer;border:none;background:linear-gradient(135deg, #FF385C, #E00B41);color:#fff;font-weight:700;font-size:12px;padding:8px 12px;border-radius:8px;"
+                onclick="loadBookingById('${bk.booking_id}')"
+              >
+                <span>✨</span> View Stay Pass &amp; WiFi
+              </button>
+              <button
+                type="button"
+                class="action-btn"
+                style="cursor:pointer;border:none;background:#2563EB;color:#fff;font-weight:700;font-size:12px;padding:8px 12px;border-radius:8px;"
+                onclick="loadBookingById('${bk.booking_id}').then(() => openTaxReceiptModal(_currentStayBk, _currentStayRoom))"
+              >
+                <span>🧾</span> Receipt
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      root.innerHTML = `
+        <header class="brand-header">
+          <div class="brand-logo-wrap">
+            <img src="assets/logo-emblem.png" alt="Logo" class="brand-icon" style="width:38px;height:38px;border-radius:10px;object-fit:cover;border:1.5px solid rgba(245,158,11,0.5);box-shadow:0 0 12px rgba(245,158,11,0.3);" />
+            <div>
+              <div class="brand-name">THE UNIQUE HAVEN HOMES</div>
+              <div class="brand-sub">VERIFIED RESERVATIONS</div>
+            </div>
+          </div>
+          <button type="button" onclick="renderPortalSearchScreen()" style="background:none;border:none;color:#38BDF8;font-size:12px;font-weight:700;cursor:pointer;">
+            🔍 New Search
+          </button>
+        </header>
+
+        <div class="glass-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <h2 style="font-size:17px;font-weight:800;color:#fff;margin:0;">Your Stays (${bookings.length})</h2>
+              <div style="font-size:11.5px;color:var(--text-sub);margin-top:2px;">Phone: +91 ${escapeHtml(phone)}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;background:rgba(56,189,248,0.15);color:#38BDF8;">
+              ✓ OTP Verified
+            </span>
+          </div>
+
+          ${listHtml}
+        </div>
+      `;
+    };
+
+    // ─── RENDER STAY PASS TICKET ───
+    window.renderStayPassTicket = function(bk, room) {
+      _currentStayBk = bk;
+      _currentStayRoom = room;
+      _activeBookingId = bk.booking_id;
+
+      try {
+        const url = new URL(window.location);
+        url.searchParams.set('b', bk.booking_id);
+        window.history.replaceState({}, '', url);
+      } catch (e) {}
+
       const rawPaths = [
         ...(bk.id_proof_front_paths || '').split(','),
         ...(bk.id_proof_back_paths || '').split(','),
@@ -609,16 +1018,10 @@
       const wifiPass = room?.wifi_password || 'Airbnb.in1';
       const mapsUrl = room?.map_link || 'https://maps.google.com/?q=Gomti+Nagar+Lucknow';
       const managerPhone = '919450055554';
-
-      const fmtDate = (dStr) => {
-        try {
-          return new Date(dStr + 'T12:00:00').toLocaleDateString('en-IN', {
-            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-          });
-        } catch (e) { return dStr; }
-      };
-
       const hasId = _activeIdPhotos.length > 0;
+
+      const root = document.getElementById('passRoot');
+      if (!root) return;
 
       root.innerHTML = `
         <!-- Top Brand Bar -->
@@ -635,29 +1038,42 @@
           </div>
         </header>
 
+        <!-- Quick Navigation & Receipt Actions -->
+        <div style="display:flex;gap:8px;justify-content:space-between;">
+          <button type="button" onclick="renderPortalSearchScreen()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#CBD5E1;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <span>🔍</span> Find Another Stay
+          </button>
+          <button type="button" onclick="openTaxReceiptModal(_currentStayBk, _currentStayRoom)" style="background:rgba(37,99,235,0.25);border:1px solid rgba(37,99,235,0.5);color:#60A5FA;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            <span>🧾</span> Tax Receipt / Invoice
+          </button>
+        </div>
+
         <!-- Stay Hero Pass Ticket -->
         <div class="glass-card hero-ticket">
-          <div class="ticket-badge">✨ Reservation #${bk.booking_id}</div>
-          <div class="property-title">${pName}</div>
-          <div class="unit-tag">📍 ${unitNo} · Welcome, ${bk.guest_name || 'Guest'}</div>
+          <div class="ticket-badge">✨ Reservation #${escapeHtml(bk.booking_id)}</div>
+          <div class="property-title">${escapeHtml(pName)}</div>
+          <div class="unit-tag">📍 ${escapeHtml(unitNo)} &middot; Welcome, ${escapeHtml(bk.guest_name || 'Guest')}</div>
 
           <div class="ticket-grid">
             <div>
               <div class="ticket-label">Check-In</div>
               <div class="ticket-val">${fmtDate(bk.check_in)}</div>
-              <div class="ticket-time">⏰ 1:00 PM Onwards</div>
+              <div class="ticket-time">⏰ ${escapeHtml(bk.check_in_time || '1:00 PM')} Onwards</div>
             </div>
             <div>
               <div class="ticket-label">Check-Out</div>
               <div class="ticket-val">${fmtDate(bk.check_out)}</div>
-              <div class="ticket-time">⏰ by 11:00 AM</div>
+              <div class="ticket-time">⏰ by ${escapeHtml(bk.check_out_time || '11:00 AM')}</div>
             </div>
           </div>
 
-          <div style="margin-top:16px;">
-            <a href="${mapsUrl}" target="_blank" class="action-btn maps">
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+            <a href="${mapsUrl}" target="_blank" class="action-btn maps" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;">
               <span>🗺️</span> Open Live Navigation in Google Maps
             </a>
+            <button type="button" class="action-btn" onclick="openTaxReceiptModal(_currentStayBk, _currentStayRoom)" style="cursor:pointer;border:none;background:linear-gradient(135deg, #10B981, #059669);color:#fff;font-weight:700;font-size:13.5px;padding:11px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span>🧾</span> View &amp; Download Official Tax Receipt / Voucher
+            </button>
           </div>
         </div>
 
@@ -673,7 +1089,7 @@
           <div class="wifi-box">
             <div>
               <div class="wifi-info-label">Network (SSID)</div>
-              <div class="wifi-val" id="wifiSsidVal">${wifiSsid}</div>
+              <div class="wifi-val" id="wifiSsidVal">${escapeHtml(wifiSsid)}</div>
             </div>
             <button type="button" class="copy-btn" onclick="copyText('${wifiSsid}', this)">
               Copy
@@ -683,7 +1099,7 @@
           <div class="wifi-box" style="margin-bottom:0;">
             <div>
               <div class="wifi-info-label">Password</div>
-              <div class="wifi-val" id="wifiPassVal">${wifiPass}</div>
+              <div class="wifi-val" id="wifiPassVal">${escapeHtml(wifiPass)}</div>
             </div>
             <button type="button" class="copy-btn" onclick="copyText('${wifiPass}', this)">
               Copy Password
@@ -741,14 +1157,14 @@
             </span>
           </div>
           <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">
-            Mandatory Govt requirement. Upload front & back photos of Aadhaar Card, DL or Passport for all staying guests:
+            Mandatory Govt requirement. Upload front &amp; back photos of Aadhaar Card, DL or Passport for all staying guests:
           </div>
 
           <!-- Upload Dropzone Label -->
           <label class="upload-box" for="guestIdFileInput" id="uploadBoxLabel">
             <div style="font-size:30px;margin-bottom:6px;">📸</div>
             <div style="font-weight:700;font-size:14px;color:#fff;">Tap to Take Photo or Select Multiple IDs</div>
-            <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">Supports Multiple Guests · Camera Capture · JPG, PNG</div>
+            <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">Supports Multiple Guests &middot; Camera Capture &middot; JPG, PNG</div>
             <input type="file" id="guestIdFileInput" accept="image/*" multiple style="display:none;" onchange="handleGuestIdUpload(this)">
           </label>
 
@@ -762,13 +1178,13 @@
         <div class="glass-card">
           <div class="card-title-row">
             <div class="card-heading">
-              <span>📜</span> House Rules & Stay Guide
+              <span>📜</span> House Rules &amp; Stay Guide
             </div>
           </div>
           <div>
             <div class="rule-item">
               <span>🕒</span>
-              <div><strong>Check-in & Check-out:</strong> Check-in is from 1:00 PM and check-out is strictly by 11:00 AM to allow turnaround for next guests.</div>
+              <div><strong>Check-in &amp; Check-out:</strong> Check-in is from 1:00 PM and check-out is strictly by 11:00 AM to allow turnaround for next guests.</div>
             </div>
             <div class="rule-item">
               <span>🤫</span>
@@ -796,9 +1212,9 @@
             </span>
           </div>
           <p style="font-size:12.5px;color:var(--text-sub);line-height:1.5;margin-bottom:12px;">
-            Enjoyed your stay at <strong>${propName}</strong>? Share your 5-star review to support our local team!
+            Enjoyed your stay at <strong>${escapeHtml(pName)}</strong>? Share your 5-star review to support our local team!
           </p>
-          <a href="review.html?b=${encodeURIComponent(bookingId)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(propName)}" class="action-btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg, #F59E0B, #D97706);color:#fff;font-weight:800;border:none;border-radius:12px;padding:12px;">
+          <a href="review.html?b=${encodeURIComponent(bk.booking_id)}&guest=${encodeURIComponent(bk.guest_name || 'Guest')}&prop=${encodeURIComponent(pName)}" class="action-btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg, #F59E0B, #D97706);color:#fff;font-weight:800;border:none;border-radius:12px;padding:12px;">
             <span>⭐</span> Rate Us on Google &amp; Review Portal
           </a>
         </div>
@@ -807,15 +1223,162 @@
         <footer class="pass-footer">
           <div style="font-weight:700;color:#F8FAFC;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
           <div style="font-size:10.5px;color:var(--text-sub);margin-top:3px;line-height:1.4;">
-            CIN: U55101UP2026PTC244637 · ROC Kanpur<br>
-            Reg. Off: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP - 226016
+            CIN: U55101UP2026PTC244637 &middot; ROC Kanpur<br>
+            Reg. Off: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP - 226016<br>
+            Email: <a href="mailto:hello@uniquehavenhomes.com" style="color:#38BDF8;">hello@uniquehavenhomes.com</a>
           </div>
           <div style="margin-top:8px;">Questions? Call host at <a href="tel:+919450055554" style="color:#38BDF8;text-decoration:none;font-weight:600;">+91 94500 55554</a></div>
         </footer>
       `;
 
       renderIdGallery();
-    })();
+    };
+
+    // ─── TAX RECEIPT MODAL ───
+    window.openTaxReceiptModal = function(bk, room) {
+      if (!bk) return;
+      document.querySelectorAll('#taxReceiptModalOverlay').forEach(el => el.remove());
+
+      const r = room || {};
+      const pName = r.nickname || r.property_name || 'Unique Haven Villa';
+      const unitNo = r.unit_no ? 'Unit ' + r.unit_no : 'Private Suite';
+      const loc = extractGuestLocation(bk);
+
+      let nights = 1;
+      try {
+        const d1 = new Date(bk.check_in);
+        const d2 = new Date(bk.check_out);
+        const diff = Math.round((d2 - d1) / 86400000);
+        if (diff > 0) nights = diff;
+      } catch (e) {}
+
+      const totalVal = Number(bk.total_amount || 0);
+
+      const overlay = document.createElement('div');
+      overlay.id = 'taxReceiptModalOverlay';
+      overlay.className = 'tax-receipt-overlay';
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+      overlay.innerHTML = `
+        <div class="receipt-print-container">
+          <!-- Non-print action header -->
+          <div class="receipt-actions no-print">
+            <button type="button" class="receipt-btn print-btn" onclick="window.print()">
+              🖨️ Print / Save as PDF
+            </button>
+            <button type="button" class="receipt-btn close-btn" onclick="document.getElementById('taxReceiptModalOverlay').remove()">
+              ✕ Close
+            </button>
+          </div>
+
+          <!-- Official Corporate Letterhead -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img src="assets/logo-emblem.png" alt="TUHH" style="width:48px;height:48px;border-radius:8px;border:1px solid #CBD5E1;object-fit:cover;" />
+              <div>
+                <div style="font-size:15px;font-weight:800;color:#0F172A;letter-spacing:-0.2px;">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+                <div style="font-size:10.5px;color:#64748B;font-weight:600;">CIN: U55101UP2026PTC244637 &middot; ROC Kanpur</div>
+                <div style="font-size:10px;color:#64748B;">Reg. Off: P NO 39 &amp; 40 Radhikapuri, Indira Nagar Takrohi, Lucknow, UP - 226016</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;font-weight:800;color:#059669;background:#ECFDF5;padding:3px 9px;border-radius:6px;display:inline-block;border:1px solid #A7F3D0;">
+                ${escapeHtml(bk.payment_status || 'PAID IN FULL').toUpperCase()}
+              </div>
+              <div style="font-size:10.5px;color:#64748B;margin-top:4px;">hello@uniquehavenhomes.com</div>
+              <div style="font-size:10px;color:#64748B;">+91 94500 55554</div>
+            </div>
+          </div>
+
+          <hr style="border:none;border-top:1.5px solid #E2E8F0;margin:12px 0;" />
+
+          <div style="text-align:center;margin-bottom:14px;">
+            <h2 style="font-size:16.5px;font-weight:800;color:#0F172A;margin:0;letter-spacing:0.5px;text-transform:uppercase;">
+              Official Stay Voucher &amp; Tax Receipt
+            </h2>
+            <div style="font-size:11px;color:#64748B;margin-top:2px;">Original for Guest / Recipient</div>
+          </div>
+
+          <!-- Invoice Details Grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:11.5px;color:#1E293B;">
+            <div>
+              <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Guest Information</div>
+              <div style="font-size:13.5px;font-weight:700;color:#0F172A;">${escapeHtml(bk.guest_name || 'Distinguished Guest')}</div>
+              <div style="color:#475569;margin-top:2px;">📱 +91 ${escapeHtml(String(bk.phone || '').replace(/^91/, ''))}</div>
+              <div style="color:#475569;margin-top:2px;">📍 ${escapeHtml(loc.city)}, ${escapeHtml(loc.country)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Reservation Details</div>
+              <div style="font-size:12.5px;font-weight:700;color:#0F172A;">Voucher No: <span style="font-family:monospace;color:#2563EB;">${escapeHtml(bk.booking_id)}</span></div>
+              <div style="color:#475569;margin-top:2px;">Issue Date: ${new Date().toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'})}</div>
+              <div style="color:#475569;margin-top:2px;">Guests: ${bk.guests || 2} Person(s)</div>
+            </div>
+          </div>
+
+          <!-- Stay Summary Table -->
+          <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;">
+            <thead>
+              <tr style="background:#0F172A;color:#fff;text-align:left;">
+                <th style="padding:9px 10px;border-top-left-radius:6px;">Stay Description</th>
+                <th style="padding:9px 10px;text-align:center;">Check-In</th>
+                <th style="padding:9px 10px;text-align:center;">Check-Out</th>
+                <th style="padding:9px 10px;text-align:center;">Nights</th>
+                <th style="padding:9px 10px;text-align:right;border-top-right-radius:6px;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #E2E8F0;">
+                <td style="padding:10px;">
+                  <div style="font-weight:700;color:#0F172A;">${escapeHtml(pName)}</div>
+                  <div style="font-size:11px;color:#64748B;">${escapeHtml(unitNo)} &middot; Boutique Serviced Residence</div>
+                  <div style="font-size:10.5px;color:#2563EB;margin-top:2px;">Includes: High-Speed WiFi, Housekeeping, Power Backup</div>
+                </td>
+                <td style="padding:10px;text-align:center;color:#334155;">${fmtDate(bk.check_in)}<br><small style="color:#64748B;">1:00 PM</small></td>
+                <td style="padding:10px;text-align:center;color:#334155;">${fmtDate(bk.check_out)}<br><small style="color:#64748B;">11:00 AM</small></td>
+                <td style="padding:10px;text-align:center;font-weight:700;color:#0F172A;">${nights}</td>
+                <td style="padding:10px;text-align:right;font-weight:700;color:#0F172A;">₹${totalVal.toLocaleString('en-IN')}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
+                <td colspan="4" style="padding:8px 10px;text-align:right;font-weight:600;color:#475569;">Room Tariff / Subtotal:</td>
+                <td style="padding:8px 10px;text-align:right;font-weight:600;color:#0F172A;">₹${totalVal.toLocaleString('en-IN')}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
+                <td colspan="4" style="padding:7px 10px;text-align:right;font-size:11px;color:#64748B;">Applicable Luxury Taxes &amp; GST:</td>
+                <td style="padding:7px 10px;text-align:right;font-size:11px;color:#64748B;">Included in Tariff</td>
+              </tr>
+              <tr style="background:#EFF6FF;font-weight:800;font-size:13.5px;color:#1E3A8A;">
+                <td colspan="4" style="padding:10px;text-align:right;">Grand Total Amount:</td>
+                <td style="padding:10px;text-align:right;color:#2563EB;">₹${totalVal.toLocaleString('en-IN')}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- Notice & Signature Section -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;padding-top:10px;border-top:1px dashed #CBD5E1;">
+            <div style="font-size:10px;color:#64748B;max-width:300px;line-height:1.4;">
+              <strong>Terms &amp; Policies:</strong><br>
+              Check-in requires Govt Photo ID verification. Quiet hours 10 PM - 8 AM.
+              Smoking inside apartments strictly prohibited. For inquiries, email hello@uniquehavenhomes.com or call +91 94500 55554.
+            </div>
+            <div style="text-align:center;">
+              <div style="display:inline-block;padding:4px 10px;border:1.5px solid #059669;border-radius:6px;color:#059669;font-size:10px;font-weight:800;letter-spacing:0.5px;transform:rotate(-2deg);margin-bottom:4px;">
+                ✓ VERIFIED STAY VOUCHER
+              </div>
+              <div style="font-size:10.5px;font-weight:700;color:#0F172A;">For The Unique Haven Homes Pvt. Ltd.</div>
+              <div style="font-size:9.5px;color:#64748B;">Authorized Digital Signatory</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    };
+
+    window.addEventListener('DOMContentLoaded', initGuestPass);
+
+
 
     // Copy Helper
     function copyText(text, btn) {
