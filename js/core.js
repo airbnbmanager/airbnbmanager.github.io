@@ -567,11 +567,10 @@ window.UserActivityTracker = {
   },
 
   _tableAvailable: (typeof localStorage !== 'undefined' && localStorage.getItem('uh_user_act_tbl_avail') === 'false') ? false : null,
-  _appSettingsAvailable: (typeof localStorage !== 'undefined' && localStorage.getItem('uh_app_set_avail') === 'false') ? false : null,
+  _appSettingsAvailable: true,
 
   async _syncRecord(rec) {
     if (!rec || !rec.userId) return;
-    if (this._tableAvailable === false && this._appSettingsAvailable === false) return;
 
     try {
       if (window.sb && this._tableAvailable !== false) {

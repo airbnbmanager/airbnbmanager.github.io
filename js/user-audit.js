@@ -421,8 +421,9 @@
     if (!bodyEl) return;
     bodyEl.innerHTML = `<div style="text-align:center;padding:40px;color:#64748B;">⏳ Loading data for ${monthStr}...</div>`;
 
-    // 1. Fetch daily activity logs for this user across this month
-    let dailyRecords = [];
+    const dailyMap = {}; // Key: "YYYY-MM-DD" -> Record
+
+    // 1. Fetch daily activity logs from Supabase table if available
     try {
       if (window.sb) {
         const { data } = await window.sb.from('user_activity_logs')
@@ -431,36 +432,135 @@
           .gte('log_date', `${monthStr}-01`)
           .lte('log_date', `${monthStr}-31`)
           .order('log_date', { ascending: false });
-        if (data && data.length) dailyRecords = data;
+        if (data && data.length) {
+          data.forEach(d => {
+            dailyMap[d.log_date] = {
+              log_date: d.log_date,
+              login_count: d.login_count || 1,
+              active_seconds: d.active_seconds || 0,
+              first_login_at: d.first_login_at,
+              last_active_at: d.last_active_at
+            };
+          });
+        }
       }
     } catch(e) {}
 
-    // Fallback to localStorage if no DB rows
-    if (!dailyRecords.length) {
-      try {
-        const local = JSON.parse(localStorage.getItem('uh_user_activity_logs') || '{}');
-        Object.keys(local).forEach(date => {
-          if (date.startsWith(monthStr) && local[date][userId]) {
-            const r = local[date][userId];
-            dailyRecords.push({
-              log_date: date,
-              login_count: r.loginCount || 1,
-              active_seconds: r.activeSeconds || 0,
-              first_login_at: r.firstLoginAt,
-              last_active_at: r.lastActiveAt
-            });
-          }
-        });
-        dailyRecords.sort((a,b) => b.log_date.localeCompare(a.log_date));
-      } catch(e) {}
-    }
+    // 2. Fetch from Supabase app_settings (user_daily_activity_logs) — CENTRAL SYNC STORE
+    try {
+      if (window.sb) {
+        const { data: setRows } = await window.sb.from('app_settings')
+          .select('value')
+          .eq('key', 'user_daily_activity_logs')
+          .limit(1);
 
-    // 2. Fetch page visits
+        if (setRows?.[0]?.value) {
+          const remoteMap = JSON.parse(setRows[0].value);
+          Object.keys(remoteMap).forEach(date => {
+            if (date.startsWith(monthStr) && remoteMap[date][userId]) {
+              const r = remoteMap[date][userId];
+              const prev = dailyMap[date] || {};
+              dailyMap[date] = {
+                log_date: date,
+                login_count: Math.max(prev.login_count || 0, r.loginCount || r.login_count || 1),
+                active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || r.active_seconds || 0),
+                first_login_at: prev.first_login_at || r.firstLoginAt || r.first_login_at,
+                last_active_at: r.lastActiveAt || r.last_active_at || prev.last_active_at
+              };
+            }
+          });
+        }
+      }
+    } catch(e) {}
+
+    // 3. Fallback to localStorage activity logs (for current device)
+    try {
+      const local = JSON.parse(localStorage.getItem('uh_user_activity_logs') || '{}');
+      Object.keys(local).forEach(date => {
+        if (date.startsWith(monthStr) && local[date][userId]) {
+          const r = local[date][userId];
+          const prev = dailyMap[date] || {};
+          dailyMap[date] = {
+            log_date: date,
+            login_count: Math.max(prev.login_count || 0, r.loginCount || 1),
+            active_seconds: Math.max(prev.active_seconds || 0, r.activeSeconds || 0),
+            first_login_at: prev.first_login_at || r.firstLoginAt,
+            last_active_at: r.lastActiveAt || prev.last_active_at
+          };
+        }
+      });
+    } catch(e) {}
+
+    // 4. Fetch page visits from central app_settings + localStorage
     const visits = await window.UserPageAudit.getVisitsForUser(userId, monthStr);
 
-    // Metrics calculation
+    // 5. Cross-correlate Page Visits into dailyMap!
+    // Every day that has verified page actions MUST be counted as an active day with true timings
+    const visitsByDate = {};
+    visits.forEach(v => {
+      const d = v.date || (v.timestamp ? v.timestamp.slice(0, 10) : '');
+      if (d && d.startsWith(monthStr)) {
+        if (!visitsByDate[d]) visitsByDate[d] = [];
+        visitsByDate[d].push(v);
+      }
+    });
+
+    Object.keys(visitsByDate).forEach(date => {
+      const dayVisits = visitsByDate[date];
+      dayVisits.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+      const firstVisitTime = dayVisits[0]?.timestamp;
+      const lastVisitTime = dayVisits[dayVisits.length - 1]?.timestamp;
+
+      let visitSpanSec = 0;
+      if (firstVisitTime && lastVisitTime) {
+        visitSpanSec = Math.round((new Date(lastVisitTime).getTime() - new Date(firstVisitTime).getTime()) / 1000);
+      }
+      // Allocate minimum 45s per page navigation
+      const minPageSec = dayVisits.length * 45;
+      const calculatedSec = Math.max(visitSpanSec, minPageSec);
+
+      if (!dailyMap[date]) {
+        // Date was missing from tracker, reconstruct from verified page visits
+        dailyMap[date] = {
+          log_date: date,
+          login_count: Math.max(1, Math.ceil(dayVisits.length / 4)),
+          active_seconds: calculatedSec,
+          first_login_at: firstVisitTime,
+          last_active_at: lastVisitTime
+        };
+      } else {
+        const r = dailyMap[date];
+        if (firstVisitTime && (!r.first_login_at || new Date(firstVisitTime) < new Date(r.first_login_at))) {
+          r.first_login_at = firstVisitTime;
+        }
+        if (lastVisitTime && (!r.last_active_at || new Date(lastVisitTime) > new Date(r.last_active_at))) {
+          r.last_active_at = lastVisitTime;
+        }
+        r.active_seconds = Math.max(r.active_seconds || 0, calculatedSec);
+      }
+    });
+
+    // 6. Convert dailyMap into sorted dailyRecords array with human-accurate duration
+    const dailyRecords = Object.values(dailyMap).sort((a, b) => b.log_date.localeCompare(a.log_date));
+
+    // Calculate realistic, accurate seconds for each record
+    dailyRecords.forEach(r => {
+      let sec = r.active_seconds || 0;
+      if (r.first_login_at && r.last_active_at) {
+        const diff = Math.round((new Date(r.last_active_at).getTime() - new Date(r.first_login_at).getTime()) / 1000);
+        if (diff > 0 && diff < 86400) {
+          // If first-to-last action span is larger, use the true span!
+          sec = Math.max(sec, diff);
+        }
+      }
+      // Minimum 2 minutes per login session
+      const minSession = (r.login_count || 1) * 120;
+      r.computedSeconds = Math.max(sec, minSession);
+    });
+
+    // 7. Calculate Monthly Totals
     const totalDaysLoggedIn = dailyRecords.length;
-    const totalSecondsOnline = dailyRecords.reduce((sum, r) => sum + (r.active_seconds || 0), 0);
+    const totalSecondsOnline = dailyRecords.reduce((sum, r) => sum + r.computedSeconds, 0);
     const totalLoginsCount = dailyRecords.reduce((sum, r) => sum + (r.login_count || 1), 0);
     const avgSecsPerActiveDay = totalDaysLoggedIn > 0 ? Math.round(totalSecondsOnline / totalDaysLoggedIn) : 0;
 
@@ -468,8 +568,10 @@
       sec = Math.max(0, Math.floor(sec || 0));
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
       if (h > 0) return `${h}h ${m}m`;
-      return `${m}m ${sec % 60}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
     };
 
     // Summarize page counts
@@ -597,7 +699,7 @@
                         </span>
                       </td>
                       <td style="padding:10px 14px;text-align:right;font-weight:900;color:#059669;">
-                        ${fmtHoursMins(r.active_seconds)}
+                        ${fmtHoursMins(r.computedSeconds || r.active_seconds)}
                       </td>
                     </tr>
                   `;
@@ -645,6 +747,13 @@
             window.SESSION.role,
             page
           );
+          if (window.UserActivityTracker) {
+            window.UserActivityTracker.pulseActivity(
+              window.SESSION.userId,
+              window.SESSION.displayName,
+              window.SESSION.role
+            );
+          }
         }
       };
       wrappedNavigate._auditHooked = true;
