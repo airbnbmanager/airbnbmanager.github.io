@@ -250,6 +250,22 @@ window.canManageStaff = function() {
   return ['developer', 'owner', 'admin'].includes(SESSION.role);
 };
 
+// 👑 IDENTIFY PRAVEEN (Developer / Master System Recipient)
+window.isPraveenUser = function(userId, email, displayName, role) {
+  const uid = (userId || '').toLowerCase();
+  const em = (email || '').toLowerCase();
+  const name = (displayName || '').toLowerCase();
+  if (uid === 'c6343844-a307-4668-9b16-1947a0c0f8fa') return true;
+  if (em === 'praveensinghaws@gmail.com' || em.includes('praveensingh')) return true;
+  if (name.includes('praveen')) return true;
+  return false;
+};
+
+window.isCurrentSessionPraveen = function() {
+  if (!window.SESSION) return false;
+  return window.isPraveenUser(SESSION.userId, SESSION.email, SESSION.displayName, SESSION.role) || SESSION.role === 'developer';
+};
+
 
 
 // ═══════════════════════════════════════════════════════════
@@ -895,8 +911,14 @@ async function loadProfile(userId) {
   if (window.UserActivityTracker) {
     window.UserActivityTracker.recordLogin(userId, SESSION.displayName, p.role);
   }
-  if (window.DevLoginAlert && p.role !== 'developer') {
-    window.DevLoginAlert.notifyDevOnLogin(userId, SESSION.displayName, p.role, SESSION.email);
+  // 🔔 DYNAMIC LOGIN NOTIFICATION: Send alert whenever ANY user logs in (ANY ROLE: admin, owner, manager, staff, etc.) who is not Praveen
+  const isPraveenLoggingIn = window.isPraveenUser ? window.isPraveenUser(userId, SESSION.email, SESSION.displayName, p.role) : (p.role === 'developer');
+  if (!isPraveenLoggingIn) {
+    if (window.DevLoginAlert && typeof window.DevLoginAlert.notifyDevOnLogin === 'function') {
+      window.DevLoginAlert.notifyDevOnLogin(userId, SESSION.displayName, p.role, SESSION.email);
+    } else {
+      window._pendingLoginAlert = { userId, displayName: SESSION.displayName, role: p.role, email: SESSION.email };
+    }
   }
 
   if (p.role === 'employee') renderEmployeeView();
@@ -4226,7 +4248,7 @@ async function startHeartbeat() {
   if (window.UserActivityTracker) {
     window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
   }
-  if (SESSION.role === 'developer' && window.DevLoginAlert?.pollNewAlertsForDev) {
+  if (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen() && window.DevLoginAlert?.pollNewAlertsForDev) {
     window.DevLoginAlert.pollNewAlertsForDev();
   }
   // Then every 30 seconds
@@ -4236,7 +4258,7 @@ async function startHeartbeat() {
       if (window.UserActivityTracker) {
         window.UserActivityTracker.pulseActivity(SESSION.userId, SESSION.displayName, SESSION.role);
       }
-      if (SESSION.role === 'developer' && window.DevLoginAlert?.pollNewAlertsForDev) {
+      if (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen() && window.DevLoginAlert?.pollNewAlertsForDev) {
         window.DevLoginAlert.pollNewAlertsForDev();
       }
     }

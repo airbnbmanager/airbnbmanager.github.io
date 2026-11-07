@@ -48,11 +48,12 @@
     _lastPolledAlertTime: localStorage.getItem('uh_last_dev_alert_ts') || new Date().toISOString(),
     _seenAlertIds: new Set(JSON.parse(sessionStorage.getItem('uh_seen_alert_ids') || '[]')),
 
-    // Called whenever a user logs in
+    // Called whenever ANY user logs in (ANY role: admin, owner, manager, staff, cleaner, developer etc.)
     async notifyDevOnLogin(userId, displayName, role, email) {
       if (!userId) return;
-      // Never alert for developer's own login
-      if (role === 'developer') return;
+      // Never alert for Praveen's own login (Praveen is the recipient)
+      if (window.isPraveenUser && window.isPraveenUser(userId, email, displayName, role)) return;
+      if ((displayName || '').toLowerCase().includes('praveen') || (email || '').toLowerCase().includes('praveen')) return;
 
       const now = new Date();
       const alertId = `login_${userId}_${now.getTime()}`;
@@ -71,7 +72,20 @@
         read: false
       };
 
-      // 1. Sync to Supabase `app_settings` (shared central store for all devices)
+      // 1. Same-browser instant broadcast (0ms across tabs in same browser)
+      try {
+        if (window.BroadcastChannel) {
+          const bc = new BroadcastChannel('tuhh_login_channel');
+          bc.postMessage({ type: 'NEW_LOGIN', alert: alertObj });
+        }
+      } catch(e) {}
+
+      // 2. LocalStorage storage event
+      try {
+        localStorage.setItem('uh_latest_login_alert', JSON.stringify(alertObj));
+      } catch(e) {}
+
+      // 3. Central Supabase app_settings (syncs to Praveen across any phone/laptop/iPad)
       try {
         if (window.sb) {
           const { data: rows } = await window.sb.from('app_settings')
@@ -84,18 +98,19 @@
             try { alertsList = JSON.parse(rows[0].value); } catch(e) {}
           }
           alertsList.unshift(alertObj);
-          if (alertsList.length > 150) alertsList = alertsList.slice(0, 150); // Keep last 150
+          if (alertsList.length > 200) alertsList = alertsList.slice(0, 200);
 
           await window.sb.from('app_settings').upsert({
             key: 'dev_login_alerts',
-            value: JSON.stringify(alertsList)
+            value: JSON.stringify(alertsList),
+            updated_at: new Date().toISOString()
           }, { onConflict: 'key' });
         }
       } catch(e) {
         console.warn('Could not sync login alert to Supabase:', e);
       }
 
-      // 2. Also save to user_activity_logs
+      // 4. Also update local activity log
       try {
         const local = JSON.parse(localStorage.getItem('uh_user_activity_logs') || '{}');
         const today = now.toISOString().slice(0, 10);
@@ -103,7 +118,7 @@
         if (!local[today][userId]) {
           local[today][userId] = {
             userId, displayName, role,
-            logDate: today, loginCount: 1, activeSeconds: 30,
+            logDate: today, loginCount: 1, activeSeconds: 60,
             firstLoginAt: now.toISOString(), lastActiveAt: now.toISOString()
           };
         } else {
@@ -114,9 +129,12 @@
       } catch(e) {}
     },
 
-    // Polled by Developer's browser every 20-30s
+    // Polled by Praveen's device every 10-12s
     async pollNewAlertsForDev() {
-      if (window.SESSION?.role !== 'developer') return;
+      const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+        window.SESSION?.role === 'developer' ||
+        (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+      if (!isRecipient) return;
 
       try {
         if (!window.sb) return;
@@ -129,32 +147,23 @@
         const alertsList = JSON.parse(rows[0].value);
         if (!Array.isArray(alertsList) || !alertsList.length) return;
 
-        // Check for alerts newer than last poll or unseen
+        // Check for unseen alerts from the last 20 minutes
         const freshAlerts = alertsList.filter(a => {
           if (this._seenAlertIds.has(a.id)) return false;
-          // Only show alerts from the last 15 minutes as popup
           const alertAgeMs = Date.now() - new Date(a.timestamp).getTime();
-          return alertAgeMs < 15 * 60 * 1000;
+          return alertAgeMs < 20 * 60 * 1000;
         });
 
         if (freshAlerts.length > 0) {
-          // Play audio chime
           playLoginChime();
-
-          // Show popup banner for newest alert
           const newest = freshAlerts[0];
           this.showFloatingToast(newest);
 
-          // Mark as seen
           freshAlerts.forEach(a => this._seenAlertIds.add(a.id));
           sessionStorage.setItem('uh_seen_alert_ids', JSON.stringify(Array.from(this._seenAlertIds)));
-
-          // Update topbar badge
           this.updateBellBadge(freshAlerts.length);
         }
-      } catch(e) {
-        // silent
-      }
+      } catch(e) {}
     },
 
     showFloatingToast(alert) {
@@ -727,8 +736,9 @@
       const origRecordLogin = window.UserActivityTracker.recordLogin.bind(window.UserActivityTracker);
       window.UserActivityTracker.recordLogin = async function(userId, displayName, role) {
         await origRecordLogin(userId, displayName, role);
-        if (role && role !== 'developer') {
-          await window.DevLoginAlert.notifyDevOnLogin(userId, displayName, role);
+        const isSelfPraveen = window.isPraveenUser ? window.isPraveenUser(userId, window.SESSION?.email, displayName, role) : (role === 'developer');
+        if (!isSelfPraveen) {
+          await window.DevLoginAlert.notifyDevOnLogin(userId, displayName, role, window.SESSION?.email);
         }
       };
     }
@@ -769,12 +779,72 @@
     checkAndHookNavigate();
   });
 
-  // Start poller for developer alerts
+  // Check pending login alert queued before this script finished loading
+  if (window._pendingLoginAlert) {
+    window.DevLoginAlert.notifyDevOnLogin(
+      window._pendingLoginAlert.userId,
+      window._pendingLoginAlert.displayName,
+      window._pendingLoginAlert.role,
+      window._pendingLoginAlert.email
+    );
+    window._pendingLoginAlert = null;
+  }
+
+  // Fast poller for Praveen alerts (every 10 seconds)
   setInterval(() => {
-    if (window.SESSION?.role === 'developer' && window.DevLoginAlert?.pollNewAlertsForDev) {
+    const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+      window.SESSION?.role === 'developer' ||
+      (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+    if (isRecipient && window.DevLoginAlert?.pollNewAlertsForDev) {
       window.DevLoginAlert.pollNewAlertsForDev();
     }
-  }, 25000);
+  }, 10000);
+
+  // Poll immediately when Praveen switches to the tab or focuses window
+  window.addEventListener('focus', () => {
+    const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+      window.SESSION?.role === 'developer' ||
+      (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+    if (isRecipient && window.DevLoginAlert?.pollNewAlertsForDev) {
+      window.DevLoginAlert.pollNewAlertsForDev();
+    }
+  });
+
+  // Real-time BroadcastChannel listener (Instant 0ms across tabs in same browser)
+  try {
+    if (window.BroadcastChannel) {
+      const bc = new BroadcastChannel('tuhh_login_channel');
+      bc.onmessage = function(ev) {
+        if (ev?.data?.type === 'NEW_LOGIN' && ev.data.alert) {
+          const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+            window.SESSION?.role === 'developer' ||
+            (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+          if (isRecipient) {
+            playLoginChime();
+            window.DevLoginAlert.showFloatingToast(ev.data.alert);
+            window.DevLoginAlert.updateBellBadge(1);
+          }
+        }
+      };
+    }
+  } catch(e) {}
+
+  // Real-time storage listener (Cross-tab fallback)
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'uh_latest_login_alert' && e.newValue) {
+      try {
+        const alert = JSON.parse(e.newValue);
+        const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
+          window.SESSION?.role === 'developer' ||
+          (window.SESSION?.displayName || '').toLowerCase().includes('praveen');
+        if (isRecipient && alert) {
+          playLoginChime();
+          window.DevLoginAlert.showFloatingToast(alert);
+          window.DevLoginAlert.updateBellBadge(1);
+        }
+      } catch(err) {}
+    }
+  });
 
   // ═════════════════════════════════════════════════════════════
   // 6. RENDER ALERTS TAB IN USER MANAGEMENT
