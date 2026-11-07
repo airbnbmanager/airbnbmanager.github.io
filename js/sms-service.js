@@ -32,6 +32,9 @@
     cleanPhone: function (raw) {
       if (!raw) return '';
       let digits = String(raw).replace(/\D/g, '');
+      if (digits.length === 11 && digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
       if (digits.length === 10) {
         return '91' + digits;
       }
@@ -366,7 +369,11 @@
           const res = await TuhhSmsService.sendOtp(phone, guestName);
           const simEl = document.getElementById('tuhhOtpSimCode');
           if (simEl && res.otp) {
-            simEl.innerHTML = `Test/Dev OTP: <span style="letter-spacing:2px;font-size:16px;">${res.otp}</span>`;
+            simEl.innerHTML = `Auto-fill Code: <button type="button" style="background:#059669;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-weight:800;font-size:13.5px;cursor:pointer;margin-left:6px;letter-spacing:1.5px;" onclick="window.tuhhAutoFillOtp('${res.otp}')">⚡ ${res.otp} (1-Tap Fill)</button>`;
+            window.tuhhAutoFillOtp = function(code) {
+              boxes.forEach((b, i) => { b.value = code[i] || ''; });
+              document.getElementById('tuhhOtpVerifyBtn')?.click();
+            };
           }
           const waBtn = document.getElementById('tuhhOtpWaBtn');
           if (waBtn) {

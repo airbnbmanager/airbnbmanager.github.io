@@ -638,6 +638,15 @@
       rooms(nickname, property_name, unit_no, wifi_ssid, wifi_password, map_link, address, city)
     `.replace(/\s+/g, ' ').trim();
 
+    // Export functions immediately to window
+    window.renderPortalSearchScreen = renderPortalSearchScreen;
+    window.doPortalSearch = doPortalSearch;
+    window.loadBookingById = loadBookingById;
+    window.loadBookingsByPhone = loadBookingsByPhone;
+    window.renderMultipleBookingsList = renderMultipleBookingsList;
+    window.renderStayPassTicket = renderStayPassTicket;
+    window.openTaxReceiptModal = openTaxReceiptModal;
+
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
@@ -813,10 +822,12 @@
       }
 
       const digitsOnly = val.replace(/\D/g, '');
-      const isPhone = digitsOnly.length === 10 || (digitsOnly.length === 12 && digitsOnly.startsWith('91'));
+      let clean10 = digitsOnly;
+      if (clean10.startsWith('91') && clean10.length === 12) clean10 = clean10.slice(2);
+      if (clean10.startsWith('0') && clean10.length === 11) clean10 = clean10.slice(1);
+      const isPhone = clean10.length === 10;
 
       if (isPhone) {
-        const clean10 = digitsOnly.slice(-10);
         if (window.TuhhSmsService && window.TuhhSmsService.isPhoneVerified(clean10)) {
           await loadBookingsByPhone(clean10);
         } else if (window.TuhhSmsService) {
@@ -902,13 +913,24 @@
 
       if (sb) {
         try {
+          const p1 = cleanPhone.slice(0, 5);
+          const p2 = cleanPhone.slice(5);
+          const last6 = cleanPhone.slice(-6);
+
           const { data, error } = await sb
             .from('guest_register')
             .select(SAFE_FIELDS)
-            .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.ilike.%${cleanPhone}%`)
+            .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.ilike.%${cleanPhone}%,phone.ilike.%${p1}%${p2}%,phone.ilike.%${last6}%`)
             .order('check_in', { ascending: false });
 
-          if (data && !error) bookings = data;
+          if (data && !error) {
+            // Normalize in JavaScript to match exact 10 digits
+            bookings = data.filter(b => {
+              if (!b.phone) return false;
+              const digits = b.phone.replace(/\D/g, '');
+              return digits.endsWith(cleanPhone) || digits === cleanPhone;
+            });
+          }
         } catch (e) {
           console.warn('loadBookingsByPhone error:', e);
         }
