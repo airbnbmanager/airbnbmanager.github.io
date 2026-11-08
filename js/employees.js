@@ -1533,8 +1533,8 @@ async function renderEmployeeTasks(viewMode) {
     const selectedMonth = window._taskMonth || currentMonth;
     const statusFilter = window._taskStatusFilter || 'ALL';
     const staffFilter = window._taskStaffFilter || 'ALL';
-    const globalProp = (typeof window.getGlobalSelectedProperty === 'function') ? window.getGlobalSelectedProperty() : '';
-    const propFilter = (window._taskPropFilter && window._taskPropFilter !== 'ALL') ? window._taskPropFilter : (globalProp || 'ALL');
+    // Use explicit task property filter only, avoid silent global prop lock from hiding tasks
+    const propFilter = (window._taskPropFilter && window._taskPropFilter !== 'ALL') ? window._taskPropFilter : 'ALL';
 
     // Month options
     const allMonths = [...new Set(allTasks.map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();
@@ -1771,20 +1771,21 @@ async function renderEmployeeTasks(viewMode) {
 
       const tasksByDate = {};
       displayTasks.forEach(t => {
-        const d = t.assigned_date;
+        const d = (t.assigned_date || '').slice(0, 10);
         if (!d) return;
         if (!tasksByDate[d]) tasksByDate[d] = [];
         tasksByDate[d].push(t);
       });
 
       const rows = [];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${selectedMonth}-${String(day).padStart(2,'0')}`;
+      // Combine sorted dates from actual tasks to guarantee no date gets missed
+      const activeDates = Object.keys(tasksByDate).sort().reverse();
+      activeDates.forEach(dateStr => {
         const dTasks = tasksByDate[dateStr] || [];
         const count = dTasks.length;
-        if (count === 0) continue;
+        if (count === 0) return;
         const dObj = new Date(dateStr);
-        const dayName = dayNames[dObj.getDay()];
+        const dayName = isNaN(dObj.getDay()) ? '' : dayNames[dObj.getDay()];
 
         let expandHTML = '';
         dTasks.forEach(t => {
@@ -1824,8 +1825,17 @@ async function renderEmployeeTasks(viewMode) {
             </div>
           </div>
         `);
-      }
-      byDateHTML = rows.join('') || '<div class="sub" style="padding:20px;text-align:center;">No tasks for this date filter</div>';
+      });
+
+      byDateHTML = rows.join('') || (totalMonth > 0 ? `
+        <div style="padding:28px 20px;text-align:center;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;">
+          <div style="font-weight:700;font-size:14.5px;color:#0F172A;">⚠️ Current filter me koi task nahi mila</div>
+          <div style="font-size:12.5px;color:#64748B;margin:5px 0 14px;">Total <strong>${totalMonth} tasks</strong> is month (${selectedMonth}) me moujood hain.</div>
+          <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;padding:7px 16px;border-radius:8px;" onclick="window.clearTaskFilters()">
+            🔄 Show All (${totalMonth}) Tasks
+          </button>
+        </div>
+      ` : '<div class="sub" style="padding:20px;text-align:center;">No tasks for this month</div>');
     }
 
     // Render Shell
@@ -1901,7 +1911,7 @@ async function renderEmployeeTasks(viewMode) {
 
         <!-- KPI METRIC CARDS -->
         <div class="task-kpi-grid" style="margin-top:14px;">
-          <div class="task-kpi-card" style="border-left:4px solid var(--primary);" onclick="window._taskStatusFilter='ALL';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid var(--primary);" onclick="window.clearTaskFilters()" title="Click to show all tasks">
             <div class="task-kpi-num" style="color:var(--primary);">${totalMonth}</div>
             <div class="task-kpi-label">📋 Total Month</div>
           </div>
@@ -1994,6 +2004,16 @@ async function renderEmployeeTasks(viewMode) {
   }
 }
 window.renderEmployeeTasks = renderEmployeeTasks;
+
+window.clearTaskFilters = function() {
+  window._taskStatusFilter = 'ALL';
+  window._taskStaffFilter = 'ALL';
+  window._taskPropFilter = 'ALL';
+  window._taskViewMode = 'list';
+  if (typeof renderEmployeeTasks === 'function') {
+    renderEmployeeTasks('list');
+  }
+};
 
 // ═══════════════════════════════════════════════════════════
 // ⚡ QUICK TASK ACTIONS (1-CLICK STATUS UPDATE & WHATSAPP)

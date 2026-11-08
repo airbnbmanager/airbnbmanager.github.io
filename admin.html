@@ -82,7 +82,7 @@
   <script src="js/ca-audit-pack.js?v=430"></script>
   <script src="js/per-day-calc.js?v=362"></script>
   <script src="js/properties.js?v=414"></script>
-  <script src="js/employees.js?v=417"></script>
+  <script src="js/employees.js?v=440"></script>
   <script src="js/expenses.js?v=410"></script>
   <script src="js/store.js?v=362"></script>
   <script src="js/maintenance.js?v=418"></script>
@@ -111,7 +111,7 @@
 
   <!-- 🚀 Mandatory System Update & Cache Purge Barrier (Strict Version Lock) -->
   <script>
-    window.UHHS_BUILD_VERSION = '439';
+    window.UHHS_BUILD_VERSION = '440';
     window.UHHS_BUILD_NAME = 'System Performance & Security Update';
 
     function showMandatoryUpdateModal(newVersionTitle) {
@@ -226,8 +226,8 @@
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=439').then(reg => {
-          console.log('✅ UHHS PWA Service Worker active (v439):', reg.scope);
+        navigator.serviceWorker.register('/sw.js?v=440').then(reg => {
+          console.log('✅ UHHS PWA Service Worker active (v440):', reg.scope);
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
