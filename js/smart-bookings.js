@@ -757,11 +757,11 @@ const ROOM_COVER_FALLBACKS = {
   'GOM-202': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880630/original/ee9f92dc-201b-4171-888e-aee6e6bb2552.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'GOM-301': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485419/original/40cf20ea-d2f1-4dfd-b0fc-40ff15f8c85c.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'GOM-401': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939148/original/9157436b-67ee-45a0-9753-4876ec438965.jpeg?im_w=720&width=720&quality=70&auto=webp',
-  'GOM-402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
-  'Flat 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
-  'FLAT402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
-  'FLAT 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
-  '402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp',
+  'GOM-402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
+  'Flat 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
+  'FLAT402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
+  'FLAT 402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
+  '402': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
   'GOM-501': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913833/original/d69e46a7-d86b-4e60-84a2-e64e528b18ec.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'VIL-105': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg?im_w=720&width=720&quality=70&auto=webp',
   'VIL-104': 'https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937810/original/71a2e9b0-96f3-4d40-beec-df0df57e1c16.jpeg?im_w=720&width=720&quality=70&auto=webp',
@@ -780,7 +780,7 @@ function getPropertyCoverThumb(b) {
   const nick = (b?.rooms?.nickname || b?.rooms?.property_name || '').toLowerCase();
 
   if (cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' || nick.includes('tehzeeb')) {
-    return 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+    return 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp';
   }
   if (window.ShowcaseData && typeof window.ShowcaseData.getProperty === 'function') {
     const p = window.ShowcaseData.getProperty(roomId) ||

@@ -223,12 +223,12 @@ window.renderAirbnbOverlappingMedia = function (b) {
   }
   if (!coverImg || coverImg.includes('logo-emblem.png') || coverImg.includes('logo.png')) {
     if (isTehzeeb) {
-      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp';
     }
   }
   if (!coverImg || coverImg.includes('logo')) {
     if (isTehzeeb) {
-      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg?im_w=720&width=720&quality=70&auto=webp';
+      coverImg = 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp';
     } else {
       coverImg = 'assets/logo-emblem.png';
     }

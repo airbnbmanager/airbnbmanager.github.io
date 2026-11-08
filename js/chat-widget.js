@@ -129,7 +129,7 @@
       originalPrice: 6136,
       rating: 4.78,
       reviews: 9,
-      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg',
+      cover: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png',
       link: 'the-tehzeeb-nest.html',
       tagline: 'Peaceful royal 3BHK serviced flat at Blossom Skyline with elevator & high-speed Wi-Fi',
       specs: ['3 AC Bedrooms', 'Blossom Skyline', 'Elevator Access', 'Fiber Wi-Fi', 'Up to 10 Guests'],
