@@ -405,8 +405,7 @@ async function renderReports() {
           <span style="font-weight:800;color:#0F172A;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;">Channels:</span>
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#0284C7;"></span> Direct / Offline</span>
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#FF385C;"></span> Airbnb</span>
-          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#003580;"></span> Booking.com</span>
-          <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#7C3AED;"></span> Agoda</span>
+          ${bcomCount > 0 ? `<span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#003580;"></span> Booking.com</span>` : ''}
           <span class="hh-cal-legend-item"><span class="hh-legend-dot" style="background:#475569;"></span> Blocked</span>
           <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 4px;"></span>
           <span style="font-weight:800;color:#0F172A;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;">Payment Status:</span>
@@ -417,14 +416,14 @@ async function renderReports() {
         </div>
 
         <!-- KPI SUMMARY BAR -->
-        <div style="padding:12px 20px;background:#FFFFFF;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;">
+        <div style="padding:12px 20px;background:#FFFFFF;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:13px;">
           <div><span style="color:#64748B;">Properties:</span> <strong style="color:#0F172A;">${displayRooms.length}</strong></div>
           <div><span style="color:#64748B;">Total Bookings:</span> <strong style="color:#0F172A;">${realMb.length}</strong></div>
           <div><span style="color:#64748B;">Revenue:</span> <strong style="color:#10B981;">₹${(rev/1000).toFixed(0)}K</strong></div>
           <div><span style="color:#64748B;">Occupancy:</span> <strong style="color:#0284C7;">${occ}%</strong></div>
           <div><span style="color:#64748B;">Direct:</span> <strong style="color:#0284C7;">${offCount}</strong></div>
           <div><span style="color:#64748B;">Airbnb:</span> <strong style="color:#FF385C;">${onCount}</strong></div>
-          <div><span style="color:#64748B;">Booking.com:</span> <strong style="color:#003580;">${bcomCount}</strong></div>
+          ${bcomCount > 0 ? `<div><span style="color:#64748B;">Booking.com:</span> <strong style="color:#003580;">${bcomCount}</strong></div>` : ''}
         </div>
 
         <!-- SCROLLABLE TIMELINE VIEWPORT -->
@@ -682,12 +681,11 @@ async function renderReports() {
       </div>
 
       <!-- PLATFORMS / CHANNELS COLOR LEGEND -->
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#475569;">
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#475569;">
         <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:11px;">Platforms:</span>
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#7C3AED;display:inline-block;"></span> <strong>Agoda</strong></span>
+        ${bcomCount > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>` : ''}
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
         <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 2px;"></span>
         <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓ Paid</span> Full Settled</span>
@@ -695,42 +693,42 @@ async function renderReports() {
       </div>
     </div>
 
-    <!-- KPI STAT CARDS -->
-    <div class="stat-grid cal-stat-grid" style="gap:10px;">
-      <div class="stat-card" style="border-left:4px solid var(--primary);border-radius:12px;">
-        <div class="stat-num">${realMb.length}</div>
-        <div class="stat-label">Bookings</div>
+    <!-- KPI STAT CARDS (Clean Single-Row Strip — Unwanted & 0 Items Removed) -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
+      <div class="stat-card" style="border-left:4px solid #0F172A;border-radius:12px;padding:12px 14px;">
+        <div class="stat-num" style="font-size:20px;font-weight:900;color:#0F172A;">${realMb.length}</div>
+        <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Bookings</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid var(--green);border-radius:12px;">
-        <div class="stat-num">₹${(rev/1000).toFixed(0)}K</div>
-        <div class="stat-label">Revenue Paid</div>
+      <div class="stat-card" style="border-left:4px solid #10B981;border-radius:12px;padding:12px 14px;">
+        <div class="stat-num" style="font-size:20px;font-weight:900;color:#10B981;">₹${(rev/1000).toFixed(0)}K</div>
+        <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Revenue Paid</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid #FF385C;border-radius:12px;">
-        <div class="stat-num" style="color:#FF385C;">${onCount}</div>
-        <div class="stat-label">🌐 Airbnb</div>
+      <div class="stat-card" style="border-left:4px solid #0284C7;border-radius:12px;padding:12px 14px;">
+        <div class="stat-num" style="font-size:20px;font-weight:900;color:#0284C7;">${offCount}</div>
+        <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Direct Stays</div>
       </div>
-      <div class="stat-card" style="border-left:4px solid #003580;border-radius:12px;">
-        <div class="stat-num" style="color:#003580;">${bcomCount}</div>
-        <div class="stat-label">🔵 Booking.com</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--yellow);border-radius:12px;">
-        <div class="stat-num">${offCount}</div>
-        <div class="stat-label">💵 Direct</div>
+      <div class="stat-card" style="border-left:4px solid #FF385C;border-radius:12px;padding:12px 14px;">
+        <div class="stat-num" style="font-size:20px;font-weight:900;color:#FF385C;">${onCount}</div>
+        <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Airbnb</div>
       </div>
       ${blockedMbCount > 0 ? `
-        <div class="stat-card" style="border-left:4px solid #475569;border-radius:12px;">
-          <div class="stat-num" style="color:#475569;">${blockedMbCount}</div>
-          <div class="stat-label">🔒 Blocked</div>
+        <div class="stat-card" style="border-left:4px solid #475569;border-radius:12px;padding:12px 14px;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#475569;">${blockedMbCount}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Blocked</div>
         </div>
       ` : ''}
-      <div class="stat-card" style="border-left:4px solid #F59E0B;border-radius:12px;background:#FFFBEB;">
-        <div class="stat-num" style="color:#B45309;">${reviewCount}</div>
-        <div class="stat-label">⭐ Reviews Verified</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--purple, #8B5CF6);border-radius:12px;">
-        <div class="stat-num" style="color:#8B5CF6;">${occ}%</div>
-        <div class="stat-label">📊 Occupancy</div>
-      </div>
+      ${bcomCount > 0 ? `
+        <div class="stat-card" style="border-left:4px solid #003580;border-radius:12px;padding:12px 14px;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#003580;">${bcomCount}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Booking.com</div>
+        </div>
+      ` : ''}
+      ${reviewCount > 0 ? `
+        <div class="stat-card" style="border-left:4px solid #F59E0B;border-radius:12px;padding:12px 14px;background:#FFFBEB;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#B45309;">${reviewCount}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Reviews</div>
+        </div>
+      ` : ''}
     </div>
   `;
 
