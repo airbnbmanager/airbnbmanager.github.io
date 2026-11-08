@@ -11,6 +11,8 @@ const QRCodeNode = require('qrcode');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
+const { getRelevantContext, STATIC_PROPERTIES, GLOBAL_FAQS } = require('./knowledge-rag');
+const { parseImageWithGemini } = require('./vision-parser');
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -244,6 +246,67 @@ async function startWhatsApp() {
   }
 }
 
+// ─── 🧠 NISHA AI RAG REASONING ENGINE (GEMINI 2.5 / 1.5 FLASH) ───
+async function generateNishaAIReply(userText, chatHistory = []) {
+  const geminiKey = process.env.GEMINI_API_KEY || '';
+  const context = getRelevantContext(userText);
+
+  if (geminiKey) {
+    try {
+      const historyParts = (chatHistory || []).slice(-4).map(h => ({
+        role: h.fromMe ? 'model' : 'user',
+        parts: [{ text: h.text || '' }]
+      }));
+
+      const systemPrompt = `You are "Nisha" (निशा), the warm, charming, and highly professional 24/7 AI Concierge & Reservation Manager for "The Unique Haven Homes" (TUHH) luxury homestays in Lucknow.
+Location: Lucknow, Uttar Pradesh, India.
+Key Points:
+- Direct booking saves 15% to 20% compared to Airbnb/OTAs.
+- Total 19 verified luxury homestay apartments and independent private villas.
+- Tone: Polite, warm Indian Hinglish / English. Use respectful hospitality phrases: "Namaste ji", "Bilkul ji", "Zaroor ji".
+- Keep voice and chat answers short and crisp (2 to 4 sentences).
+- Strictly use the verified knowledge context below. Never invent fake phone numbers, non-existent rooms, or arbitrary pricing:
+
+=== VERIFIED TUHH KNOWLEDGE CONTEXT ===
+${context}
+=======================================`;
+
+      const contents = [
+        ...historyParts,
+        { role: 'user', parts: [{ text: userText }] }
+      ];
+
+      const postData = JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { temperature: 0.2, maxOutputTokens: 350 }
+      });
+
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: postData
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (candidate && candidate.trim()) {
+          return candidate.trim();
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Gemini RAG error, falling back to local knowledge:', err.message);
+    }
+  }
+
+  // Fallback to RAG direct fact
+  if (context && !context.startsWith('[GENERAL OVERVIEW]')) {
+    return `🏨 *The Unique Haven Homes — AI Concierge* ✨\n\n${context}\n\n_Kisi aur query ke liye reply karein ya call karein: +91 9450055554_ 🙏`;
+  }
+  return null;
+}
+
 // ─── SMART AI AGENT FOR THE UNIQUE HAVEN HOMES ───
 async function handleGuestMessage(fromJid, phone, name, text, msgTime, channel = 'baileys') {
   console.log(`📩 Incoming WhatsApp from ${phone} (${name}) via ${channel.toUpperCase()}: "${text}"`);
@@ -294,7 +357,7 @@ async function handleGuestMessage(fromJid, phone, name, text, msgTime, channel =
     return;
   }
 
-  // 4. GENERATE AI RESPONSE (Homestay Master Knowledge)
+  // 4. GENERATE AI RESPONSE (Homestay Master Knowledge + RAG)
   let replyText = '';
 
   // Trigger Human Takeover via message
@@ -312,8 +375,14 @@ Aapki chat ko hamare live property manager ko assign kar diya gaya hai.
 
 Hamari team aapse turant connect karegi. Aap apna requirement yahan likh sakte hain. 🙏`;
 
-  } else if (
-    (lower.includes('kal') || lower.includes('aaj') || lower.includes('parso') || lower.includes('tomorrow') || lower.includes('today')) &&
+  } else if (process.env.GEMINI_API_KEY) {
+    // 🧠 Try Gemini 2.5 / 1.5 Flash with RAG
+    replyText = await generateNishaAIReply(text, chat.history);
+  }
+
+  if (!replyText) {
+    if (
+      (lower.includes('kal') || lower.includes('aaj') || lower.includes('parso') || lower.includes('tomorrow') || lower.includes('today')) &&
     (lower.includes('availab') || lower.includes('khali') || lower.includes('chahiye') || lower.includes('room') || lower.includes('flat') || lower.includes('bhk') || lower.includes('book'))
   ) {
     const isKal = lower.includes('kal') || lower.includes('tomorrow');
@@ -461,8 +530,13 @@ Office: The Unique Haven Homes Pvt. Ltd., Lucknow
 Website: https://uniquehavenhomesstay.com`;
 
   } else {
-    // Default Warm Welcome Menu
-    replyText =
+    // 🔍 Smart RAG Keyword Matcher Fallback for specific property/policy
+    const ragAnswer = getRelevantContext(text);
+    if (ragAnswer && !ragAnswer.startsWith('[GENERAL OVERVIEW]')) {
+      replyText = `🏨 *The Unique Haven Homes — AI Concierge* ✨\n\n${ragAnswer}\n\n_Aap dates ya query batayein, main assistance provide kar deti hoon! Call: +91 9450055554_ 🙏`;
+    } else {
+      // Default Warm Welcome Menu
+      replyText =
 `👋 *Hello ${name}! Welcome to The Unique Haven Homes.* 🏨✨
 Luxury Serviced Homestays & Independent Villas in Lucknow.
 
@@ -476,7 +550,9 @@ Reply with a number:
 *5* 👤 Speak with Property Manager
 
 _Direct website: https://uniquehavenhomesstay.com_`;
+    }
   }
+}
 
   // 5. Send AI Reply (Meta Cloud API or Baileys)
   try {
@@ -968,6 +1044,47 @@ app.get('/groups', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ─── 12. MULTIMODAL VISION AI (PAYMENT & ID PARSER) ───
+app.post('/api/ai/vision-parse', async (req, res) => {
+  try {
+    const { imageBase64, mimeType, apiKey } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ ok: false, error: 'imageBase64 string is required.' });
+    }
+    const result = await parseImageWithGemini(imageBase64, mimeType || 'image/jpeg', apiKey);
+    res.json({ ok: true, result });
+  } catch (err) {
+    console.error('Vision parse endpoint error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── 13. SMART RAG QUERY ENDPOINT ───
+app.post('/api/ai/rag-query', async (req, res) => {
+  try {
+    const { query, history } = req.body;
+    if (!query) {
+      return res.status(400).json({ ok: false, error: 'query text is required.' });
+    }
+    const context = getRelevantContext(query);
+    const answer = await generateNishaAIReply(query, history || []);
+    res.json({ ok: true, answer, context });
+  } catch (err) {
+    console.error('RAG query endpoint error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── 14. PROPERTY KNOWLEDGE BASE DIRECTORY ───
+app.get('/api/knowledge-base', (req, res) => {
+  res.json({
+    ok: true,
+    total_properties: STATIC_PROPERTIES.length,
+    properties: STATIC_PROPERTIES,
+    faqs: GLOBAL_FAQS
+  });
 });
 
 // ─── START SERVER & DAEMON ───
