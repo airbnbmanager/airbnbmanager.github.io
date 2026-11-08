@@ -116,13 +116,19 @@
 
     function showMandatoryUpdateModal(newVersionTitle) {
       if (document.getElementById('mandatoryUpdateModalOverlay')) return;
+      // Do not show if this version has already been accepted
+      if (localStorage.getItem('uhhs_accepted_build_version') === window.UHHS_BUILD_VERSION && !newVersionTitle) return;
 
       const overlay = document.createElement('div');
       overlay.id = 'mandatoryUpdateModalOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2147483647;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
 
       overlay.innerHTML = `
-        <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 30px 60px -12px rgba(0,0,0,0.5);width:100%;max-width:480px;overflow:hidden;border:2px solid #0284C7;animation:tuhhModalPop 0.3s cubic-bezier(0.16,1,0.3,1);">
+        <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 30px 60px -12px rgba(0,0,0,0.5);width:100%;max-width:480px;overflow:hidden;border:2px solid #0284C7;animation:tuhhModalPop 0.3s cubic-bezier(0.16,1,0.3,1);position:relative;">
+          <!-- Close button -->
+          <button type="button" onclick="document.getElementById('mandatoryUpdateModalOverlay')?.remove()" 
+            style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s;">✕</button>
+
           <!-- HEADER -->
           <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:26px 24px 22px;color:#FFFFFF;text-align:center;position:relative;">
             <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(56,189,248,0.18);border:1px solid #38BDF8;color:#38BDF8;font-size:11px;font-weight:900;letter-spacing:1px;padding:4px 12px;border-radius:20px;text-transform:uppercase;margin-bottom:12px;">
@@ -150,40 +156,41 @@
       document.body.appendChild(overlay);
     }
 
-    window.acceptSystemUpdateAndReload = async function() {
+    window.acceptSystemUpdateAndReload = function() {
       const btn = document.getElementById('acceptUpdateBtn');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span>⏳ Updating cache &amp; activating latest version...</span>';
+        btn.innerHTML = '<span>⏳ Activating latest version...</span>';
       }
 
-      // Mark this build version accepted locally
+      // 1. Immediately record version accepted
       try { localStorage.setItem('uhhs_accepted_build_version', window.UHHS_BUILD_VERSION); } catch(e) {}
+      try { sessionStorage.clear(); } catch(e) {}
 
-      // 1. Unregister all service workers and wipe all caches
+      // 2. Fire-and-forget: notify service worker & wipe caches without blocking
       try {
         if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const reg of regs) {
-            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            await reg.unregister();
-          }
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(reg => {
+              try { if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(err) {}
+              try { reg.unregister(); } catch(err) {}
+            });
+          }).catch(() => {});
         }
       } catch(e) {}
 
       try {
         if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
+          caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
         }
       } catch(e) {}
 
-      // 2. Clear stale session markers
-      try { sessionStorage.clear(); } catch(e) {}
-
-      // 3. Force clean cache-busting hard reload
-      const cleanUrl = window.location.pathname + '?_v=' + window.UHHS_BUILD_VERSION + '#' + (window.location.hash.replace('#', '') || 'dashboard');
-      window.location.replace(cleanUrl);
+      // 3. Fast non-blocking guaranteed reload (150ms timeout)
+      setTimeout(() => {
+        const hash = window.location.hash.replace('#', '') || 'analytics';
+        window.location.href = window.location.pathname + '?_v=' + window.UHHS_BUILD_VERSION + '#' + hash;
+        window.location.reload();
+      }, 150);
     };
 
     // Check version immediately on boot
@@ -223,18 +230,7 @@
           console.log('✅ UHHS PWA Service Worker active (v439):', reg.scope);
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            showMandatoryUpdateModal();
           }
-          reg.onupdatefound = () => {
-            const installing = reg.installing;
-            if (installing) {
-              installing.onstatechange = () => {
-                if (installing.state === 'installed') {
-                  showMandatoryUpdateModal();
-                }
-              };
-            }
-          };
         }).catch(err => {
           console.warn('SW registration notice:', err.message);
         });
