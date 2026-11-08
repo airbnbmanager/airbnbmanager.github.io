@@ -114,9 +114,9 @@ window.handleGlobalPropertyFilterChange = function(roomId) {
     window._guestCRMState.propertyFilter = cleanId;
   }
   window._calRoom = cleanId || 'all';
-  window._taskPropFilter = cleanId || 'ALL';
-  window._maintProp = cleanId || 'ALL';
-  window._laundryProp = cleanId || 'ALL';
+  window._taskPropFilter = cleanId || 'All';
+  window._maintProp = cleanId || 'All';
+  window._laundryProp = cleanId || 'All';
 
   window.syncTopbarPropertySelect();
 
@@ -2432,9 +2432,9 @@ function navigate(page) {
     window._guestCRMState.propertyFilter = globalProp || '';
   }
   window._calRoom = globalProp ? globalProp : 'all';
-  window._taskPropFilter = globalProp ? globalProp : 'ALL';
-  window._maintProp = globalProp ? globalProp : 'ALL';
-  window._laundryProp = globalProp ? globalProp : 'ALL';
+  window._taskPropFilter = globalProp ? globalProp : 'All';
+  window._maintProp = globalProp ? globalProp : 'All';
+  window._laundryProp = globalProp ? globalProp : 'All';
 
   const map = {
     menu: () => (window.renderAppMenu || renderAppMenu)(),

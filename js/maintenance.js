@@ -16,10 +16,10 @@ async function renderMaintenanceLog() {
   renderShell(`<div class="loading">Loading...</div>`, 'maintenance');
   if (window._initMaintPhotoInputs) window._initMaintPhotoInputs();
 
-  const monthFilter = window._maintMonth || 'All';
-  const statusFilter = window._maintStatus || 'All';
-  const propFilter = window._maintProp || 'All';
-  const priorityFilter = window._maintPriority || 'All';
+  const monthFilter = (window._maintMonth || 'All').trim();
+  const statusFilter = (window._maintStatus || 'All').trim();
+  const propFilter = (window._maintProp || 'All').trim();
+  const priorityFilter = (window._maintPriority || 'All').trim();
 
   const [{ data: logs }, { data: rooms }, { data: emps }] = await Promise.all([
     sb.from('maintenance_log').select('*').order('reported_date', { ascending: false }),
@@ -32,12 +32,20 @@ async function renderMaintenanceLog() {
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.emp_id] = e.name; });
 
-  // Apply filters
+  // Apply filters (Safe Case-Insensitive 'ALL' handling)
   let filtered = logs || [];
-  if (monthFilter !== 'All') filtered = filtered.filter(l => (l.reported_date || '').startsWith(monthFilter));
-  if (statusFilter !== 'All') filtered = filtered.filter(l => (l.status || 'Pending') === statusFilter);
-  if (propFilter !== 'All') filtered = filtered.filter(l => l.room_id === propFilter);
-  if (priorityFilter !== 'All') filtered = filtered.filter(l => (l.priority || 'Normal') === priorityFilter);
+  if (monthFilter && monthFilter.toUpperCase() !== 'ALL') {
+    filtered = filtered.filter(l => (l.reported_date || '').startsWith(monthFilter));
+  }
+  if (statusFilter && statusFilter.toUpperCase() !== 'ALL') {
+    filtered = filtered.filter(l => (l.status || 'Pending') === statusFilter);
+  }
+  if (propFilter && propFilter.toUpperCase() !== 'ALL') {
+    filtered = filtered.filter(l => l.room_id === propFilter);
+  }
+  if (priorityFilter && priorityFilter.toUpperCase() !== 'ALL') {
+    filtered = filtered.filter(l => (l.priority || 'Normal') === priorityFilter);
+  }
 
   // Stats
   const totalCost = filtered.reduce((s, l) => s + Number(l.cost || 0), 0);
@@ -95,19 +103,19 @@ async function renderMaintenanceLog() {
       <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.4px;">🔍 Filter Maintenance Issues</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;">
         <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintMonth=this.value;renderMaintenanceLog()">
-          <option value="All" ${monthFilter==='All'?'selected':''}>📅 All Months</option>
+          <option value="All" ${!monthFilter || monthFilter.toUpperCase()==='ALL'?'selected':''}>📅 All Months</option>
           ${months.map(m => `<option value="${m}" ${monthFilter===m?'selected':''}>${m}</option>`).join('')}
         </select>
         <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintStatus=this.value;renderMaintenanceLog()">
-          <option value="All" ${statusFilter==='All'?'selected':''}>📊 All Status</option>
+          <option value="All" ${!statusFilter || statusFilter.toUpperCase()==='ALL'?'selected':''}>📊 All Status</option>
           ${MAINT_STATUSES.map(s => `<option value="${s}" ${statusFilter===s?'selected':''}>${s}</option>`).join('')}
         </select>
         <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintProp=this.value;renderMaintenanceLog()">
-          <option value="All" ${propFilter==='All'?'selected':''}>🏠 All Properties</option>
+          <option value="All" ${!propFilter || propFilter.toUpperCase()==='ALL'?'selected':''}>🏠 All Properties</option>
           ${(rooms || []).map(r => `<option value="${r.room_id}" ${propFilter===r.room_id?'selected':''}>${r.nickname || r.unit_no}</option>`).join('')}
         </select>
         <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintPriority=this.value;renderMaintenanceLog()">
-          <option value="All" ${priorityFilter==='All'?'selected':''}>⚡ All Priority</option>
+          <option value="All" ${!priorityFilter || priorityFilter.toUpperCase()==='ALL'?'selected':''}>⚡ All Priority</option>
           ${MAINT_PRIORITIES.map(p => `<option value="${p}" ${priorityFilter===p?'selected':''}>${p}</option>`).join('')}
         </select>
       </div>
@@ -122,7 +130,7 @@ async function renderMaintenanceLog() {
         <th>Assigned</th><th>Cost</th><th>Status</th><th>Date</th><th>Photo</th><th>Actions</th>
       </tr></thead>
       <tbody>
-        ${filtered.length === 0 ? '<tr><td colspan="10" style="text-align:center;padding:20px;color:#999;">No entries found</td></tr>' : ''}
+        ${filtered.length === 0 ? '<tr><td colspan="11" style="text-align:center;padding:20px;color:#999;">No entries found</td></tr>' : ''}
         ${filtered.map(l => {
           const status = l.status || 'Pending';
           const statusClass = status === 'Resolved' || status === 'Verified' ? 'green' : status === 'In Progress' ? 'yellow' : 'red';
