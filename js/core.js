@@ -1475,7 +1475,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'bookings',
       label: '📅 Bookings / Calendar',
       page: 'bookings',
-      pages: ['bookings', 'calendar', 'reports', 'pendingApprovals'],
+      pages: ['bookings', 'calendar', 'reports', 'pendingApprovals', 'shifts', 'guest-crm'],
       tabs: [
         { id: 'bookings', label: '📅 Today' },
         { id: 'calendar', label: '🗓️ Calendar' },
@@ -1486,7 +1486,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'rooms',
       label: '🏢 Properties',
       page: 'rooms',
-      pages: ['rooms', 'flats', 'showcase-admin', 'airbnb-sync', 'property-setup', 'ical-sync'],
+      pages: ['rooms', 'flats', 'showcase-admin', 'airbnb-sync', 'property-setup', 'ical-sync', 'property-report'],
       tabs: [
         { id: 'rooms', label: '🏢 Units & Pricing' },
         { id: 'flats', label: '🛏️ Flat Status' },
@@ -1498,7 +1498,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'expenses',
       label: '🧾 Expenses',
       page: 'expenses',
-      pages: ['expenses', 'claims', 'reimbursements', 'laundry', 'maintenance'],
+      pages: ['expenses', 'claims', 'reimbursements', 'laundry', 'maintenance', 'store', 'cashbook'],
       tabs: [
         { id: 'expenses', label: '📊 Expenses & P&L' },
         { id: 'claims', label: '🏦 TUHH-OD & Claims' },
@@ -1510,7 +1510,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'finances',
       label: '💰 Finances',
       page: 'analytics',
-      pages: ['analytics', 'ca-audit', 'investors', 'cashbook', 'financial', 'financial-sheet'],
+      pages: ['analytics', 'ca-audit', 'investors', 'financial', 'financial-sheet'],
       tabs: [
         { id: 'analytics', label: '📊 Executive Dashboard' },
         { id: 'ca-audit', label: '💼 CA & Tax Audit' },
@@ -1521,7 +1521,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'employees',
       label: '👥 HRMS & Tasks',
       page: 'employees',
-      pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop'],
+      pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop', 'company-advances', 'my-ledger', 'task-and-housekeeping', 'housekeeping'],
       tabs: [
         { id: 'employees', label: '👥 Staff Roster' },
         { id: 'attendance', label: '📋 Attendance' },
@@ -1533,7 +1533,7 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'whatsapp-hub',
       label: '📱 WhatsApp Hub',
       page: 'whatsapp-hub',
-      pages: ['whatsapp-hub', 'whatsapp'],
+      pages: ['whatsapp-hub', 'whatsapp', 'reviews-followup'],
       tabs: []
     },
     {
@@ -1559,6 +1559,64 @@ function renderShell(content, activePage = 'dashboard') {
     }
   ];
   window._UHHS_HUBS = UHHS_HUBS;
+
+  // Single Source of Truth for mapping every page/sub-tab to its parent sidebar key
+  const PAGE_TO_SIDEBAR_MAP = {
+    dashboard: 'dashboard',
+    dailyReport: 'dashboard',
+
+    bookings: 'bookings',
+    calendar: 'bookings',
+    reports: 'bookings',
+    pendingApprovals: 'bookings',
+    shifts: 'bookings',
+    'guest-crm': 'bookings',
+
+    rooms: 'rooms',
+    flats: 'rooms',
+    'showcase-admin': 'rooms',
+    'airbnb-sync': 'rooms',
+    'property-setup': 'rooms',
+    'ical-sync': 'rooms',
+    'property-report': 'rooms',
+
+    expenses: 'expenses',
+    claims: 'expenses',
+    reimbursements: 'expenses',
+    laundry: 'expenses',
+    maintenance: 'expenses',
+    store: 'expenses',
+    cashbook: 'expenses',
+
+    analytics: 'analytics',
+    'ca-audit': 'analytics',
+    investors: 'analytics',
+    financial: 'analytics',
+    'financial-sheet': 'analytics',
+    finances: 'analytics',
+
+    employees: 'employees',
+    attendance: 'employees',
+    'att-summary': 'employees',
+    tasks: 'employees',
+    'employee-ledger': 'employees',
+    advance: 'employees',
+    sop: 'employees',
+    'company-advances': 'employees',
+    'my-ledger': 'employees',
+    'task-and-housekeeping': 'employees',
+    housekeeping: 'employees',
+
+    'whatsapp-hub': 'whatsapp-hub',
+    whatsapp: 'whatsapp-hub',
+    'reviews-followup': 'whatsapp-hub',
+
+    'user-mgmt': 'user-mgmt',
+    settings: 'settings',
+    help: 'help',
+    menu: 'menu'
+  };
+  window.PAGE_TO_SIDEBAR_MAP = PAGE_TO_SIDEBAR_MAP;
 
   // 👑 OWNER ROLE: Filter out restricted tabs from hub definitions
   if (isPureOwner) {
@@ -1675,6 +1733,7 @@ function renderShell(content, activePage = 'dashboard') {
     reimbursements: { title: 'Daily Expenses', sub: 'Staff reimbursements & operational spends', icon: '💸' },
     expenses: { title: 'Monthly Expenses & P&L', sub: 'Property-wise profit & loss reporting', icon: '📊' },
     claims: { title: 'TUHH-OD & Universal Claims', sub: 'TUHH-OD Overdraft balance, daily closing statement & vendor settlements', icon: '🏦' },
+    'ca-audit': { title: 'CA Payout & Tax Audit (Section 194-O TDS)', sub: 'Audited Airbnb payouts, 1% Section 194-O TDS, gross earnings & 1-click CA export', icon: '💼' },
     investors: { title: 'Investors Ledger', sub: 'Property investor shares & payouts', icon: '🧑‍💼' },
     dailyReport: { title: 'Daily Operations Report', sub: 'End-of-day revenue, checkins & summaries', icon: '📈' },
     analytics: { title: 'Executive Financial Dashboard', sub: 'Net revenue, ADR, RevPAR, NOI & property performance', icon: '📊' },
@@ -1693,7 +1752,6 @@ function renderShell(content, activePage = 'dashboard') {
     'property-setup': { title: 'Property Setup', sub: 'Configure rooms, units & pricing', icon: '🏗️' },
     'whatsapp-hub': { title: 'WhatsApp Communications', sub: 'Guest templates & automated messaging', icon: '📱' },
     sop: { title: 'SOP Operational Guide', sub: 'Standard operating procedures for staff', icon: '📘' },
-    investors: { title: 'Investor Reports & P&L', sub: 'Inbuilt monthly property expenses and payouts', icon: '📊' },
     menu: { title: 'Account & Operations', sub: 'The Unique Haven Homes Pvt. Ltd.', icon: '☰' },
     'user-mgmt': { title: 'User Management', sub: 'System users, roles & permissions', icon: '👤' },
     help: { title: 'Help & Operating Guide', sub: 'Interactive software manual, daily workflows & fast shortcut keys', icon: '❓' },
@@ -1769,36 +1827,47 @@ function renderShell(content, activePage = 'dashboard') {
     if (pageSubEl) pageSubEl.textContent = pageMeta.sub;
 
     // 3. Update sidebar active links (Strict Single Selection - HomeyIndia Standard)
-    const sidebarLinks = Array.from(document.querySelectorAll('.sidebar-nav a[data-page]'));
-    const sidebarKeys = new Set(sidebarLinks.map(a => (a.dataset.page === 'reports' ? 'calendar' : a.dataset.page)));
-    const normActive = (activePage === 'reports') ? 'calendar' : activePage;
+    const targetSidebarKey = PAGE_TO_SIDEBAR_MAP[activePage] || (activePage === 'reports' ? 'bookings' : activePage);
 
+    // Auto-heal any stale legacy data-page attributes in cached DOM
+    const staleClaimsLink = document.querySelector('.sidebar-nav a[data-page="claims"]');
+    if (staleClaimsLink) {
+      staleClaimsLink.dataset.page = 'analytics';
+      staleClaimsLink.onclick = e => {
+        e.preventDefault();
+        closeMobileDrawer();
+        navigate('analytics');
+      };
+    }
+
+    const sidebarLinks = Array.from(document.querySelectorAll('.sidebar-nav a[data-page]'));
     sidebarLinks.forEach(a => {
       const k = a.dataset.page;
-      const normK = (k === 'reports') ? 'calendar' : k;
-      let isItemActive = false;
-      if (normActive === normK) {
-        isItemActive = true;
-      } else if (!sidebarKeys.has(normActive)) {
-        if (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k)) {
-          isItemActive = true;
-        }
-      }
+      const isItemActive = (k === targetSidebarKey);
       if (isItemActive) a.classList.add('active', 'active-hub');
       else a.classList.remove('active', 'active-hub');
     });
 
-    // 4. Update mobile bottom nav (HomeyHuts / Airbnb 5-tab capsule pill)
+    // 4. Update desktop topbar navigation links
+    document.querySelectorAll('.topbar-desktop-nav a').forEach(a => {
+      const onclickAttr = a.getAttribute('onclick') || '';
+      const isAct = 
+        (targetSidebarKey === 'dashboard' && onclickAttr.includes('dashboard')) ||
+        (targetSidebarKey === 'bookings' && onclickAttr.includes('bookings')) ||
+        (targetSidebarKey === 'rooms' && onclickAttr.includes('rooms')) ||
+        (targetSidebarKey === 'expenses' && onclickAttr.includes('expenses')) ||
+        (targetSidebarKey === 'analytics' && onclickAttr.includes('analytics')) ||
+        (targetSidebarKey === 'employees' && onclickAttr.includes('employees'));
+      if (isAct) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+
+    // 5. Update mobile bottom nav (HomeyHuts / Airbnb 5-tab capsule pill)
     document.querySelectorAll('#pwa-bottom-nav .pwa-nav-item, .bottom-nav a').forEach(btn => {
       const p = btn.dataset.page;
-      const isAct = (activePage === p) ||
-        (p === 'calendar' && (activePage === 'calendar' || activePage === 'reports')) ||
-        (p === 'bookings' && (activePage === 'bookings' || activePage === 'calendar' || activePage === 'reports' || activePage === 'pendingApprovals')) ||
-        (p === 'flats' && (activePage === 'flats' || activePage === 'properties' || activePage === 'rooms')) ||
-        (p === 'employees' && (activePage === 'employees' || activePage === 'tasks' || activePage === 'attendance' || activePage === 'employee-ledger' || activePage === 'task-and-housekeeping')) ||
-        (p === 'expenses' && activePage === 'expenses') ||
-        (p === 'dashboard' && activePage === 'dashboard') ||
-        (p === 'menu' && activePage === 'menu');
+      const isAct = (p === targetSidebarKey) ||
+        (p === 'calendar' && targetSidebarKey === 'bookings') ||
+        (p === 'flats' && targetSidebarKey === 'rooms');
       if (isAct) btn.classList.add('active');
       else btn.classList.remove('active');
     });
@@ -1857,22 +1926,13 @@ function renderShell(content, activePage = 'dashboard') {
 
         <nav class="sidebar-nav">
           ${(() => {
-            const navKeys = new Set(nav.filter(x => Array.isArray(x)).map(x => (x[0] === 'reports' ? 'calendar' : x[0])));
-            const normActive = (activePage === 'reports') ? 'calendar' : activePage;
+            const targetSidebarKey = PAGE_TO_SIDEBAR_MAP[activePage] || (activePage === 'reports' ? 'bookings' : activePage);
             return nav.map(item => {
               if (item.section) {
                 return `<div class="nav-section-heading">${item.section}</div>`;
               }
               const [k, l] = item;
-              const normK = (k === 'reports') ? 'calendar' : k;
-              let isItemActive = false;
-              if (normActive === normK) {
-                isItemActive = true;
-              } else if (!navKeys.has(normActive)) {
-                if (currentHub && currentHub.pages.includes(activePage) && (currentHub.id === k || currentHub.page === k)) {
-                  isItemActive = true;
-                }
-              }
+              const isItemActive = (k === targetSidebarKey);
               const badgeHtml = (k === 'bookings' && (window._pendingCount || 0) > 0)
                 ? `<span style="background:#F59E0B;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:auto;">${window._pendingCount}</span>`
                 : '';
@@ -1909,12 +1969,17 @@ function renderShell(content, activePage = 'dashboard') {
 
           <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
           <nav class="topbar-desktop-nav">
-            <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-calendar-event"></i> Today</a>
-            <a href="javascript:void(0)" onclick="navigate('bookings')" class="${(activePage==='bookings'||activePage==='calendar'||activePage==='reports'||activePage==='pendingApprovals')?'active':''}"><i class="ti ti-calendar-check"></i> Bookings &amp; Calendar</a>
-            <a href="javascript:void(0)" onclick="navigate('rooms')" class="${(activePage==='rooms'||activePage==='flats'||activePage==='showcase-admin'||activePage==='airbnb-sync')?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
-            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${(activePage==='expenses'||activePage==='claims'||activePage==='reimbursements'||activePage==='laundry'||activePage==='maintenance')?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
-            <a href="javascript:void(0)" onclick="navigate('analytics')" class="${(activePage==='analytics'||activePage==='investors'||activePage==='ca-audit')?'active':''}"><i class="ti ti-wallet"></i> Finances</a>
-            <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='employee-ledger')?'active':''}"><i class="ti ti-id-badge-2"></i> HRMS &amp; Tasks</a>
+            ${(() => {
+              const topKey = PAGE_TO_SIDEBAR_MAP[activePage] || (activePage === 'reports' ? 'bookings' : activePage);
+              return `
+                <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${topKey==='dashboard'?'active':''}"><i class="ti ti-calendar-event"></i> Today</a>
+                <a href="javascript:void(0)" onclick="navigate('bookings')" class="${topKey==='bookings'?'active':''}"><i class="ti ti-calendar-check"></i> Bookings &amp; Calendar</a>
+                <a href="javascript:void(0)" onclick="navigate('rooms')" class="${topKey==='rooms'?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
+                <a href="javascript:void(0)" onclick="navigate('expenses')" class="${topKey==='expenses'?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
+                <a href="javascript:void(0)" onclick="navigate('analytics')" class="${topKey==='analytics'?'active':''}"><i class="ti ti-wallet"></i> Finances</a>
+                <a href="javascript:void(0)" onclick="navigate('employees')" class="${topKey==='employees'?'active':''}"><i class="ti ti-id-badge-2"></i> HRMS &amp; Tasks</a>
+              `;
+            })()}
           </nav>
 
           <div class="topbar-right">
@@ -2399,17 +2464,11 @@ function navigate(page) {
   });
 
   // Update active state on bottom navigation
+  const targetBottomKey = (typeof PAGE_TO_SIDEBAR_MAP !== 'undefined' && PAGE_TO_SIDEBAR_MAP[page]) ? PAGE_TO_SIDEBAR_MAP[page] : page;
   document.querySelectorAll('.bottom-nav a[data-page], .pwa-bottom-nav .pwa-nav-item[data-page]').forEach(a => {
-    const isAct = (a.dataset.page === page) ||
-      (a.dataset.page === 'menu' && page === 'menu') ||
-      (a.dataset.page === 'calendar' && (page === 'calendar' || page === 'reports')) ||
-      (a.dataset.page === 'bookings' && (page === 'bookings' || page === 'calendar' || page === 'reports' || page === 'pendingApprovals')) ||
-      (a.dataset.page === 'dashboard' && page === 'dashboard') ||
-      (a.dataset.page === 'employees' && (page === 'employees' || page === 'tasks' || page === 'attendance' || page === 'employee-ledger' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
-      (a.dataset.page === 'tasks' && (page === 'tasks' || page === 'employees' || page === 'maintenance' || page === 'task-and-housekeeping' || page === 'housekeeping')) ||
-      (a.dataset.page === 'attendance' && (page === 'attendance' || page === 'att-summary')) ||
-      (a.dataset.page === 'expenses' && page === 'expenses') ||
-      (a.dataset.page === 'flats' && (page === 'flats' || page === 'properties' || page === 'rooms'));
+    const isAct = (a.dataset.page === targetBottomKey) ||
+      (a.dataset.page === 'calendar' && targetBottomKey === 'bookings') ||
+      (a.dataset.page === 'flats' && targetBottomKey === 'rooms');
     if (isAct) a.classList.add('active');
     else a.classList.remove('active');
   });
