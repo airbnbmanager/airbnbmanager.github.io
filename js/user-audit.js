@@ -616,6 +616,31 @@
       try { userActions = await window.UserActionAudit.fetchUserActionsForMonth(userId, displayName, monthStr); } catch(e) {}
     }
 
+    // 5c. Cross-correlate verified operational work (Bookings, Payments, Advances, Expenses) into dailyMap!
+    // Ensures real database work from 1 Nov 2026 onwards is credited as verified active days
+    (userActions || []).forEach(act => {
+      const d = act.date || (act.timestamp ? act.timestamp.slice(0, 10) : '');
+      if (d && d.startsWith(monthStr)) {
+        if (!dailyMap[d]) {
+          dailyMap[d] = {
+            log_date: d,
+            login_count: 1,
+            active_seconds: 600, // minimum 10 min session credited for taking operational action
+            first_login_at: act.timestamp || `${d}T10:00:00.000Z`,
+            last_active_at: act.timestamp || `${d}T10:10:00.000Z`
+          };
+        } else {
+          const r = dailyMap[d];
+          r.login_count = Math.max(r.login_count || 1, 1);
+          r.active_seconds = Math.max(r.active_seconds || 0, 600);
+          if (act.timestamp) {
+            if (!r.first_login_at || new Date(act.timestamp) < new Date(r.first_login_at)) r.first_login_at = act.timestamp;
+            if (!r.last_active_at || new Date(act.timestamp) > new Date(r.last_active_at)) r.last_active_at = act.timestamp;
+          }
+        }
+      }
+    });
+
     // 6. Cross-correlate Page Visits into dailyMap!
     // Every day that has verified page actions MUST be counted as an active day with true timings
     const visitsByDate = {};
@@ -1459,6 +1484,7 @@
       const list = [];
       const seen = new Set();
 
+      // 1. Central app_settings actions
       try {
         if (window.sb) {
           const key = `uh_user_actions_${monthStr}`;
@@ -1476,6 +1502,211 @@
               }
             });
           }
+        }
+      } catch(e) {}
+
+      // 2. LocalStorage actions
+      try {
+        const lKey = `uh_user_actions_${monthStr}`;
+        const localList = JSON.parse(localStorage.getItem(lKey) || '[]');
+        (localList || []).forEach(a => {
+          const aUid = (a.userId || '').toLowerCase();
+          const aName = (a.userName || '').trim().toLowerCase();
+          if ((targetUid && aUid === targetUid) || (targetName && aName === targetName)) {
+            if (!seen.has(a.id)) {
+              seen.add(a.id);
+              list.push(a);
+            }
+          }
+        });
+      } catch(e) {}
+
+      // 3. Database Cross-Correlation for the ENTIRE Month (From 1st of month onwards):
+      // A) guest_register bookings
+      try {
+        if (window.sb) {
+          const { data: bks } = await window.sb.from('guest_register')
+            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, rooms(nickname, unit_no)')
+            .gte('check_in', `${monthStr}-01`)
+            .lte('check_in', `${monthStr}-31`)
+            .neq('is_cancelled', true)
+            .order('check_in', { ascending: false });
+
+          (bks || []).forEach(b => {
+            const bUser = (b.booked_by || '').trim();
+            const bUid = (b.created_by || '').trim().toLowerCase();
+            const matchUser = (targetName && bUser.toLowerCase().includes(targetName)) ||
+                              (targetName && targetName.includes(bUser.toLowerCase())) ||
+                              (targetUid && bUid === targetUid);
+            if (matchUser) {
+              const actionId = `db_bk_${b.booking_id}`;
+              if (!seen.has(actionId)) {
+                seen.add(actionId);
+                const rName = b.rooms?.nickname || b.rooms?.unit_no || b.room_id;
+                list.push({
+                  id: actionId,
+                  timestamp: `${b.check_in}T10:00:00.000Z`,
+                  date: b.check_in,
+                  month: monthStr,
+                  userId: b.created_by || userId || 'staff',
+                  userName: b.booked_by || displayName,
+                  userRole: 'staff',
+                  actionType: 'booking_add',
+                  actionTitle: '➕ Added Booking',
+                  device: '💻 System Record',
+                  details: {
+                    bookingId: b.booking_id,
+                    guestName: b.guest_name,
+                    roomId: b.room_id,
+                    propertyTitle: rName,
+                    amount: b.total_amount,
+                    paymentStatus: b.payment_status,
+                    checkIn: b.check_in,
+                    checkOut: b.check_out,
+                    bookedBy: b.booked_by
+                  }
+                });
+              }
+            }
+          });
+        }
+      } catch(e) {}
+
+      // B) payment_history
+      try {
+        if (window.sb) {
+          const { data: pays } = await window.sb.from('payment_history')
+            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id)')
+            .gte('payment_date', `${monthStr}-01`)
+            .lte('payment_date', `${monthStr}-31`)
+            .order('payment_date', { ascending: false });
+
+          (pays || []).forEach(p => {
+            const pUser = (p.received_by || '').trim();
+            const pUid = (p.created_by || '').trim().toLowerCase();
+            const matchUser = (targetName && pUser.toLowerCase().includes(targetName)) ||
+                              (targetName && targetName.includes(pUser.toLowerCase())) ||
+                              (targetUid && pUid === targetUid);
+            if (matchUser) {
+              const pId = `db_pay_${p.id}`;
+              if (!seen.has(pId)) {
+                seen.add(pId);
+                list.push({
+                  id: pId,
+                  timestamp: p.paid_at || `${p.payment_date}T12:00:00.000Z`,
+                  date: p.payment_date,
+                  month: monthStr,
+                  userId: p.created_by || userId || 'staff',
+                  userName: p.received_by || displayName,
+                  userRole: 'staff',
+                  actionType: 'payment_add',
+                  actionTitle: '💰 Added Payment',
+                  device: '💻 System Record',
+                  details: {
+                    bookingId: p.booking_id,
+                    guestName: p.guest_register?.guest_name || 'Guest',
+                    roomId: p.guest_register?.room_id,
+                    amount: p.amount,
+                    mode: p.payment_mode,
+                    receivedBy: p.received_by,
+                    paymentDate: p.payment_date,
+                    notes: p.notes
+                  }
+                });
+              }
+            }
+          });
+        }
+      } catch(e) {}
+
+      // C) expenses
+      try {
+        if (window.sb) {
+          const { data: exps } = await window.sb.from('expenses')
+            .select('id, amount, paid_by, payment_mode, notes, room_id, entry_date, created_at, created_by, expense_categories(category_name), rooms(nickname)')
+            .gte('entry_date', `${monthStr}-01`)
+            .lte('entry_date', `${monthStr}-31`)
+            .order('entry_date', { ascending: false });
+
+          (exps || []).forEach(exp => {
+            const expUser = (exp.paid_by || '').trim();
+            const expUid = (exp.created_by || '').trim().toLowerCase();
+            const matchUser = (targetName && expUser.toLowerCase().includes(targetName)) ||
+                              (targetName && targetName.includes(expUser.toLowerCase())) ||
+                              (targetUid && expUid === targetUid);
+            if (matchUser) {
+              const eId = `db_exp_${exp.id}`;
+              if (!seen.has(eId)) {
+                seen.add(eId);
+                list.push({
+                  id: eId,
+                  timestamp: exp.created_at || `${exp.entry_date}T12:00:00.000Z`,
+                  date: exp.entry_date,
+                  month: monthStr,
+                  userId: exp.created_by || userId || 'staff',
+                  userName: exp.paid_by || displayName,
+                  userRole: 'staff',
+                  actionType: 'expense_add',
+                  actionTitle: '🧾 Recorded Expense',
+                  device: '💻 System Record',
+                  details: {
+                    expenseId: exp.id,
+                    category: exp.expense_categories?.category_name || 'Expense',
+                    amount: exp.amount,
+                    mode: exp.payment_mode,
+                    paidBy: exp.paid_by,
+                    property: exp.rooms?.nickname || exp.room_id || 'General',
+                    date: exp.entry_date,
+                    notes: exp.notes
+                  }
+                });
+              }
+            }
+          });
+        }
+      } catch(e) {}
+
+      // D) advance_tracker
+      try {
+        if (window.sb) {
+          const { data: advs } = await window.sb.from('advance_tracker')
+            .select('id, emp_id, advance_amount, payment_mode, paid_by, reason, date_given, created_at, employees(name, role)')
+            .gte('date_given', `${monthStr}-01`)
+            .lte('date_given', `${monthStr}-31`)
+            .order('date_given', { ascending: false });
+
+          (advs || []).forEach(adv => {
+            const advUser = (adv.paid_by || '').trim();
+            const matchUser = (targetName && advUser.toLowerCase().includes(targetName)) ||
+                              (targetName && targetName.includes(advUser.toLowerCase()));
+            if (matchUser) {
+              const aId = `db_adv_${adv.id}`;
+              if (!seen.has(aId)) {
+                seen.add(aId);
+                list.push({
+                  id: aId,
+                  timestamp: adv.created_at || `${adv.date_given}T12:00:00.000Z`,
+                  date: adv.date_given,
+                  month: monthStr,
+                  userId: userId || 'mgmt',
+                  userName: adv.paid_by || displayName,
+                  userRole: 'manager',
+                  actionType: 'advance_give',
+                  actionTitle: '💵 Disbursed Advance',
+                  device: '💻 System Record',
+                  details: {
+                    empId: adv.emp_id,
+                    empName: adv.employees?.name || adv.emp_id,
+                    amount: adv.advance_amount,
+                    mode: adv.payment_mode,
+                    paidBy: adv.paid_by,
+                    reason: adv.reason,
+                    dateGiven: adv.date_given
+                  }
+                });
+              }
+            }
+          });
         }
       } catch(e) {}
 

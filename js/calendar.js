@@ -45,8 +45,8 @@ async function renderReports() {
     .neq('is_cancelled', true).neq('verification_status', 'rejected');
 
   const LOCATION_ORDER = [
-    // 1. 8 properties Vikalp Khand
-    'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501',
+    // 1. 9 properties Vikalp Khand (Flat 402 / GOM-402 directly beside Nawabi Flat 401)
+    'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501',
     // 2. 3 properties Vishesh Khand
     'VIL-103', 'VIL-104', 'VIL-105',
     // 3. Gomti Grand Villa
@@ -157,7 +157,7 @@ async function renderReports() {
 
   // ─── Property selector (Grouped strictly location-wise) ───
   const CAL_LOCATION_GROUPS = [
-    { label: '📍 Vikalp Khand (8 Properties)', ids: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501'] },
+    { label: '📍 Vikalp Khand (9 Properties)', ids: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501'] },
     { label: '📍 Vishesh Khand (3 Properties)', ids: ['VIL-103', 'VIL-104', 'VIL-105'] },
     { label: '📍 Gomti Grand Villa', ids: ['VIL-101'] },
     { label: '📍 Whitehouse', ids: ['VIL-102'] },
