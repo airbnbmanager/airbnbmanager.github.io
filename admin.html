@@ -109,125 +109,14 @@
   <script src="js/command-palette.js?v=381"></script>
   <script src="js/help-guide.js?v=382"></script>
 
-  <!-- 🚀 Mandatory System Update & Cache Purge Barrier (Strict Version Lock) -->
+  <!-- PWA Service Worker Registration (Silent Background Updates · No Intrusive Modals) -->
   <script>
-    window.UHHS_BUILD_VERSION = '443';
-    window.UHHS_BUILD_NAME = 'MTD, QTD, YTD & KPI Analytics Suite';
+    // Remove any leftover modal overlay immediately if present in DOM
+    document.getElementById('mandatoryUpdateModalOverlay')?.remove();
 
-    function showMandatoryUpdateModal(newVersionTitle) {
-      if (document.getElementById('mandatoryUpdateModalOverlay')) return;
-      // Do not show if this version has already been accepted
-      if (localStorage.getItem('uhhs_accepted_build_version') === window.UHHS_BUILD_VERSION && !newVersionTitle) return;
-
-      const overlay = document.createElement('div');
-      overlay.id = 'mandatoryUpdateModalOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2147483647;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
-
-      overlay.innerHTML = `
-        <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 30px 60px -12px rgba(0,0,0,0.5);width:100%;max-width:480px;overflow:hidden;border:2px solid #0284C7;animation:tuhhModalPop 0.3s cubic-bezier(0.16,1,0.3,1);position:relative;">
-          <!-- Close button -->
-          <button type="button" onclick="document.getElementById('mandatoryUpdateModalOverlay')?.remove()" 
-            style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#FFFFFF;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:10;transition:all 0.2s;">✕</button>
-
-          <!-- HEADER -->
-          <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:26px 24px 22px;color:#FFFFFF;text-align:center;position:relative;">
-            <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(56,189,248,0.18);border:1px solid #38BDF8;color:#38BDF8;font-size:11px;font-weight:900;letter-spacing:1px;padding:4px 12px;border-radius:20px;text-transform:uppercase;margin-bottom:12px;">
-              <span>⚡ SYSTEM UPDATE REQUIRED</span>
-            </div>
-            <div style="font-size:22px;font-weight:900;letter-spacing:0.3px;color:#F8FAFC;">The Unique Haven Homes CRM</div>
-            <div style="font-size:13px;color:#94A3B8;margin-top:5px;">${newVersionTitle || window.UHHS_BUILD_NAME}</div>
-          </div>
-
-          <!-- BODY -->
-          <div style="padding:22px 24px;color:#1E293B;text-align:center;">
-            <div style="font-size:14.5px;font-weight:600;color:#334155;line-height:1.6;margin-bottom:18px;">
-              System performance optimizations aur security updates deploy ho chuke hain. Portal ko smooth chalane ke liye kripya latest update accept karein.
-            </div>
-
-            <!-- ACTION BUTTON -->
-            <button id="acceptUpdateBtn" type="button" onclick="window.acceptSystemUpdateAndReload()"
-              style="width:100%;background:linear-gradient(135deg,#059669,#10B981);color:#FFFFFF;border:none;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:900;letter-spacing:0.3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(16,185,129,0.38);transition:all 0.2s;">
-              <span>⚡ Accept Update &amp; Refresh (अपडेट स्वीकार करें)</span>
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-    }
-
-    window.acceptSystemUpdateAndReload = function() {
-      const btn = document.getElementById('acceptUpdateBtn');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span>⏳ Activating latest version...</span>';
-      }
-
-      // 1. Immediately record version accepted
-      try { localStorage.setItem('uhhs_accepted_build_version', window.UHHS_BUILD_VERSION); } catch(e) {}
-      try { sessionStorage.clear(); } catch(e) {}
-
-      // 2. Fire-and-forget: notify service worker & wipe caches without blocking
-      try {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(regs => {
-            regs.forEach(reg => {
-              try { if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(err) {}
-              try { reg.unregister(); } catch(err) {}
-            });
-          }).catch(() => {});
-        }
-      } catch(e) {}
-
-      try {
-        if ('caches' in window) {
-          caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
-        }
-      } catch(e) {}
-
-      // 3. Fast non-blocking guaranteed reload (150ms timeout)
-      setTimeout(() => {
-        const hash = window.location.hash.replace('#', '') || 'analytics';
-        window.location.href = window.location.pathname + '?_v=' + window.UHHS_BUILD_VERSION + '#' + hash;
-        window.location.reload();
-      }, 150);
-    };
-
-    // Check version immediately on boot
-    const acceptedVer = localStorage.getItem('uhhs_accepted_build_version');
-    if (acceptedVer !== window.UHHS_BUILD_VERSION) {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => showMandatoryUpdateModal());
-      } else {
-        showMandatoryUpdateModal();
-      }
-    }
-
-    // Auto-check for server update every 30s & on tab refocus
-    async function checkForServerAppUpdate() {
-      try {
-        const res = await fetch('/sw.js?_chk=' + Date.now(), { cache: 'no-store' });
-        if (res.ok) {
-          const txt = await res.text();
-          const match = txt.match(/CACHE_NAME\s*=\s*['"]tuhh-live-v([^'"]+)['"]/);
-          if (match && match[1] && match[1] !== window.UHHS_BUILD_VERSION) {
-            console.log('📢 Newer server version detected:', match[1]);
-            showMandatoryUpdateModal('New Release: v' + match[1]);
-          }
-        }
-      } catch(e) {}
-    }
-
-    setInterval(checkForServerAppUpdate, 30000);
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') checkForServerAppUpdate();
-    });
-
-    // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=443').then(reg => {
-          console.log('✅ UHHS PWA Service Worker active (v441):', reg.scope);
+        navigator.serviceWorker.register('/sw.js').then(reg => {
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
@@ -238,7 +127,7 @@
     }
 
     // Clean up stale dry-run localStorage keys
-    ['uhhs_wa_automation_v1', 'uhhs_wa_automation_v2', 'uhhs_wa_automation_v3', 'uhhs_wa_automation_v4'].forEach(k => {
+    ['uhhs_wa_automation_v1', 'uhhs_wa_automation_v2', 'uhhs_wa_automation_v3', 'uhhs_wa_automation_v4', 'uhhs_accepted_build_version'].forEach(k => {
       try { localStorage.removeItem(k); } catch(e) {}
     });
   </script>
