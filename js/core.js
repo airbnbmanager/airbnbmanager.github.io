@@ -2521,7 +2521,13 @@ function navigate(page) {
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
     'guest-crm': () => navigate('bookings'),
     employees: () => (window.renderManageEmployees || renderManageEmployees)(),
-    tasks: () => (window.renderEmployeeTasks || renderEmployeeTasks)(),
+    tasks: () => {
+      window._taskStatusFilter = 'ALL';
+      window._taskStaffFilter = 'ALL';
+      window._taskPropFilter = 'ALL';
+      window._taskViewMode = 'list';
+      return (window.renderEmployeeTasks || renderEmployeeTasks)('list');
+    },
     attendance: () => (window.renderAttendance || renderAttendance)(),
     'att-summary': () => (window.renderAttendanceSummary || renderAttendanceSummary)(),
     salary: () => (window.renderSalaryTracker || renderSalaryTracker)(),

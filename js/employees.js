@@ -1494,7 +1494,7 @@ async function delEmp(id, name) {
 // ═══════════════════════════════════════════════════════════
 
 async function renderEmployeeTasks(viewMode) {
-  viewMode = viewMode || window._taskViewMode || 'list';
+  viewMode = viewMode || 'list';
   window._taskViewMode = viewMode;
   renderShell('<div class="loading">Loading staff tasks...</div>', 'tasks');
 
@@ -1561,6 +1561,14 @@ async function renderEmployeeTasks(viewMode) {
 
     if (staffFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.emp_id === staffFilter);
     if (propFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.room_id === propFilter);
+
+    // Auto-heal: If sub-filters yield 0 tasks while month has tasks, reset sub-filters to ALL
+    if (displayTasks.length === 0 && monthTasks.length > 0 && (statusFilter !== 'ALL' || staffFilter !== 'ALL' || propFilter !== 'ALL')) {
+      window._taskStatusFilter = 'ALL';
+      window._taskStaffFilter = 'ALL';
+      window._taskPropFilter = 'ALL';
+      displayTasks = monthTasks;
+    }
 
     // Groupings for By-Employee view
     const isByEmp = viewMode === 'byEmployee';
