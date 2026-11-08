@@ -1787,16 +1787,50 @@ window.renderExecutiveDashboard = async function () {
     const now = new Date();
     const currY = now.getFullYear();
     const currM = now.getMonth(); // 0-indexed
+    const curLastDay = new Date(currY, currM + 1, 0).getDate();
+    const curMStr = String(currM + 1).padStart(2, '0');
+    const todayDay = now.getDate();
+    const todayDayStr = String(todayDay).padStart(2, '0');
 
-    if (periodMode === 'this_week') {
-      periodStart = dateAdd(today, -6);
+    if (periodMode === 'mtd') {
+      periodStart = `${currY}-${curMStr}-01`;
       periodEnd = today;
-      prevPeriodStart = dateAdd(periodStart, -7);
-      prevPeriodEnd = dateAdd(periodStart, -1);
-      periodDays = 7;
-      const sD = new Date(periodStart + 'T00:00:00');
-      const eD = new Date(periodEnd + 'T00:00:00');
-      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', { month: 'short' })} – ${eD.getDate()} ${eD.toLocaleString('en-IN', { month: 'short' })}`;
+      periodDays = todayDay;
+      const prevDate = new Date(currY, currM - 1, 1);
+      const pmY = prevDate.getFullYear();
+      const pmM = String(prevDate.getMonth() + 1).padStart(2, '0');
+      prevPeriodStart = `${pmY}-${pmM}-01`;
+      prevPeriodEnd = `${pmY}-${pmM}-${todayDayStr}`;
+      periodDisplayLabel = `MTD: 1 – ${todayDay} ${now.toLocaleString('en-IN', { month: 'short' })} ${currY}`;
+    } else if (periodMode === 'qtd') {
+      const qMonthStart = Math.floor(currM / 3) * 3;
+      const qNum = Math.floor(currM / 3) + 1;
+      const qStartMStr = String(qMonthStart + 1).padStart(2, '0');
+      periodStart = `${currY}-${qStartMStr}-01`;
+      periodEnd = today;
+      const sD = new Date(periodStart);
+      const eD = new Date(periodEnd);
+      periodDays = Math.max(1, Math.round((eD - sD) / 86400000) + 1);
+      const prevQMonthStart = qMonthStart === 0 ? 9 : qMonthStart - 3;
+      const prevQYear = qMonthStart === 0 ? currY - 1 : currY;
+      const pqStartMStr = String(prevQMonthStart + 1).padStart(2, '0');
+      prevPeriodStart = `${prevQYear}-${pqStartMStr}-01`;
+      const prevQE = new Date(prevPeriodStart);
+      prevQE.setDate(prevQE.getDate() + periodDays - 1);
+      const pqEY = prevQE.getFullYear();
+      const pqEM = String(prevQE.getMonth() + 1).padStart(2, '0');
+      const pqED = String(prevQE.getDate()).padStart(2, '0');
+      prevPeriodEnd = `${pqEY}-${pqEM}-${pqED}`;
+      periodDisplayLabel = `QTD (Q${qNum}): 1 ${new Date(currY, qMonthStart, 1).toLocaleString('en-IN', { month: 'short' })} – ${todayDay} ${now.toLocaleString('en-IN', { month: 'short' })}`;
+    } else if (periodMode === 'ytd') {
+      periodStart = `${currY}-01-01`;
+      periodEnd = today;
+      const sD = new Date(periodStart);
+      const eD = new Date(periodEnd);
+      periodDays = Math.max(1, Math.round((eD - sD) / 86400000) + 1);
+      prevPeriodStart = `${currY - 1}-01-01`;
+      prevPeriodEnd = `${currY - 1}-${curMStr}-${todayDayStr}`;
+      periodDisplayLabel = `YTD: 1 Jan – ${todayDay} ${now.toLocaleString('en-IN', { month: 'short' })} ${currY}`;
     } else if (periodMode === 'last_month') {
       const lmDate = new Date(currY, currM - 1, 1);
       const lmY = lmDate.getFullYear();
@@ -1811,7 +1845,7 @@ window.renderExecutiveDashboard = async function () {
       prevPeriodStart = `${p2Y}-${p2M}-01`;
       prevPeriodEnd = `${p2Y}-${p2M}-${String(p2LastDay).padStart(2, '0')}`;
       periodDays = lmLastDay;
-      periodDisplayLabel = `1 – ${lmLastDay} ${lmDate.toLocaleString('en-IN', { month: 'short' })} ${lmY}`;
+      periodDisplayLabel = `Last Month (${lmDate.toLocaleString('en-IN', { month: 'short' })} ${lmY})`;
     } else if (periodMode === 'this_year') {
       periodStart = `${currY}-01-01`;
       periodEnd = `${currY}-12-31`;
@@ -1819,6 +1853,19 @@ window.renderExecutiveDashboard = async function () {
       prevPeriodEnd = `${currY - 1}-12-31`;
       periodDays = 365;
       periodDisplayLabel = `Full Year ${currY}`;
+    } else if (periodMode === 'custom_range' && window._dashCustomRangeStart && window._dashCustomRangeEnd) {
+      periodStart = window._dashCustomRangeStart;
+      periodEnd = window._dashCustomRangeEnd;
+      const sD = new Date(periodStart);
+      const eD = new Date(periodEnd);
+      periodDays = Math.max(1, Math.round((eD - sD) / 86400000) + 1);
+      const prevEnd = new Date(sD);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStart = new Date(prevEnd);
+      prevStart.setDate(prevStart.getDate() - (periodDays - 1));
+      prevPeriodStart = prevStart.toISOString().slice(0, 10);
+      prevPeriodEnd = prevEnd.toISOString().slice(0, 10);
+      periodDisplayLabel = `${sD.getDate()} ${sD.toLocaleString('en-IN', { month: 'short' })} – ${eD.getDate()} ${eD.toLocaleString('en-IN', { month: 'short' })}`;
     } else if (periodMode === 'custom' && window._dashCustomMonth) {
       const [cy, cm] = window._dashCustomMonth.split('-');
       const cYear = parseInt(cy, 10);
@@ -1837,8 +1884,6 @@ window.renderExecutiveDashboard = async function () {
       periodDisplayLabel = `1 – ${cLastDay} ${cDate.toLocaleString('en-IN', { month: 'short' })} ${cYear}`;
     } else {
       // Default 'this_month'
-      const curLastDay = new Date(currY, currM + 1, 0).getDate();
-      const curMStr = String(currM + 1).padStart(2, '0');
       periodStart = `${currY}-${curMStr}-01`;
       periodEnd = `${currY}-${curMStr}-${String(curLastDay).padStart(2, '0')}`;
       const prevDate = new Date(currY, currM - 1, 1);
@@ -2115,6 +2160,57 @@ window.renderExecutiveDashboard = async function () {
       }
     };
 
+    window.setDashboardPeriod = function (period) {
+      window._dashPeriod = period;
+      if (period !== 'custom') window._dashCustomMonth = '';
+      if (period !== 'custom_range') {
+        window._dashCustomRangeStart = '';
+        window._dashCustomRangeEnd = '';
+      }
+      if (typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+      }
+    };
+
+    window.setDashboardCustomMonth = function (monthVal) {
+      if (!monthVal) return;
+      window._dashPeriod = 'custom';
+      window._dashCustomMonth = monthVal;
+      window._dashCustomRangeStart = '';
+      window._dashCustomRangeEnd = '';
+      if (typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+      }
+    };
+
+    window.toggleDashboardCustomDateRangeModal = function (forceOpen) {
+      const drawer = document.getElementById('dashCustomRangeDrawer');
+      if (!drawer) return;
+      const isHidden = drawer.style.display === 'none' || !drawer.style.display;
+      const nextState = forceOpen !== undefined ? forceOpen : isHidden;
+      drawer.style.display = nextState ? 'flex' : 'none';
+    };
+
+    window.applyDashboardCustomDateRange = function () {
+      const sInput = document.getElementById('dashRangeStartInput');
+      const eInput = document.getElementById('dashRangeEndInput');
+      if (!sInput || !eInput || !sInput.value || !eInput.value) {
+        alert('Please choose both Start Date and End Date.');
+        return;
+      }
+      if (sInput.value > eInput.value) {
+        alert('Start Date cannot be after End Date.');
+        return;
+      }
+      window._dashPeriod = 'custom_range';
+      window._dashCustomRangeStart = sInput.value;
+      window._dashCustomRangeEnd = eInput.value;
+      window._dashCustomMonth = '';
+      if (typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+      }
+    };
+
     // Filter Property display label & select options
     let selectedPropDisplay = `All properties · ${allFlatsRaw.length}`;
     if (globalProp) {
@@ -2211,12 +2307,55 @@ window.renderExecutiveDashboard = async function () {
                     </button>
                   ` : ''}
 
-                  <!-- Month Selector Pill -->
-                  <div class="hh-analytics-pill-select" style="position:relative;cursor:pointer;" title="Click to pick a custom month">
-                    <i class="ti ti-calendar"></i>
-                    <span>${periodDisplayLabel}</span>
-                    <input type="month" value="${periodMode === 'custom' ? window._dashCustomMonth : today.slice(0, 7)}" onchange="setDashboardCustomMonth(this.value)" title="Select month" />
+                  <!-- 🚀 FAST PERIOD SWITCHER PILLS (MTD, This Month, Last Month, QTD, YTD, 2026 Year) -->
+                  <div style="display:inline-flex;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;">
+                    <button type="button" onclick="window.setDashboardPeriod('mtd')" style="background:${periodMode === 'mtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'mtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'mtd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Month to Date (1 Nov to Today)">
+                      ⚡ MTD
+                    </button>
+                    <button type="button" onclick="window.setDashboardPeriod('this_month')" style="background:${periodMode === 'this_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_month' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Full Current Month (1 - 30 Nov 2026)">
+                      This Month
+                    </button>
+                    <button type="button" onclick="window.setDashboardPeriod('last_month')" style="background:${periodMode === 'last_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'last_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'last_month' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Last Month (October 2026)">
+                      Last Month
+                    </button>
+                    <button type="button" onclick="window.setDashboardPeriod('qtd')" style="background:${periodMode === 'qtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'qtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'qtd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Quarter to Date (Q4: 1 Oct to Today)">
+                      QTD
+                    </button>
+                    <button type="button" onclick="window.setDashboardPeriod('ytd')" style="background:${periodMode === 'ytd' ? '#0F172A' : 'transparent'};color:${periodMode === 'ytd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'ytd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Year to Date (1 Jan to Today)">
+                      YTD
+                    </button>
+                    <button type="button" onclick="window.setDashboardPeriod('this_year')" style="background:${periodMode === 'this_year' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_year' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_year' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Full Year 2026">
+                      2026 Year
+                    </button>
                   </div>
+
+                  <!-- 📅 SPECIFIC MONTH SELECTOR DROPDOWN -->
+                  <div class="hh-analytics-pill-select" style="position:relative;cursor:pointer;background:#F8FAFC;border:1px solid #CBD5E1;padding:6px 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;" title="Pick any specific month in 2026">
+                    <i class="ti ti-calendar" style="color:#0284C7;font-size:13px;"></i>
+                    <span style="font-weight:800;color:#0F172A;font-size:12px;">${escapeHtml(periodDisplayLabel)}</span>
+                    <i class="ti ti-chevron-down" style="font-size:11px;color:#64748B;"></i>
+                    <select onchange="window.setDashboardCustomMonth(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:3;">
+                      <option value="" disabled>Select Month...</option>
+                      <option value="2026-12" ${window._dashCustomMonth === '2026-12' ? 'selected' : ''}>December 2026</option>
+                      <option value="2026-11" ${(!window._dashCustomMonth || window._dashCustomMonth === '2026-11') && periodMode !== 'last_month' ? 'selected' : ''}>November 2026 (Active)</option>
+                      <option value="2026-10" ${window._dashCustomMonth === '2026-10' || periodMode === 'last_month' ? 'selected' : ''}>October 2026</option>
+                      <option value="2026-09" ${window._dashCustomMonth === '2026-09' ? 'selected' : ''}>September 2026</option>
+                      <option value="2026-08" ${window._dashCustomMonth === '2026-08' ? 'selected' : ''}>August 2026</option>
+                      <option value="2026-07" ${window._dashCustomMonth === '2026-07' ? 'selected' : ''}>July 2026</option>
+                      <option value="2026-06" ${window._dashCustomMonth === '2026-06' ? 'selected' : ''}>June 2026</option>
+                      <option value="2026-05" ${window._dashCustomMonth === '2026-05' ? 'selected' : ''}>May 2026</option>
+                      <option value="2026-04" ${window._dashCustomMonth === '2026-04' ? 'selected' : ''}>April 2026</option>
+                      <option value="2026-03" ${window._dashCustomMonth === '2026-03' ? 'selected' : ''}>March 2026</option>
+                      <option value="2026-02" ${window._dashCustomMonth === '2026-02' ? 'selected' : ''}>February 2026</option>
+                      <option value="2026-01" ${window._dashCustomMonth === '2026-01' ? 'selected' : ''}>January 2026</option>
+                    </select>
+                  </div>
+
+                  <!-- 📆 CUSTOM DATE RANGE TOGGLE BUTTON -->
+                  <button type="button" onclick="window.toggleDashboardCustomDateRangeModal()" style="background:${periodMode === 'custom_range' ? '#EFF6FF' : '#FFFFFF'};border:1px solid ${periodMode === 'custom_range' ? '#3B82F6' : '#CBD5E1'};color:${periodMode === 'custom_range' ? '#1E40AF' : '#0F172A'};border-radius:999px;padding:6px 14px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;">
+                    <i class="ti ti-adjustments-horizontal"></i>
+                    <span>Custom Range</span>
+                  </button>
 
                   <div style="background:#F1F5F9;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:#64748B;">
                     vs previous period
@@ -2233,11 +2372,35 @@ window.renderExecutiveDashboard = async function () {
                 </div>
               </div>
 
-              <!-- 5 KPI SPARKLINE RIBBON -->
+              <!-- 📅 CUSTOM DATE RANGE INLINE DRAWER -->
+              <div id="dashCustomRangeDrawer" style="display:${periodMode === 'custom_range' ? 'flex' : 'none'};align-items:center;gap:12px;margin-bottom:18px;background:#F8FAFC;border:1.5px solid #93C5FD;border-radius:12px;padding:12px 18px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(59,130,246,0.06);">
+                <div style="font-size:12px;font-weight:800;color:#1E3A8A;display:flex;align-items:center;gap:6px;">
+                  <i class="ti ti-calendar-event"></i> Filter by Exact Dates:
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:12px;font-weight:700;color:#475569;">From:</span>
+                  <input type="date" id="dashRangeStartInput" value="${periodStart}" style="border:1px solid #CBD5E1;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;color:#0F172A;" />
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:12px;font-weight:700;color:#475569;">To:</span>
+                  <input type="date" id="dashRangeEndInput" value="${periodEnd}" style="border:1px solid #CBD5E1;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;color:#0F172A;" />
+                </div>
+                <button type="button" onclick="window.applyDashboardCustomDateRange()" style="background:#2563EB;color:#FFFFFF;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                  <span>Apply Range</span> <span>→</span>
+                </button>
+                <button type="button" onclick="window.toggleDashboardCustomDateRangeModal(false)" style="background:transparent;border:none;color:#64748B;font-size:12px;font-weight:700;cursor:pointer;">
+                  ✕ Cancel
+                </button>
+              </div>
+
+              <!-- 5 KPI SPARKLINE RIBBON WITH CLEAR DESCRIPTIONS -->
               <div class="hh-kpi-ribbon-5">
                 <!-- KPI 1: Net Revenue -->
-                <div class="hh-kpi-card-v2" onclick="navigate('claims')" style="cursor:pointer;" title="Net collected & confirmed revenue">
-                  <div class="hh-kpi-header">Net revenue</div>
+                <div class="hh-kpi-card-v2" onclick="navigate('claims')" style="cursor:pointer;" title="Gross booked guest tariff across Direct & OTA channels (after platform cancellations)">
+                  <div>
+                    <div class="hh-kpi-header" style="margin-bottom:2px;font-weight:800;color:#0F172A;">Net revenue</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Total confirmed booking revenue</div>
+                  </div>
                   <div class="hh-kpi-val-row">
                     <div class="hh-kpi-main-val">₹${monthRevenue.toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(revChangePct)}
@@ -2246,8 +2409,11 @@ window.renderExecutiveDashboard = async function () {
                 </div>
 
                 <!-- KPI 2: Net Operating Income -->
-                <div class="hh-kpi-card-v2" title="Net operating earnings after costs">
-                  <div class="hh-kpi-header">Net op. income</div>
+                <div class="hh-kpi-card-v2" title="Net Operating Income (NOI = Net Revenue minus actual operational & maintenance expenses)">
+                  <div>
+                    <div class="hh-kpi-header" style="margin-bottom:2px;font-weight:800;color:#0F172A;">Net op. income</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Revenue minus operating costs (NOI)</div>
+                  </div>
                   <div class="hh-kpi-val-row">
                     <div class="hh-kpi-main-val">₹${hhNetOpIncome.toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(netChangePct)}
@@ -2256,8 +2422,11 @@ window.renderExecutiveDashboard = async function () {
                 </div>
 
                 <!-- KPI 3: Occupancy -->
-                <div class="hh-kpi-card-v2" onclick="navigate('flats')" style="cursor:pointer;" title="Unit occupancy rate for selected period">
-                  <div class="hh-kpi-header">Occupancy</div>
+                <div class="hh-kpi-card-v2" onclick="navigate('flats')" style="cursor:pointer;" title="Total occupied room-nights ÷ Total available fleet room-nights (${totalBookedNights} / ${totalAvailRoomNights} nights)">
+                  <div>
+                    <div class="hh-kpi-header" style="margin-bottom:2px;font-weight:800;color:#0F172A;">Occupancy</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Booked nights ÷ total capacity nights</div>
+                  </div>
                   <div class="hh-kpi-val-row">
                     <div class="hh-kpi-main-val">${periodOccupancyPct > 0 ? periodOccupancyPct : occupancyPct}%</div>
                     ${formatDeltaTag(occDiffPts, true)}
@@ -2266,8 +2435,11 @@ window.renderExecutiveDashboard = async function () {
                 </div>
 
                 <!-- KPI 4: ADR -->
-                <div class="hh-kpi-card-v2" title="Average Daily Rate per booked room">
-                  <div class="hh-kpi-header">ADR</div>
+                <div class="hh-kpi-card-v2" title="Average Daily Rate (Average room revenue earned per occupied night = Net Revenue ÷ Booked Nights)">
+                  <div>
+                    <div class="hh-kpi-header" style="margin-bottom:2px;font-weight:800;color:#0F172A;">ADR</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Avg daily tariff per booked room-night</div>
+                  </div>
                   <div class="hh-kpi-val-row">
                     <div class="hh-kpi-main-val">₹${hhAdr.toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(adrChangePct)}
@@ -2276,8 +2448,11 @@ window.renderExecutiveDashboard = async function () {
                 </div>
 
                 <!-- KPI 5: RevPAR -->
-                <div class="hh-kpi-card-v2" title="Revenue Per Available Room">
-                  <div class="hh-kpi-header">RevPAR</div>
+                <div class="hh-kpi-card-v2" title="Revenue Per Available Room night across all 19 units = Net Revenue ÷ Available Capacity Nights (or ADR × Occupancy)">
+                  <div>
+                    <div class="hh-kpi-header" style="margin-bottom:2px;font-weight:800;color:#0F172A;">RevPAR</div>
+                    <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Revenue per available fleet room night</div>
+                  </div>
                   <div class="hh-kpi-val-row">
                     <div class="hh-kpi-main-val">₹${hhRevPar.toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(revParChangePct)}
