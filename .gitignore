@@ -56,3 +56,5 @@ scripts/instagram-automation/output/
 # Financial CSV & PII Exports
 *.csv
 **/*.csv
+
+.venv/

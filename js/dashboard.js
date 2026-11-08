@@ -3116,7 +3116,7 @@ window.openPropertyFilterDialog = function () {
             <div style="width:38px;height:38px;border-radius:12px;background:${!current ? '#FFE4E6' : '#f3f4f6'};color:${!current ? '#EA3829' : '#111827'};display:flex;align-items:center;justify-content:center;font-size:18px;">🌐</div>
             <div>
               <div style="font-size:14px;font-weight:800;color:${!current ? '#EA3829' : '#111827'};">All Properties</div>
-              <div style="font-size:12px;color:#717171;">Combined view across all 18 homestays</div>
+              <div style="font-size:12px;color:#717171;">Combined view across all 19 homestays</div>
             </div>
           </div>
           ${!current ? `<span style="color:#EA3829;font-weight:900;font-size:18px;">✓</span>` : ''}

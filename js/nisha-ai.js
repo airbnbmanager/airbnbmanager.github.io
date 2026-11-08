@@ -436,8 +436,8 @@
 
       // 1. Property Count / Overview
       if (/(kitn[ei]|count|overview|all|kaha|total|properties|options|कितने|कितनी|कुल|सब|लिस्ट)/i.test(q) && /(flat|villa|property|homestay|room|stay|फ्लैट|विला|रूम|कमरे|होमस्टे)/i.test(q)) {
-        return `Namaste ji! Lucknow me hamare pass total **17 premium homestays & private villas** hain:\n\n` +
-          `• **Gomti Nagar Prime (Vikalp & Vishesh Khand):** 8 luxury 3BHK flats (₹3,500/night se start) aur Starlight Penthouse.\n` +
+        return `Namaste ji! Lucknow me hamare pass total **19 premium homestays & private villas** hain:\n\n` +
+          `• **Gomti Nagar Prime (Vikalp & Vishesh Khand):** 9 luxury 3BHK flats (₹3,500/night se start) aur Starlight Penthouse.\n` +
           `• **Private Villas:** Royal White House (up to 18 guests), Gomti Grand Villa, Pink House, aur Celebrity Garden.\n` +
           `• Sabhi properties me AC, modular kitchen, high-speed WiFi aur secure parking shamil hai!`;
       }

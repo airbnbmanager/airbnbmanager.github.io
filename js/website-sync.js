@@ -4,9 +4,9 @@
    2. Live Availability: Supabase bookings → card badges
    ══════════════════════════════════════════════════════════════ */
 
-// ─── PROPERTY DATA: All 17 Properties with GPS Coordinates ───
+// ─── PROPERTY DATA: All 19 Properties with GPS Coordinates ───
 const PROPERTY_PINS = [
-  // ─── 8 FLATS IN VIKALP KHAND (GOMTI NAGAR / CHINHAT) ───
+  // ─── 9 FLATS IN VIKALP KHAND (GOMTI NAGAR / CHINHAT) ───
   {
     roomId: 'GOM-101', slug: 'redrose-palace',
     name: 'RedRose Palace', type: '3BHK Luxury Flat',
@@ -55,6 +55,13 @@ const PROPERTY_PINS = [
     area: 'Vikalp Khand, Gomti Nagar',
     price: '₹5,200', lat: 26.8702, lng: 81.0038,
     url: 'the-nawabi-stay.html'
+  },
+  {
+    roomId: 'GOM-402', slug: 'the-tehzeeb-nest',
+    name: 'The Tehzeeb Nest (Flat 402)', type: '3BHK Luxury Flat',
+    area: 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
+    price: '₹5,200', lat: 26.8705, lng: 81.0040,
+    url: 'the-tehzeeb-nest.html'
   },
   {
     roomId: 'GOM-501', slug: 'starlight-blue-penthouse',

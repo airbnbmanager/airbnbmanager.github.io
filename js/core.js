@@ -6226,7 +6226,7 @@ function renderAppMenu() {
             <div class="tuhh-icon-box" style="background:#FDF4FF;color:#A855F7;"><i class="ti ti-building"></i></div>
             <div class="tuhh-row-content">
               <div class="tuhh-row-title">Properties &amp; Units (${totalProps})</div>
-              <div class="tuhh-row-sub">18 homestays, amenities, pricing &amp; website showcase</div>
+              <div class="tuhh-row-sub">19 homestays, amenities, pricing &amp; website showcase</div>
             </div>
             <i class="ti ti-chevron-right tuhh-chevron"></i>
           </div>

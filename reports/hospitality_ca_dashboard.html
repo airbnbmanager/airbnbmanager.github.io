@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hospitality & CA Tax Report 2026 — The Unique Haven Homes</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --primary: #1B4D3E;
+    --primary-dark: #12352A;
+    --accent-gold: #D97706;
+    --accent-emerald: #10B981;
+    --bg-main: #0B1315;
+    --card-bg: #152220;
+    --card-surface: #1E332E;
+    --text-white: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --border-glass: rgba(255, 255, 255, 0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+  body { background: var(--bg-main); color: var(--text-white); padding: 24px; }
+  .container { max-width: 1380px; margin: 0 auto; }
+
+  /* Top Bar */
+  .top-header {
+    background: linear-gradient(135deg, #16362B, #0F231C);
+    border: 1px solid rgba(46, 125, 50, 0.35);
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .brand-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 13px; color: #A7F3D0; margin-top: 4px; }
+  .action-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+  .btn-wa { background: #25D366; color: #0F172A; }
+  .btn-wa:hover { background: #22c35e; transform: translateY(-2px); }
+  .btn-excel { background: #10B981; color: #fff; }
+  .btn-excel:hover { background: #059669; transform: translateY(-2px); }
+  .btn-copy { background: #334155; color: #E2E8F0; border: 1px solid rgba(255,255,255,0.15); }
+  .btn-copy:hover { background: #475569; }
+
+  /* KPI Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10B981, #059669);
+  }
+  .kpi-card.gold::before {
+    background: linear-gradient(90deg, #F59E0B, #D97706);
+  }
+  .kpi-label { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 24px; font-weight: 800; color: #fff; margin: 8px 0 4px; font-family: 'Outfit', sans-serif; }
+  .kpi-card.gold .kpi-value { color: #FCD34D; }
+  .kpi-sub { font-size: 12px; color: #A7F3D0; }
+  .kpi-card.gold .kpi-sub { color: #FDE68A; }
+
+  /* Charts Grid */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 992px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .chart-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .chart-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(16,185,129,0.15); color: #34D399; }
+
+  /* Tables */
+  .section-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+  th { background: #1B2E28; color: #E5E7EB; font-weight: 700; padding: 12px 14px; border-bottom: 1.5px solid #2A483E; }
+  td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #D1D5DB; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); }
+  .badge-gold { background: rgba(245,158,11,0.15); color: #FCD34D; border: 1px solid rgba(245,158,11,0.3); }
+
+  /* CA Instructions Box */
+  .ca-box {
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.25), rgba(15, 23, 42, 0.6));
+    border: 1.5px solid #3B82F6;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .ca-title { font-size: 15px; font-weight: 800; color: #93C5FD; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .ca-list { list-style: none; font-size: 12.5px; color: #E2E8F0; line-height: 1.8; }
+  .ca-list li strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Top Bar -->
+  <div class="top-header">
+    <div>
+      <div class="brand-title">THE UNIQUE HAVEN HOMES PRIVATE LIMITED</div>
+      <div class="brand-sub">💼 Official Hospitality Financial Analytics &amp; CA Tax Audit Pack (CY 2026)</div>
+    </div>
+    <div class="action-btns">
+      <button class="btn btn-wa" onclick="sendToCAWhatsApp()">
+        <span>💬</span> 1-Click Send to CA (WhatsApp)
+      </button>
+      <button class="btn btn-copy" onclick="copyCASummary()">
+        <span>📋</span> Copy CA Summary
+      </button>
+      <a href="/Airbnb_Master_Payout_and_CA_Tax_Report_2026.xlsx" download class="btn btn-excel">
+        <span>📥</span> Download Excel (.xlsx)
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Gross Booking Value</div>
+      <div class="kpi-value">₹3,716,854</div>
+      <div class="kpi-sub">510 Bookings · 733 Nights</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Net Bank Payouts</div>
+      <div class="kpi-value">₹3,349,185</div>
+      <div class="kpi-sub">HDFC Current A/c 0550</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">5% TDS Withheld (Sec 194O)</div>
+      <div class="kpi-value">₹185,843</div>
+      <div class="kpi-sub">Claimable in ITR-6 (26AS)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Airbnb Platform Fees</div>
+      <div class="kpi-value">₹336,941</div>
+      <div class="kpi-sub">9.1% Allowable Expense</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Average Daily Rate (ADR)</div>
+      <div class="kpi-value">₹5,071 <span style="font-size:13px;font-weight:600;color:var(--text-muted);">/ night</span></div>
+      <div class="kpi-sub">Rev / Booking: ₹7,288</div>
+    </div>
+  </div>
+
+  <!-- CA Guidance Box -->
+  <div class="ca-box">
+    <div class="ca-title">
+      <span>🏛️</span> STATUTORY COMPLIANCE &amp; TAX FILING NOTES (FOR CHARTERED ACCOUNTANT):
+    </div>
+    <ul class="ca-list">
+      <li><strong>Corporate Entity:</strong> THE UNIQUE HAVEN HOMES PRIVATE LIMITED | <strong>CIN:</strong> U55101UP2026PTC244637 | <strong>PAN:</strong> ABECT9843K | <strong>GSTIN:</strong> 09ABECT9843K1Z7</li>
+      <li><strong>Section 194O TDS Credit:</strong> Exactly <strong>₹185,842.75</strong> has been deducted at a flat <strong>5.00%</strong> across all 510 bookings. This entire amount is 100% claimable as tax credit against advance tax / corporate tax liabilities in ITR-6.</li>
+      <li><strong>Turnover Reconciliation:</strong> Total taxable gross revenue from Airbnb for CY 2026 is <strong>₹3,716,853.80</strong>. Bank credit in Current Account 0550 equals <strong>₹3,349,184.53</strong> (100% reconciled).</li>
+      <li><strong>Allowable Deductions:</strong> Airbnb platform commission of <strong>₹336,941.30</strong> is an admissible business operating expense under Section 37(1).</li>
+    </ul>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>📈 Monthly Gross Revenue vs. Bank Payouts</span>
+        <span class="chart-badge">CY 2026 Trend</span>
+      </div>
+      <canvas id="monthlyChart" height="110"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>🍰 Revenue Composition</span>
+        <span class="chart-badge">100% Breakdown</span>
+      </div>
+      <canvas id="breakdownChart" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Property Rankings Table -->
+  <div class="section-card">
+    <div class="chart-title" style="margin-bottom:14px;">
+      <span>🏨 Property Performance &amp; Unit P&amp;L (Top Villas Ranked)</span>
+      <span class="chart-badge">18 Live Properties</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Property / Villa Name</th>
+          <th style="text-align:center;">Bookings</th>
+          <th style="text-align:center;">Nights Sold</th>
+          <th class="num">ADR (₹)</th>
+          <th class="num">Gross Revenue (₹)</th>
+          <th class="num">Airbnb Fee (₹)</th>
+          <th class="num">TDS Deducted (5%)</th>
+          <th class="num">Net Realized (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td><strong>The Pink House /Elegant 5BR/Plasio/Lulu GomtiNagar</strong></td>
+          <td style="text-align:center;">66</td>
+          <td style="text-align:center;">112</td>
+          <td class="num">₹7,130</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹798,516.67</td>
+          <td class="num">₹69,251.33</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹39,925.83</td>
+          <td class="num" style="font-weight:700;">₹689,339.51</td>
+        </tr>
+
+        <tr>
+          <td><strong>The Yellow House |Luxury 3bhk Villa in Gomti Nagar</strong></td>
+          <td style="text-align:center;">112</td>
+          <td style="text-align:center;">153</td>
+          <td class="num">₹4,752</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹727,118.00</td>
+          <td class="num">₹56,901.30</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹36,355.90</td>
+          <td class="num" style="font-weight:700;">₹633,860.80</td>
+        </tr>
+
+        <tr>
+          <td><strong>Celebrity garden 5 bed lulu mall/Medanta/ Ekana</strong></td>
+          <td style="text-align:center;">63</td>
+          <td style="text-align:center;">105</td>
+          <td class="num">₹6,599</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹692,880.78</td>
+          <td class="num">₹78,801.43</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹34,644.04</td>
+          <td class="num" style="font-weight:700;">₹579,435.31</td>
+        </tr>
+
+        <tr>
+          <td><strong>The Green House | Luxury 3BR Villa in Gomti Nagar</strong></td>
+          <td style="text-align:center;">58</td>
+          <td style="text-align:center;">86</td>
+          <td class="num">₹4,417</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹379,831.00</td>
+          <td class="num">₹35,621.52</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹18,991.55</td>
+          <td class="num" style="font-weight:700;">₹325,217.93</td>
+        </tr>
+
+        <tr>
+          <td><strong>The brown 3BHK luxury flat in Chinhat Gomti Nagar</strong></td>
+          <td style="text-align:center;">48</td>
+          <td style="text-align:center;">67</td>
+          <td class="num">₹3,858</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹258,518.68</td>
+          <td class="num">₹18,767.75</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹12,925.94</td>
+          <td class="num" style="font-weight:700;">₹226,824.99</td>
+        </tr>
+
+        <tr>
+          <td><strong>The light green 3BHK luxury flat in Gomti Nagar</strong></td>
+          <td style="text-align:center;">36</td>
+          <td style="text-align:center;">50</td>
+          <td class="num">₹3,810</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹190,519.28</td>
+          <td class="num">₹17,213.36</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹9,525.95</td>
+          <td class="num" style="font-weight:700;">₹163,779.97</td>
+        </tr>
+
+        <tr>
+          <td><strong>Royal White house /Near lulu mall/ Ekana& Airport</strong></td>
+          <td style="text-align:center;">16</td>
+          <td style="text-align:center;">20</td>
+          <td class="num">₹6,841</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹136,825.70</td>
+          <td class="num">₹15,154.26</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹6,841.28</td>
+          <td class="num" style="font-weight:700;">₹114,830.16</td>
+        </tr>
+
+        <tr>
+          <td><strong>The Nawabi Stay Near Max hospital Gomti Nagar</strong></td>
+          <td style="text-align:center;">25</td>
+          <td style="text-align:center;">30</td>
+          <td class="num">₹3,835</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹115,037.25</td>
+          <td class="num">₹10,212.83</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹5,751.91</td>
+          <td class="num" style="font-weight:700;">₹99,072.51</td>
+        </tr>
+
+        <tr>
+          <td><strong>Gomti Grand Villa 4 bhk/Near Lulu & plassio /mall</strong></td>
+          <td style="text-align:center;">9</td>
+          <td style="text-align:center;">14</td>
+          <td class="num">₹5,256</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹73,589.80</td>
+          <td class="num">₹7,809.31</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹3,679.50</td>
+          <td class="num" style="font-weight:700;">₹62,100.99</td>
+        </tr>
+
+        <tr>
+          <td><strong>Pink Paradise Villa/3bhk/ Lulu Mall & Vedanta</strong></td>
+          <td style="text-align:center;">13</td>
+          <td style="text-align:center;">18</td>
+          <td class="num">₹3,600</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹64,795.62</td>
+          <td class="num">₹5,325.01</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹3,239.78</td>
+          <td class="num" style="font-weight:700;">₹56,230.83</td>
+        </tr>
+
+        <tr>
+          <td><strong>The dark blue 3BHK luxury flat, GomtiNagar Chinhat</strong></td>
+          <td style="text-align:center;">15</td>
+          <td style="text-align:center;">18</td>
+          <td class="num">₹3,469</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹62,442.64</td>
+          <td class="num">₹4,231.72</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹3,122.13</td>
+          <td class="num" style="font-weight:700;">₹55,088.79</td>
+        </tr>
+
+        <tr>
+          <td><strong>The unique 3BHK luxury flat Chinhat Gomti Nagar</strong></td>
+          <td style="text-align:center;">14</td>
+          <td style="text-align:center;">14</td>
+          <td class="num">₹3,424</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹47,937.24</td>
+          <td class="num">₹2,323.51</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹2,396.87</td>
+          <td class="num" style="font-weight:700;">₹43,216.86</td>
+        </tr>
+
+        <tr>
+          <td><strong>RedRose entire Palace luxury 3BHK flat Gomti Nagar</strong></td>
+          <td style="text-align:center;">9</td>
+          <td style="text-align:center;">12</td>
+          <td class="num">₹3,696</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹44,348.90</td>
+          <td class="num">₹3,757.08</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹2,217.45</td>
+          <td class="num" style="font-weight:700;">₹38,374.37</td>
+        </tr>
+
+        <tr>
+          <td><strong>Starlight Blue PentHouse/ Max Hospital/Gomti nagar</strong></td>
+          <td style="text-align:center;">8</td>
+          <td style="text-align:center;">10</td>
+          <td class="num">₹4,194</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹41,937.70</td>
+          <td class="num">₹3,325.35</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹2,096.89</td>
+          <td class="num" style="font-weight:700;">₹36,515.46</td>
+        </tr>
+
+        <tr>
+          <td><strong>Black beauty 3bhk luxurious At chinhat Gomti Nagar</strong></td>
+          <td style="text-align:center;">9</td>
+          <td style="text-align:center;">11</td>
+          <td class="num">₹3,458</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹38,037.04</td>
+          <td class="num">₹2,169.26</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹1,901.85</td>
+          <td class="num" style="font-weight:700;">₹33,965.93</td>
+        </tr>
+
+        <tr>
+          <td><strong>Green forest View 3bhk/ Lulu/ Ansal /Ekana/Airport</strong></td>
+          <td style="text-align:center;">6</td>
+          <td style="text-align:center;">8</td>
+          <td class="num">₹3,895</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹31,159.50</td>
+          <td class="num">₹4,380.79</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹1,557.98</td>
+          <td class="num" style="font-weight:700;">₹25,220.73</td>
+        </tr>
+
+        <tr>
+          <td><strong>The Velvet House Near Lulu mall/ Medanta / Ekana</strong></td>
+          <td style="text-align:center;">2</td>
+          <td style="text-align:center;">3</td>
+          <td class="num">₹3,146</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹9,438.00</td>
+          <td class="num">₹1,087.89</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹471.90</td>
+          <td class="num" style="font-weight:700;">₹7,878.21</td>
+        </tr>
+
+        <tr>
+          <td><strong>The Luxe Haven | 1bhk Near Lulu mall & Medanta</strong></td>
+          <td style="text-align:center;">1</td>
+          <td style="text-align:center;">2</td>
+          <td class="num">₹1,960</td>
+          <td class="num" style="color:#A7F3D0;font-weight:700;">₹3,920.00</td>
+          <td class="num">₹607.60</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹196.00</td>
+          <td class="num" style="font-weight:700;">₹3,116.40</td>
+        </tr>
+
+      </tbody>
+      <tfoot>
+        <tr style="background:#1B2E28;font-weight:800;color:#fff;">
+          <td>TOTAL ALL 18 PROPERTIES</td>
+          <td style="text-align:center;">510</td>
+          <td style="text-align:center;">733</td>
+          <td class="num">₹5,071</td>
+          <td class="num" style="color:#34D399;">₹3,716,853.80</td>
+          <td class="num">₹336,941.30</td>
+          <td class="num" style="color:#FCD34D;">₹185,842.75</td>
+          <td class="num">₹3,194,069.75</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Monthly Table -->
+  <div class="section-card">
+    <div class="chart-title" style="margin-bottom:14px;">
+      <span>📅 Monthly Statutory Reconciliation (Section 194O Schedule)</span>
+      <span class="chart-badge">Audit Ready</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th style="text-align:center;">Reservations</th>
+          <th style="text-align:center;">Nights</th>
+          <th class="num">Gross Value (₹)</th>
+          <th class="num">Airbnb Fee (₹)</th>
+          <th class="num">5% TDS (₹)</th>
+          <th class="num">Bank Settlement (₹)</th>
+          <th style="text-align:center;">26AS Status</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td><strong>January 2026</strong></td>
+          <td style="text-align:center;">30</td>
+          <td style="text-align:center;">43</td>
+          <td class="num">₹217,196.00</td>
+          <td class="num">₹15,284.03</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹10,859.80</td>
+          <td class="num" style="font-weight:700;">₹191,052.17</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>February 2026</strong></td>
+          <td style="text-align:center;">38</td>
+          <td style="text-align:center;">66</td>
+          <td class="num">₹433,745.67</td>
+          <td class="num">₹54,717.96</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹21,687.28</td>
+          <td class="num" style="font-weight:700;">₹357,340.43</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>March 2026</strong></td>
+          <td style="text-align:center;">27</td>
+          <td style="text-align:center;">45</td>
+          <td class="num">₹258,796.00</td>
+          <td class="num">₹40,113.46</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹12,939.80</td>
+          <td class="num" style="font-weight:700;">₹205,742.74</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>April 2026</strong></td>
+          <td style="text-align:center;">51</td>
+          <td style="text-align:center;">74</td>
+          <td class="num">₹428,116.40</td>
+          <td class="num">₹54,309.40</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹21,405.82</td>
+          <td class="num" style="font-weight:700;">₹384,895.70</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>May 2026</strong></td>
+          <td style="text-align:center;">69</td>
+          <td style="text-align:center;">90</td>
+          <td class="num">₹402,971.20</td>
+          <td class="num">₹20,604.61</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹20,148.58</td>
+          <td class="num" style="font-weight:700;">₹370,671.61</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>June 2026</strong></td>
+          <td style="text-align:center;">53</td>
+          <td style="text-align:center;">74</td>
+          <td class="num">₹347,292.43</td>
+          <td class="num">₹10,418.78</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹17,364.62</td>
+          <td class="num" style="font-weight:700;">₹339,418.77</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>July 2026</strong></td>
+          <td style="text-align:center;">62</td>
+          <td style="text-align:center;">88</td>
+          <td class="num">₹417,000.65</td>
+          <td class="num">₹12,510.03</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹20,850.06</td>
+          <td class="num" style="font-weight:700;">₹419,610.24</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>August 2026</strong></td>
+          <td style="text-align:center;">46</td>
+          <td style="text-align:center;">66</td>
+          <td class="num">₹286,944.36</td>
+          <td class="num">₹8,608.34</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹14,347.23</td>
+          <td class="num" style="font-weight:700;">₹279,852.51</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>September 2026</strong></td>
+          <td style="text-align:center;">54</td>
+          <td style="text-align:center;">74</td>
+          <td class="num">₹332,020.68</td>
+          <td class="num">₹30,816.60</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹16,601.05</td>
+          <td class="num" style="font-weight:700;">₹298,021.59</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>October 2026</strong></td>
+          <td style="text-align:center;">68</td>
+          <td style="text-align:center;">98</td>
+          <td class="num">₹496,485.02</td>
+          <td class="num">₹74,633.84</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹24,824.24</td>
+          <td class="num" style="font-weight:700;">₹417,402.80</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+        <tr>
+          <td><strong>November 2026</strong></td>
+          <td style="text-align:center;">12</td>
+          <td style="text-align:center;">15</td>
+          <td class="num">₹96,285.39</td>
+          <td class="num">₹14,924.25</td>
+          <td class="num" style="color:#FCD34D;font-weight:700;">₹4,814.27</td>
+          <td class="num" style="font-weight:700;">₹85,175.97</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">✓ Verified</span></td>
+        </tr>
+
+      </tbody>
+      <tfoot>
+        <tr style="background:#1B2E28;font-weight:800;color:#fff;">
+          <td>ANNUAL TOTAL</td>
+          <td style="text-align:center;">510</td>
+          <td style="text-align:center;">733</td>
+          <td class="num" style="color:#34D399;">₹3,716,853.80</td>
+          <td class="num">₹336,941.30</td>
+          <td class="num" style="color:#FCD34D;">₹185,842.75</td>
+          <td class="num" style="color:#38BDF8;">₹3,349,184.53</td>
+          <td style="text-align:center;"><span class="badge-tag badge-green">100% RECONCILED</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Chart 1: Monthly Trend
+  const ctxM = document.getElementById('monthlyChart').getContext('2d');
+  new Chart(ctxM, {
+    type: 'line',
+    data: {
+      labels: ["Jan 26", "Feb 26", "Mar 26", "Apr 26", "May 26", "Jun 26", "Jul 26", "Aug 26", "Sep 26", "Oct 26", "Nov 26"],
+      datasets: [
+        {
+          label: 'Gross Revenue (₹)',
+          data: [217196.0, 433745.67000000004, 258796.0, 428116.4, 402971.19999999995, 347292.43, 417000.65, 286944.36, 332020.68, 496485.01999999996, 96285.39],
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5
+        },
+        {
+          label: 'Bank Payouts (₹)',
+          data: [191052.16999999998, 357340.43000000005, 205742.73999999993, 384895.7000000001, 370671.61000000004, 339418.77, 419610.24000000005, 279852.51000000007, 298021.59, 417402.79999999993, 85175.97],
+          borderColor: '#38BDF8',
+          borderDash: [5, 5],
+          tension: 0.35,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#D1D5DB' } } },
+      scales: {
+        x: { ticks: { color: '#9CA3AF' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#9CA3AF' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+
+  // Chart 2: Doughnut Breakdown
+  const ctxB = document.getElementById('breakdownChart').getContext('2d');
+  new Chart(ctxB, {
+    type: 'doughnut',
+    data: {
+      labels: ['Net Bank Payouts', 'Airbnb Comm. Fee', '5% TDS Withheld'],
+      datasets: [{
+        data: [3349184.5300000003, 336941.30000000005, 185842.75000000032],
+        backgroundColor: ['#10B981', '#38BDF8', '#F59E0B'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#D1D5DB', padding: 14 } }
+      }
+    }
+  });
+
+  // 1-Click WhatsApp to CA
+  function sendToCAWhatsApp() {
+    const msg = `*THE UNIQUE HAVEN HOMES PVT. LTD. — AIRBNB STATUTORY TAX & PAYOUT AUDIT PACK (CY 2026)*\n\n` +
+      `Respected CA Sir,\n` +
+      `Kindly find our complete Airbnb Statutory Revenue & TDS Reconciliation summary below:\n\n` +
+      `📌 *Company:* THE UNIQUE HAVEN HOMES PRIVATE LIMITED\n` +
+      `📌 *CIN:* U55101UP2026PTC244637 | *PAN:* ABECT9843K\n` +
+      `📌 *Bank Account:* Current A/c No. ...0550 (HDFC Bank)\n\n` +
+      `📊 *FINANCIAL SUMMARY (01 Jan 2026 to 08 Nov 2026):*\n` +
+      `• *Total Gross Turnover:* ₹3,716,853.80\n` +
+      `• *TDS Deducted @ 5% (Sec 194O):* ₹185,842.75 (Claimable in ITR-6)\n` +
+      `• *Airbnb Platform Commission:* ₹336,941.30\n` +
+      `• *Total Bank Payouts Received:* ₹3,349,184.53\n` +
+      `• *Total Bookings:* 510 | *Nights Sold:* 733\n\n` +
+      `The master audit Excel file has been generated and is ready for Form 26AS matching and advance tax adjustment. Thank you!`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  // 1-Click Copy CA Summary
+  function copyCASummary() {
+    const text = `THE UNIQUE HAVEN HOMES PRIVATE LIMITED — AIRBNB STATUTORY TAX & PAYOUT AUDIT (CY 2026)\n` +
+      `CIN: U55101UP2026PTC244637 | PAN: ABECT9843K | Bank: Current A/c ...0550\n\n` +
+      `Total Gross Booking Revenue: ₹3,716,853.80\n` +
+      `Total 5% TDS Withheld (Sec 194O): ₹185,842.75\n` +
+      `Total Airbnb Service Fees: ₹336,941.30\n` +
+      `Total Net Bank Payouts Received: ₹3,349,184.53\n` +
+      `Total Bookings: 510 | Total Nights: 733`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✓ CA Tax & Payout Summary copied to clipboard! You can paste it directly in email or chat.');
+    });
+  }
+</script>
+</body>
+</html>

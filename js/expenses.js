@@ -2926,7 +2926,7 @@ window.getExpPaidBy = function() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 📶 WI-FI RECHARGE & INSTALLATION TRACKER (18 HOMESTAYS)
+// 📶 WI-FI RECHARGE & INSTALLATION TRACKER (19 HOMESTAYS)
 // ═══════════════════════════════════════════════════════════
 window.openWifiRechargeModal = async function() {
   const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname').order('unit_no');
@@ -2944,7 +2944,7 @@ window.openWifiRechargeModal = async function() {
             <span style="font-size:26px;">📶</span>
             <div>
               <h2 style="margin:0;font-size:17px;font-weight:800;color:#1e293b;">Wi-Fi Recharge &amp; Installation</h2>
-              <div style="font-size:12px;color:#64748b;">Broadband tracking across all 18 homestays</div>
+              <div style="font-size:12px;color:#64748b;">Broadband tracking across all 19 homestays</div>
             </div>
           </div>
           <button type="button" onclick="document.getElementById('${modalId}').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
