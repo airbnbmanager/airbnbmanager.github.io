@@ -109,21 +109,150 @@
   <script src="js/command-palette.js?v=381"></script>
   <script src="js/help-guide.js?v=382"></script>
 
-  <!-- 📱 PWA Service Worker & Realtime Offline Sync -->
+  <!-- 🚀 Mandatory System Update & Cache Purge Barrier (Strict Version Lock) -->
   <script>
+    window.UHHS_BUILD_VERSION = '438';
+    window.UHHS_BUILD_NAME = 'v4.38 Luxury Executive Suite & Recovery Vault';
+
+    function showMandatoryUpdateModal(newVersionTitle) {
+      if (document.getElementById('mandatoryUpdateModalOverlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'mandatoryUpdateModalOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2147483647;padding:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+
+      overlay.innerHTML = `
+        <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 30px 60px -12px rgba(0,0,0,0.5);width:100%;max-width:520px;overflow:hidden;border:2px solid #38BDF8;animation:tuhhModalPop 0.3s cubic-bezier(0.16,1,0.3,1);">
+          <!-- HEADER -->
+          <div style="background:linear-gradient(135deg,#0F172A,#1E293B);padding:24px;color:#FFFFFF;text-align:center;position:relative;">
+            <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(56,189,248,0.18);border:1px solid #38BDF8;color:#38BDF8;font-size:11px;font-weight:900;letter-spacing:1px;padding:4px 12px;border-radius:20px;text-transform:uppercase;margin-bottom:12px;">
+              <span>⚡ CRITICAL SYSTEM UPDATE REQUIRED</span>
+            </div>
+            <div style="font-size:22px;font-weight:900;letter-spacing:0.3px;color:#F8FAFC;">The Unique Haven Homes CRM</div>
+            <div style="font-size:13px;color:#94A3B8;margin-top:4px;">${newVersionTitle || window.UHHS_BUILD_NAME}</div>
+          </div>
+
+          <!-- BODY -->
+          <div style="padding:22px 24px;color:#1E293B;">
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:10px;">
+              ✨ Naye features aur critical fixes deploy ho chuke hain:
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:#334155;line-height:1.6;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="color:#10B981;font-weight:900;">✓</span>
+                <span><strong>In-Built Airbnb Payout &amp; CA Tax 194-O Suite</strong> (1-Click CSV)</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="color:#10B981;font-weight:900;">✓</span>
+                <span><strong>Praveen-Exclusive Deleted Bookings Recovery Vault</strong></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="color:#10B981;font-weight:900;">✓</span>
+                <span><strong>CRM Hub Navigation Sync</strong> (OD, Claims &amp; Expenses 100% Fixed)</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="color:#10B981;font-weight:900;">✓</span>
+                <span><strong>July 2026 Tariff Restored</strong> (₹3,000–₹3,500/night verified)</span>
+              </div>
+            </div>
+
+            <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:12px;color:#991B1B;line-height:1.4;margin-bottom:20px;">
+              ⚠️ <strong>Notice:</strong> Data integrity banaye rakhne ke liye bina update accept kiye puraana version use nahi kiya ja sakta. Kripya niche diye button se update accept karein.
+            </div>
+
+            <!-- ACTION BUTTON -->
+            <button id="acceptUpdateBtn" type="button" onclick="window.acceptSystemUpdateAndReload()"
+              style="width:100%;background:linear-gradient(135deg,#059669,#10B981);color:#FFFFFF;border:none;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:900;letter-spacing:0.3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(16,185,129,0.38);transition:all 0.2s;">
+              <span>⚡ Accept Update &amp; Refresh Now (अपडेट स्वीकार करें)</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    }
+
+    window.acceptSystemUpdateAndReload = async function() {
+      const btn = document.getElementById('acceptUpdateBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Updating cache &amp; activating latest version...</span>';
+      }
+
+      // Mark this build version accepted locally
+      try { localStorage.setItem('uhhs_accepted_build_version', window.UHHS_BUILD_VERSION); } catch(e) {}
+
+      // 1. Unregister all service workers and wipe all caches
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            await reg.unregister();
+          }
+        }
+      } catch(e) {}
+
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch(e) {}
+
+      // 2. Clear stale session markers
+      try { sessionStorage.clear(); } catch(e) {}
+
+      // 3. Force clean cache-busting hard reload
+      const cleanUrl = window.location.pathname + '?_v=' + window.UHHS_BUILD_VERSION + '#' + (window.location.hash.replace('#', '') || 'dashboard');
+      window.location.replace(cleanUrl);
+    };
+
+    // Check version immediately on boot
+    const acceptedVer = localStorage.getItem('uhhs_accepted_build_version');
+    if (acceptedVer !== window.UHHS_BUILD_VERSION) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => showMandatoryUpdateModal());
+      } else {
+        showMandatoryUpdateModal();
+      }
+    }
+
+    // Auto-check for server update every 30s & on tab refocus
+    async function checkForServerAppUpdate() {
+      try {
+        const res = await fetch('/sw.js?_chk=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const txt = await res.text();
+          const match = txt.match(/CACHE_NAME\s*=\s*['"]tuhh-live-v([^'"]+)['"]/);
+          if (match && match[1] && match[1] !== window.UHHS_BUILD_VERSION) {
+            console.log('📢 Newer server version detected:', match[1]);
+            showMandatoryUpdateModal('New Release: v' + match[1]);
+          }
+        }
+      } catch(e) {}
+    }
+
+    setInterval(checkForServerAppUpdate, 30000);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForServerAppUpdate();
+    });
+
+    // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=426').then(reg => {
-          console.log('✅ UHHS PWA Service Worker active:', reg.scope);
-          // Check for SW updates
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        navigator.serviceWorker.register('/sw.js?v=438').then(reg => {
+          console.log('✅ UHHS PWA Service Worker active (v438):', reg.scope);
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            showMandatoryUpdateModal();
+          }
           reg.onupdatefound = () => {
             const installing = reg.installing;
             if (installing) {
               installing.onstatechange = () => {
-                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('🔄 New PWA update available, activating latest version');
-                  window.location.reload();
+                if (installing.state === 'installed') {
+                  showMandatoryUpdateModal();
                 }
               };
             }
