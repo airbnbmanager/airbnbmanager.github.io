@@ -1835,12 +1835,13 @@ async function renderEmployeeTasks(viewMode) {
         `);
       });
 
+      const activeFilterDesc = statusFilter !== 'ALL' ? `Status: ${statusFilter}` : (staffFilter !== 'ALL' ? `Staff: ${empMap[staffFilter]||staffFilter}` : (propFilter !== 'ALL' ? `Property: ${roomMap[propFilter]||propFilter}` : 'Filter'));
       byDateHTML = rows.join('') || (totalMonth > 0 ? `
         <div style="padding:28px 20px;text-align:center;background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:12px;">
-          <div style="font-weight:700;font-size:14.5px;color:#0F172A;">⚠️ Current filter me koi task nahi mila</div>
+          <div style="font-weight:700;font-size:14.5px;color:#0F172A;">⚠️ Selected filter (${activeFilterDesc}) me koi task nahi mila</div>
           <div style="font-size:12.5px;color:#64748B;margin:5px 0 14px;">Total <strong>${totalMonth} tasks</strong> is month (${selectedMonth}) me moujood hain.</div>
-          <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;padding:7px 16px;border-radius:8px;" onclick="window.clearTaskFilters()">
-            🔄 Show All (${totalMonth}) Tasks
+          <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;" onclick="window.clearTaskFilters('${viewMode}')">
+            🔄 Reset Filter & Show All (${totalMonth}) Tasks
           </button>
         </div>
       ` : '<div class="sub" style="padding:20px;text-align:center;">No tasks for this month</div>');
@@ -1919,27 +1920,27 @@ async function renderEmployeeTasks(viewMode) {
 
         <!-- KPI METRIC CARDS -->
         <div class="task-kpi-grid" style="margin-top:14px;">
-          <div class="task-kpi-card" style="border-left:4px solid var(--primary);" onclick="window.clearTaskFilters()" title="Click to show all tasks">
+          <div class="task-kpi-card" style="border-left:4px solid var(--primary);${statusFilter==='ALL'?'background:#EFF6FF;box-shadow:0 0 0 2px var(--primary);':''}" onclick="window.clearTaskFilters('${viewMode}')" title="Click to show all tasks">
             <div class="task-kpi-num" style="color:var(--primary);">${totalMonth}</div>
             <div class="task-kpi-label">📋 Total Month</div>
           </div>
-          <div class="task-kpi-card" style="border-left:4px solid #DC2626;" onclick="window._taskStatusFilter='Pending';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid #DC2626;${statusFilter==='Pending'?'background:#FEF2F2;box-shadow:0 0 0 2px #DC2626;':''}" onclick="window._taskStatusFilter='Pending';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#DC2626;">${pendingCount}</div>
             <div class="task-kpi-label">⏳ Pending</div>
           </div>
-          <div class="task-kpi-card" style="border-left:4px solid #F59E0B;" onclick="window._taskStatusFilter='In Progress';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid #F59E0B;${statusFilter==='In Progress'?'background:#FFFBEB;box-shadow:0 0 0 2px #F59E0B;':''}" onclick="window._taskStatusFilter='In Progress';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#F59E0B;">${inProgCount}</div>
             <div class="task-kpi-label">🔄 In Progress</div>
           </div>
-          <div class="task-kpi-card" style="border-left:4px solid #10B981;" onclick="window._taskStatusFilter='Completed';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid #10B981;${statusFilter==='Completed'?'background:#F0FDF4;box-shadow:0 0 0 2px #10B981;':''}" onclick="window._taskStatusFilter='Completed';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#10B981;">${doneCount}</div>
             <div class="task-kpi-label">✅ Completed</div>
           </div>
-          <div class="task-kpi-card" style="border-left:4px solid #991B1B;" onclick="window._taskStatusFilter='Urgent';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid #991B1B;${statusFilter==='Urgent'?'background:#FEF2F2;box-shadow:0 0 0 2px #991B1B;':''}" onclick="window._taskStatusFilter='Urgent';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#991B1B;">${urgentCount}</div>
             <div class="task-kpi-label">🚨 Urgent</div>
           </div>
-          <div class="task-kpi-card" style="border-left:4px solid #3B82F6;" onclick="window._taskStatusFilter='Today';renderEmployeeTasks('${viewMode}');">
+          <div class="task-kpi-card" style="border-left:4px solid #3B82F6;${statusFilter==='Today'?'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;':''}" onclick="window._taskStatusFilter='Today';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#3B82F6;">${todayCount}</div>
             <div class="task-kpi-label">📅 Today</div>
           </div>
@@ -2013,13 +2014,13 @@ async function renderEmployeeTasks(viewMode) {
 }
 window.renderEmployeeTasks = renderEmployeeTasks;
 
-window.clearTaskFilters = function() {
+window.clearTaskFilters = function(keepViewMode) {
   window._taskStatusFilter = 'ALL';
   window._taskStaffFilter = 'ALL';
   window._taskPropFilter = 'ALL';
-  window._taskViewMode = 'list';
+  const targetMode = keepViewMode || window._taskViewMode || 'list';
   if (typeof renderEmployeeTasks === 'function') {
-    renderEmployeeTasks('list');
+    renderEmployeeTasks(targetMode);
   }
 };
 
