@@ -1498,23 +1498,23 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'expenses',
       label: '🧾 Expenses',
       page: 'expenses',
-      pages: ['expenses', 'laundry', 'maintenance'],
+      pages: ['expenses', 'claims', 'reimbursements', 'laundry', 'maintenance'],
       tabs: [
         { id: 'expenses', label: '📊 Expenses & P&L' },
+        { id: 'claims', label: '🏦 TUHH-OD & Claims' },
         { id: 'laundry', label: '🧺 Laundry' },
         { id: 'maintenance', label: '🔧 Maintenance' }
       ]
     },
     {
-      id: 'claims',
+      id: 'finances',
       label: '💰 Finances',
-      page: 'claims',
-      pages: ['claims', 'analytics', 'investors', 'ca-audit', 'reimbursements', 'cashbook', 'financial', 'financial-sheet'],
+      page: 'analytics',
+      pages: ['analytics', 'ca-audit', 'investors', 'cashbook', 'financial', 'financial-sheet'],
       tabs: [
         { id: 'analytics', label: '📊 Executive Dashboard' },
-        { id: 'claims', label: '🏦 TUHH-OD & Claims' },
-        { id: 'investors', label: '🧑‍💼 Investors' },
-        { id: 'ca-audit', label: '💼 GST & Audit' }
+        { id: 'ca-audit', label: '💼 CA & Tax Audit' },
+        { id: 'investors', label: '🧑‍💼 Investors' }
       ]
     },
     {
@@ -1565,21 +1565,18 @@ function renderShell(content, activePage = 'dashboard') {
     // Remove Laundry tab from Expenses hub
     const expHub = UHHS_HUBS.find(h => h.id === 'expenses');
     if (expHub) expHub.tabs = expHub.tabs.filter(t => t.id !== 'laundry');
-    // Remove GST & Audit tab from Finances hub
-    const finHub = UHHS_HUBS.find(h => h.id === 'claims');
-    if (finHub) finHub.tabs = finHub.tabs.filter(t => t.id !== 'ca-audit');
   }
 
   // Minimal, uncluttered left drawer list as requested by user
   if (isPureOwner) {
     // 👑 OWNER ROLE (Firoz, Shanshah) — Full business access, restricted admin pages
-    // Hidden: User Management, Laundry, GST Audit, HRMS & Tasks, WhatsApp Hub, Help & Guide
+    // Hidden: User Management, Laundry, HRMS & Tasks, WhatsApp Hub, Help & Guide
     nav = [
       ['dashboard', 'Today · Operations'],
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
-      ['claims', 'Finances'],
+      ['analytics', 'Finances'],
       ['settings', 'Global Settings'],
     ];
   } else if (isAdmin) {
@@ -1589,7 +1586,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
-      ['claims', 'Finances'],
+      ['analytics', 'Finances'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
       ['user-mgmt', 'User Management'],
@@ -1634,7 +1631,7 @@ function renderShell(content, activePage = 'dashboard') {
       ['bookings', 'Bookings / Calendar'],
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
-      ['claims', 'Finances'],
+      ['analytics', 'Finances'],
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
       ['help', 'Help & Guide'],
@@ -1915,8 +1912,8 @@ function renderShell(content, activePage = 'dashboard') {
             <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${activePage==='dashboard'?'active':''}"><i class="ti ti-calendar-event"></i> Today</a>
             <a href="javascript:void(0)" onclick="navigate('bookings')" class="${(activePage==='bookings'||activePage==='calendar'||activePage==='reports'||activePage==='pendingApprovals')?'active':''}"><i class="ti ti-calendar-check"></i> Bookings &amp; Calendar</a>
             <a href="javascript:void(0)" onclick="navigate('rooms')" class="${(activePage==='rooms'||activePage==='flats'||activePage==='showcase-admin'||activePage==='airbnb-sync')?'active':''}"><i class="ti ti-building-community"></i> Properties</a>
-            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${(activePage==='expenses'||activePage==='laundry'||activePage==='maintenance')?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
-            <a href="javascript:void(0)" onclick="navigate('claims')" class="${(activePage==='claims'||activePage==='reimbursements'||activePage==='investors'||activePage==='ca-audit')?'active':''}"><i class="ti ti-wallet"></i> Finances</a>
+            <a href="javascript:void(0)" onclick="navigate('expenses')" class="${(activePage==='expenses'||activePage==='claims'||activePage==='reimbursements'||activePage==='laundry'||activePage==='maintenance')?'active':''}"><i class="ti ti-receipt-2"></i> Expenses</a>
+            <a href="javascript:void(0)" onclick="navigate('analytics')" class="${(activePage==='analytics'||activePage==='investors'||activePage==='ca-audit')?'active':''}"><i class="ti ti-wallet"></i> Finances</a>
             <a href="javascript:void(0)" onclick="navigate('employees')" class="${(activePage==='employees'||activePage==='attendance'||activePage==='tasks'||activePage==='employee-ledger')?'active':''}"><i class="ti ti-id-badge-2"></i> HRMS &amp; Tasks</a>
           </nav>
 
@@ -2363,7 +2360,7 @@ function renderShell(content, activePage = 'dashboard') {
 function navigate(page) {
   // 🔒 OWNER ROLE PAGE GUARD — block restricted pages for 'owner' role
   if (SESSION.role === 'owner') {
-    const OWNER_BLOCKED = ['user-mgmt', 'employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop', 'whatsapp-hub', 'whatsapp', 'help', 'laundry', 'ca-audit'];
+    const OWNER_BLOCKED = ['user-mgmt', 'employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop', 'whatsapp-hub', 'whatsapp', 'help', 'laundry'];
     if (OWNER_BLOCKED.includes(page)) {
       if (window.fsn) fsn.error('Access Restricted', 'This page is not available for your role.');
       else alert('Access Restricted: This page is not available for your role.');
