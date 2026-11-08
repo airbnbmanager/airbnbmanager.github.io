@@ -680,8 +680,9 @@
     function getSb() {
       if (_activeSbClient) return _activeSbClient;
       try {
-        if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
-          _activeSbClient = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        const clientFactory = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+        if (clientFactory && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+          _activeSbClient = clientFactory.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
         }
       } catch (e) {
         console.warn('Supabase init error:', e);
@@ -874,10 +875,12 @@
 
       if (sb) {
         try {
+          const cleanVal = (bookingId || '').trim();
           const { data, error } = await sb
             .from('guest_register')
             .select(SAFE_FIELDS)
-            .ilike('booking_id', bookingId)
+            .or(`booking_id.eq.${cleanVal},booking_id.ilike.%${cleanVal}%,airbnb_confirmation_code.ilike.%${cleanVal}%`)
+            .limit(1)
             .maybeSingle();
 
           if (data && !error) bk = data;
@@ -1033,11 +1036,19 @@
         window.history.replaceState({}, '', url);
       } catch (e) {}
 
+      const parsePaths = (field) => {
+        if (!field) return [];
+        if (Array.isArray(field)) return field;
+        if (typeof field === 'string') return field.split(',');
+        return [];
+      };
+
       const rawPaths = [
-        ...(bk.id_proof_front_paths || '').split(','),
-        ...(bk.id_proof_back_paths || '').split(','),
-        ...(bk.id_proof_photo_paths || bk.id_proof_photo_path || '').split(',')
-      ].map(x => x.trim()).filter(Boolean);
+        ...parsePaths(bk.id_proof_front_paths),
+        ...parsePaths(bk.id_proof_back_paths),
+        ...parsePaths(bk.id_proof_photo_paths),
+        ...parsePaths(bk.id_proof_photo_path)
+      ].map(x => String(x || '').trim()).filter(x => x && x !== 'null' && x !== '[null' && x !== 'undefined');
       _activeIdPhotos = [...new Set(rawPaths)];
 
       const pName = room?.nickname || room?.property_name || 'Unique Haven Villa';
