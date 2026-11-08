@@ -4495,6 +4495,21 @@ async function saveBooking() {
       btn.disabled = false; btn.textContent = '💾 Save Booking'; return;
     }
 
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('booking_add', {
+        bookingId: bkId,
+        guestName: gn,
+        phone: ph,
+        roomId: rid,
+        checkIn: ci,
+        checkOut: co,
+        totalAmount: tot,
+        bookingMode: mode,
+        advance: adv
+      });
+    }
+
     if (adv > 0) {
       // Compute current booking's remaining due (total - already-paid, though for new booking paid=0)
       const currTotal = tot || 0;
@@ -4565,6 +4580,19 @@ async function saveBooking() {
       }
 
       await recalcPaymentStatus(bkId);
+
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('payment_add', {
+        bookingId: bkId,
+        guestName: currBk2?.guest_name || currBk?.guest_name || 'Guest',
+        amount: amt,
+        mode: mode,
+        receivedBy: receivedBy,
+        paymentDate: payDate,
+        notes: userNotes
+      });
+    }
 
       // Log distribution to console for verification
       if (distributedAdv.length > 0) {
@@ -5605,6 +5633,17 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     error = retry.error;
   }
 
+  // 📋 Audit log for Developer
+  if (!error && window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+    window.UserActionAudit.recordAction('booking_modify', {
+      bookingId: bkId,
+      guestName: obj.guest_name || orig.guest_name,
+      roomId: obj.room_id || orig.room_id,
+      totalAmount: obj.total_amount || orig.total_amount,
+      changes: changes.length ? changes.join(', ') : 'Details updated'
+    });
+  }
+
 
 
   // ═══ SEND NOTIFICATION if changes detected & non-trusted user ═══
@@ -5727,6 +5766,16 @@ async function delBooking(bkId, guestName, roomId) {
     await sb.from('payment_history').delete().eq('booking_id', bkId);
     const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
     if (error) { fsn.error('Error', '❌ Delete failed: ' + error.message); return; }
+
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('booking_delete', {
+        bookingId: bkId,
+        guestName: bk?.guest_name || 'Guest',
+        roomId: bk?.room_id,
+        totalAmount: bk?.total_amount
+      });
+    }
 
     // Instant purge from all in-memory caches
     if (window._sbkState) {
@@ -6255,6 +6304,19 @@ async function savePaymentModal(bkId) {
       return;
     }
     await recalcPaymentStatus(bkId);
+
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('payment_add', {
+        bookingId: bkId,
+        guestName: currBk2?.guest_name || currBk?.guest_name || 'Guest',
+        amount: amt,
+        mode: mode,
+        receivedBy: receivedBy,
+        paymentDate: payDate,
+        notes: userNotes
+      });
+    }
   }
 
   // Step 2: Distribute overflow to previous unpaid bookings (oldest first)

@@ -3038,14 +3038,21 @@ async function renderUserManagement() {
           style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
           🔔 Developer Login Alerts
         </button>
+        <button type="button" class="btn-sm" onclick="setUserMgmtTab('work')"
+          style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'work' ? 'background:#059669;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;'}">
+          🛠️ Staff Daily Work &amp; Actions
+        </button>
       ` : ''}
     </div>
 
-    ${currentTab === 'users' ? renderUsersTabContent() : currentTab === 'activity' ? renderActivityTabContent() : ((window.isDeveloperUser && window.isDeveloperUser()) ? '<div id="alertsTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div></div>' : renderUsersTabContent())}
+    ${currentTab === 'users' ? renderUsersTabContent() : currentTab === 'activity' ? renderActivityTabContent() : currentTab === 'work' ? ((window.isDeveloperUser && window.isDeveloperUser()) ? '<div id="workAuditTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading staff work actions...</div></div>' : renderUsersTabContent()) : ((window.isDeveloperUser && window.isDeveloperUser()) ? '<div id="alertsTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div></div>' : renderUsersTabContent())}
   `, 'user-mgmt');
 
   if (currentTab === 'alerts' && typeof window.renderAlertsTabContent === 'function') {
     window.renderAlertsTabContent();
+  }
+  if (currentTab === 'work' && typeof window.renderWorkAuditTabContent === 'function') {
+    window.renderWorkAuditTabContent();
   }
 
   // -------------------------------------------------------------

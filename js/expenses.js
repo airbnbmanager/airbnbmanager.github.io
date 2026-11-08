@@ -1640,6 +1640,23 @@ async function saveExpEntry() {
       return;
     }
 
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      const catEl = document.getElementById('exCategory');
+      const catName = catEl?.options?.[catEl.selectedIndex]?.text || cid;
+      const roomEl = document.getElementById('exRoom');
+      const roomName = roomEl?.options?.[roomEl.selectedIndex]?.text || roomId;
+      window.UserActionAudit.recordAction('expense_add', {
+        amount: amt,
+        categoryName: catName,
+        roomName: roomName,
+        paidBy: paidBy,
+        mode: payMode,
+        entryDate: date,
+        notes: notes
+      });
+    }
+
     fsn.success('Success', '✅ Expense saved!');
     renderExpenses();
   } catch (err) {
@@ -1753,8 +1770,21 @@ async function updateExpense(id) {
 // ============ DELETE EXPENSE ============
 async function delExpense(id) {
   if (!confirm('Delete this expense?')) return;
+  const { data: exp } = await sb.from('expenses').select('amount, notes, expense_categories(category_name), rooms(nickname)').eq('id', id).single();
   const { error } = await sb.from('expenses').delete().eq('id', id);
   if (error) { fsn.error('Error', '❌ ' + error.message); return; }
+
+  // 📋 Audit log for Developer
+  if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+    window.UserActionAudit.recordAction('expense_delete', {
+      expenseId: id,
+      amount: exp?.amount,
+      categoryName: exp?.expense_categories?.category_name,
+      roomName: exp?.rooms?.nickname,
+      notes: exp?.notes
+    });
+  }
+
   fsn.success('Success', '✅ Deleted');
   renderExpenses();
 }

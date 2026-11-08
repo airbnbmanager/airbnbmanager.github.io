@@ -610,6 +610,12 @@
     // 5. Fetch page visits from central app_settings + localStorage (Matching ID or Name)
     const visits = await window.UserPageAudit.getVisitsForUser(userId, displayName, monthStr);
 
+    // 5b. Fetch operational actions performed by this user (Bookings, Payments, Advances, Expenses)
+    let userActions = [];
+    if (window.UserActionAudit && typeof window.UserActionAudit.fetchUserActionsForMonth === 'function') {
+      try { userActions = await window.UserActionAudit.fetchUserActionsForMonth(userId, displayName, monthStr); } catch(e) {}
+    }
+
     // 6. Cross-correlate Page Visits into dailyMap!
     // Every day that has verified page actions MUST be counted as an active day with true timings
     const visitsByDate = {};
@@ -838,6 +844,57 @@
           </div>
         </div>
       ` : ''}
+
+      <!-- OPERATIONAL ACTIONS PERFORMED SECTION (Bookings, Payments, Advances, Expenses) -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <span>🛠️ Operational Work &amp; Actions (${userActions.length} Actions)</span>
+          <span style="font-size:11px;font-weight:700;color:#059669;background:#ECFDF5;padding:2px 8px;border-radius:6px;">Staff Activity Record</span>
+        </div>
+
+        ${userActions.length > 0 ? `
+          <div style="border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);max-height:220px;overflow-y:auto;background:#FFFFFF;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+              <thead>
+                <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
+                  <th style="padding:8px 12px;width:100px;">Date &amp; Time</th>
+                  <th style="padding:8px 12px;width:130px;">Action</th>
+                  <th style="padding:8px 12px;">Particulars</th>
+                  <th style="padding:8px 12px;text-align:right;width:95px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${userActions.map((a, i) => {
+                  const aTime = a.timestamp ? new Date(a.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+                  const d = a.details || {};
+                  let amt = d.amount || d.totalAmount || null;
+                  let summary = '';
+                  if (a.actionType === 'booking_add') summary = `Guest: <strong>${escapeHtml(d.guestName || '')}</strong> &middot; Room: ${d.roomId || '-'} &middot; ${d.checkIn || ''} to ${d.checkOut || ''}`;
+                  else if (a.actionType === 'booking_modify') summary = `Guest: <strong>${escapeHtml(d.guestName || '')}</strong> &middot; ${escapeHtml(d.changes || 'Updated')}`;
+                  else if (a.actionType === 'booking_delete') summary = `Deleted: <strong>${escapeHtml(d.guestName || '')}</strong> &middot; ${d.bookingId || ''}`;
+                  else if (a.actionType === 'payment_add') summary = `Guest: <strong>${escapeHtml(d.guestName || '')}</strong> &middot; ${d.mode || 'Cash'} &middot; Received by: ${d.receivedBy || ''}`;
+                  else if (a.actionType === 'advance_give') summary = `Given to: <strong>${escapeHtml(d.empName || '')}</strong> &middot; Reason: ${escapeHtml(d.reason || '')}`;
+                  else if (a.actionType === 'expense_add') summary = `Category: <strong>${escapeHtml(d.categoryName || '')}</strong> &middot; ${escapeHtml(d.roomName || '')}`;
+                  else summary = JSON.stringify(d);
+
+                  return `
+                    <tr style="border-bottom:1px solid #F1F5F9;${i%2===0 ? 'background:#FFFFFF;' : 'background:#FAFAFA;'}">
+                      <td style="padding:8px 12px;color:#64748B;white-space:nowrap;">🕐 ${aTime}</td>
+                      <td style="padding:8px 12px;font-weight:700;white-space:nowrap;">${a.actionTitle || a.actionType}</td>
+                      <td style="padding:8px 12px;color:#334155;">${summary}</td>
+                      <td style="padding:8px 12px;text-align:right;font-weight:800;white-space:nowrap;">${amt ? '₹' + Number(amt).toLocaleString('en-IN') : '—'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;padding:16px;text-align:center;color:#94A3B8;font-size:12.5px;">
+            No direct bookings, payments, advances, or expenses recorded by this user in this month.
+          </div>
+        `}
+      </div>
 
       <!-- DAILY LOGIN & SCREEN TIME BREAKDOWN -->
       <div>
@@ -1124,6 +1181,609 @@
       <div style="border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
         ${rows}
       </div>
+    `;
+  };
+
+  // ═════════════════════════════════════════════════════════════
+  // 7. USER OPERATIONAL ACTIONS AUDIT SYSTEM (Developer Group Only)
+  // Bookings Added, Modified, Deleted, Payments, Advances, Expenses
+  // ═════════════════════════════════════════════════════════════
+  window.UserActionAudit = {
+    _buffer: [],
+    _timer: null,
+
+    async recordAction(actionType, details = {}) {
+      try {
+        const user = window.SESSION || {};
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        const curMonth = today.slice(0, 7);
+        const isMobile = /Android|iPhone|iPad|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        const titles = {
+          booking_add: '➕ Added Booking',
+          booking_modify: '✏️ Modified Booking',
+          booking_delete: '🗑️ Deleted Booking',
+          payment_add: '💰 Added Payment',
+          advance_give: '💵 Disbursed Advance',
+          expense_add: '🧾 Recorded Expense',
+          expense_modify: '✏️ Modified Expense',
+          expense_delete: '🗑️ Deleted Expense'
+        };
+
+        const entry = {
+          id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          timestamp: now.toISOString(),
+          date: today,
+          month: curMonth,
+          userId: user.userId || 'anon',
+          userName: user.displayName || user.email || 'Staff User',
+          userRole: user.role || 'staff',
+          userEmail: user.email || '',
+          device: isMobile ? '📱 Mobile' : '💻 Desktop',
+          actionType,
+          actionTitle: titles[actionType] || 'Operational Action',
+          details: details || {}
+        };
+
+        // 1. Save locally per month
+        try {
+          const lKey = `uh_user_actions_${curMonth}`;
+          const localList = JSON.parse(localStorage.getItem(lKey) || '[]');
+          localList.unshift(entry);
+          if (localList.length > 1200) localList.length = 1200;
+          localStorage.setItem(lKey, JSON.stringify(localList));
+        } catch(e) {}
+
+        // 2. BroadcastChannel
+        try {
+          if (window.BroadcastChannel) {
+            const bc = new BroadcastChannel('tuhh_actions_channel');
+            bc.postMessage({ type: 'NEW_ACTION', action: entry });
+          }
+        } catch(e) {}
+
+        // 3. Central Supabase app_settings sync
+        this._buffer.push(entry);
+        if (this._timer) clearTimeout(this._timer);
+        this._timer = setTimeout(() => this._flush(), 500);
+      } catch(err) {
+        console.warn('UserActionAudit.recordAction error:', err);
+      }
+    },
+
+    async _flush() {
+      if (this._timer) {
+        clearTimeout(this._timer);
+        this._timer = null;
+      }
+      if (!this._buffer.length || !window.sb) return;
+      const batch = this._buffer.splice(0);
+      const curMonth = new Date().toISOString().slice(0, 7);
+      const key = `uh_user_actions_${curMonth}`;
+
+      try {
+        const { data: rows } = await window.sb.from('app_settings')
+          .select('value')
+          .eq('key', key)
+          .limit(1);
+
+        let list = [];
+        if (rows?.[0]?.value) {
+          try { list = JSON.parse(rows[0].value); } catch(e) {}
+        }
+        list.unshift(...batch);
+        if (list.length > 3000) list = list.slice(0, 3000);
+
+        await window.sb.from('app_settings').upsert({
+          key,
+          value: JSON.stringify(list),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+      } catch(e) {
+        console.warn('UserActionAudit _flush warning:', e);
+        this._buffer.unshift(...batch);
+      }
+    },
+
+    async fetchActionsForDate(targetDate, targetUserId) {
+      targetDate = targetDate || new Date().toISOString().slice(0, 10);
+      const monthStr = targetDate.slice(0, 7);
+      const actions = [];
+      const seenActionIds = new Set();
+
+      // 1. Central app_settings actions
+      try {
+        if (window.sb) {
+          const key = `uh_user_actions_${monthStr}`;
+          const { data: rows } = await window.sb.from('app_settings').select('value').eq('key', key).limit(1);
+          if (rows?.[0]?.value) {
+            const list = JSON.parse(rows[0].value);
+            (list || []).forEach(a => {
+              if (a.date === targetDate) {
+                const matchUser = !targetUserId || a.userId === targetUserId || (a.userName || '').toLowerCase() === (targetUserId || '').toLowerCase();
+                if (matchUser && !seenActionIds.has(a.id)) {
+                  seenActionIds.add(a.id);
+                  actions.push(a);
+                }
+              }
+            });
+          }
+        }
+      } catch(e) {}
+
+      // 2. LocalStorage actions
+      try {
+        const lKey = `uh_user_actions_${monthStr}`;
+        const localList = JSON.parse(localStorage.getItem(lKey) || '[]');
+        (localList || []).forEach(a => {
+          if (a.date === targetDate) {
+            const matchUser = !targetUserId || a.userId === targetUserId || (a.userName || '').toLowerCase() === (targetUserId || '').toLowerCase();
+            if (matchUser && !seenActionIds.has(a.id)) {
+              seenActionIds.add(a.id);
+              actions.push(a);
+            }
+          }
+        });
+      } catch(e) {}
+
+      // 3. Database Cross-Correlation for targetDate:
+      // A) payment_history
+      try {
+        if (window.sb) {
+          const { data: pays } = await window.sb.from('payment_history')
+            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id)')
+            .or(`payment_date.eq.${targetDate},paid_at.gte.${targetDate}T00:00:00.lte.${targetDate}T23:59:59`)
+            .order('paid_at', { ascending: false });
+
+          (pays || []).forEach(p => {
+            const pId = `db_pay_${p.id}`;
+            const pUser = p.received_by || 'Staff';
+            const matchUser = !targetUserId || p.created_by === targetUserId || pUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            if (matchUser && !seenActionIds.has(pId)) {
+              seenActionIds.add(pId);
+              actions.push({
+                id: pId,
+                timestamp: p.paid_at || `${targetDate}T12:00:00.000Z`,
+                date: targetDate,
+                month: monthStr,
+                userId: p.created_by || 'staff',
+                userName: pUser,
+                userRole: 'staff',
+                actionType: 'payment_add',
+                actionTitle: '💰 Added Payment',
+                device: '💻 System',
+                details: {
+                  bookingId: p.booking_id,
+                  guestName: p.guest_register?.guest_name || 'Guest',
+                  roomId: p.guest_register?.room_id,
+                  amount: p.amount,
+                  mode: p.payment_mode,
+                  receivedBy: p.received_by,
+                  paymentDate: p.payment_date,
+                  notes: p.notes
+                }
+              });
+            }
+          });
+        }
+      } catch(e) {}
+
+      // B) advance_tracker
+      try {
+        if (window.sb) {
+          const { data: advs } = await window.sb.from('advance_tracker')
+            .select('id, emp_id, advance_amount, payment_mode, paid_by, reason, date_given, created_at, employees(name, role)')
+            .eq('date_given', targetDate)
+            .order('created_at', { ascending: false });
+
+          (advs || []).forEach(adv => {
+            const aId = `db_adv_${adv.id}`;
+            const advGiver = adv.paid_by || 'Management';
+            const matchUser = !targetUserId || advGiver.toLowerCase() === (targetUserId || '').toLowerCase();
+            if (matchUser && !seenActionIds.has(aId)) {
+              seenActionIds.add(aId);
+              actions.push({
+                id: aId,
+                timestamp: adv.created_at || `${targetDate}T12:00:00.000Z`,
+                date: targetDate,
+                month: monthStr,
+                userId: 'mgmt',
+                userName: advGiver,
+                userRole: 'manager',
+                actionType: 'advance_give',
+                actionTitle: '💵 Disbursed Advance',
+                device: '💻 System',
+                details: {
+                  empId: adv.emp_id,
+                  empName: adv.employees?.name || adv.emp_id,
+                  amount: adv.advance_amount,
+                  mode: adv.payment_mode,
+                  paidBy: adv.paid_by,
+                  reason: adv.reason,
+                  dateGiven: adv.date_given
+                }
+              });
+            }
+          });
+        }
+      } catch(e) {}
+
+      // C) expenses
+      try {
+        if (window.sb) {
+          const { data: exps } = await window.sb.from('expenses')
+            .select('id, amount, paid_by, payment_mode, notes, room_id, entry_date, created_at, created_by, expense_categories(category_name), rooms(nickname)')
+            .eq('entry_date', targetDate)
+            .order('created_at', { ascending: false });
+
+          (exps || []).forEach(exp => {
+            const eId = `db_exp_${exp.id}`;
+            const expUser = exp.paid_by || 'Staff';
+            const matchUser = !targetUserId || exp.created_by === targetUserId || expUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            if (matchUser && !seenActionIds.has(eId)) {
+              seenActionIds.add(eId);
+              actions.push({
+                id: eId,
+                timestamp: exp.created_at || `${targetDate}T12:00:00.000Z`,
+                date: targetDate,
+                month: monthStr,
+                userId: exp.created_by || 'staff',
+                userName: expUser,
+                userRole: 'staff',
+                actionType: 'expense_add',
+                actionTitle: '🧾 Recorded Expense',
+                device: '💻 System',
+                details: {
+                  amount: exp.amount,
+                  categoryName: exp.expense_categories?.category_name || 'Expense',
+                  roomName: exp.rooms?.nickname || exp.room_id || 'General',
+                  paidBy: exp.paid_by,
+                  mode: exp.payment_mode,
+                  notes: exp.notes,
+                  entryDate: exp.entry_date
+                }
+              });
+            }
+          });
+        }
+      } catch(e) {}
+
+      return actions.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    },
+
+    async fetchUserActionsForMonth(userId, displayName, monthStr) {
+      monthStr = monthStr || new Date().toISOString().slice(0, 7);
+      const targetUid = (userId || '').toLowerCase();
+      const targetName = (displayName || '').trim().toLowerCase();
+      const list = [];
+      const seen = new Set();
+
+      try {
+        if (window.sb) {
+          const key = `uh_user_actions_${monthStr}`;
+          const { data: rows } = await window.sb.from('app_settings').select('value').eq('key', key).limit(1);
+          if (rows?.[0]?.value) {
+            const raw = JSON.parse(rows[0].value);
+            (raw || []).forEach(a => {
+              const aUid = (a.userId || '').toLowerCase();
+              const aName = (a.userName || '').trim().toLowerCase();
+              if ((targetUid && aUid === targetUid) || (targetName && aName === targetName)) {
+                if (!seen.has(a.id)) {
+                  seen.add(a.id);
+                  list.push(a);
+                }
+              }
+            });
+          }
+        }
+      } catch(e) {}
+
+      return list.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    }
+  };
+
+  // ═════════════════════════════════════════════════════════════
+  // 8. RENDER DAILY WORK & ACTIONS AUDIT TAB (Developer Only)
+  // ═════════════════════════════════════════════════════════════
+  window._workAuditDate = window._workAuditDate || new Date().toISOString().slice(0, 10);
+  window._workAuditUserFilter = window._workAuditUserFilter || '';
+  window._workAuditTypeFilter = window._workAuditTypeFilter || '';
+
+  window.renderWorkAuditTabContent = async function() {
+    const el = document.getElementById('workAuditTabContainer');
+    if (!el) return;
+
+    if (!isDeveloperRecipient()) {
+      el.innerHTML = `
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:24px;text-align:center;color:#991B1B;">
+          <div style="font-size:24px;margin-bottom:6px;">🔒</div>
+          <div style="font-size:14px;font-weight:800;">Access Restricted</div>
+          <div style="font-size:12px;margin-top:4px;">Operational actions and staff work logs are visible exclusively to Developer group accounts.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const curDate = window._workAuditDate;
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading staff work actions for ' + curDate + '...</div>';
+
+    // Flush any pending actions buffer
+    if (window.UserActionAudit && typeof window.UserActionAudit._flush === 'function') {
+      try { await window.UserActionAudit._flush(); } catch(e) {}
+    }
+
+    const allActions = await window.UserActionAudit.fetchActionsForDate(curDate, window._workAuditUserFilter);
+
+    // Filter by action type if selected
+    const filteredActions = window._workAuditTypeFilter
+      ? allActions.filter(a => a.actionType === window._workAuditTypeFilter)
+      : allActions;
+
+    // Metrics calculation
+    const bookingsAdded = allActions.filter(a => a.actionType === 'booking_add');
+    const bookingsModified = allActions.filter(a => a.actionType === 'booking_modify');
+    const bookingsDeleted = allActions.filter(a => a.actionType === 'booking_delete');
+    const payments = allActions.filter(a => a.actionType === 'payment_add');
+    const advances = allActions.filter(a => a.actionType === 'advance_give');
+    const expenses = allActions.filter(a => a.actionType === 'expense_add');
+
+    const totalPaymentsAmount = payments.reduce((sum, a) => sum + (Number(a.details?.amount) || 0), 0);
+    const totalAdvancesAmount = advances.reduce((sum, a) => sum + (Number(a.details?.amount) || 0), 0);
+    const totalExpensesAmount = expenses.reduce((sum, a) => sum + (Number(a.details?.amount) || 0), 0);
+
+    // List of unique users who did work on this date for filter dropdown
+    const uniqueUserMap = new Map();
+    allActions.forEach(a => {
+      const uName = a.userName || 'Staff';
+      if (!uniqueUserMap.has(uName)) uniqueUserMap.set(uName, a.userRole || 'staff');
+    });
+
+    const isToday = curDate === new Date().toISOString().slice(0, 10);
+    const dObj = new Date(curDate + 'T12:00:00');
+    const dateFormatted = dObj.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+    el.innerHTML = `
+      <!-- TOP CONTROLS & FILTER BAR -->
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              <span>🛠️ Staff Operational Work &amp; Actions Audit</span>
+              <span style="background:#059669;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;">Developer Master View</span>
+            </div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">
+              Live log of bookings added/modified/deleted, payments collected, advances given, and expenses entered.
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn-sm" onclick="window._workAuditDate=new Date().toISOString().slice(0,10);window.renderWorkAuditTabContent();"
+              style="padding:6px 12px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;${isToday ? 'background:#059669;color:#fff;border:none;' : 'background:#FFFFFF;border:1px solid #CBD5E1;color:#334155;'}">
+              Today
+            </button>
+            <button type="button" class="btn-sm" onclick="const y=new Date();y.setDate(y.getDate()-1);window._workAuditDate=y.toISOString().slice(0,10);window.renderWorkAuditTabContent();"
+              style="padding:6px 12px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;background:#FFFFFF;border:1px solid #CBD5E1;color:#334155;">
+              Yesterday
+            </button>
+            <input type="date" id="workAuditDateSelector" value="${curDate}"
+              onchange="window._workAuditDate=this.value;window.renderWorkAuditTabContent();"
+              style="padding:6px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;font-weight:700;color:#0F172A;background:#FFFFFF;" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #E2E8F0;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:12px;font-weight:700;color:#475569;">Staff / User:</label>
+            <select id="workAuditUserSelect" onchange="window._workAuditUserFilter=this.value;window.renderWorkAuditTabContent();"
+              style="padding:5px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;font-weight:700;color:#0F172A;background:#FFFFFF;">
+              <option value="" ${window._workAuditUserFilter === '' ? 'selected' : ''}>All Staff &amp; Users</option>
+              ${Array.from(uniqueUserMap.entries()).map(([uName, uRole]) => `
+                <option value="${uName}" ${window._workAuditUserFilter === uName ? 'selected' : ''}>
+                  ${uName} (${uRole})
+                </option>
+              `).join('')}
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:12px;font-weight:700;color:#475569;">Action Category:</label>
+            <select id="workAuditTypeSelect" onchange="window._workAuditTypeFilter=this.value;window.renderWorkAuditTabContent();"
+              style="padding:5px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12px;font-weight:700;color:#0F172A;background:#FFFFFF;">
+              <option value="" ${window._workAuditTypeFilter === '' ? 'selected' : ''}>All Actions (${allActions.length})</option>
+              <option value="booking_add" ${window._workAuditTypeFilter === 'booking_add' ? 'selected' : ''}>➕ Bookings Added (${bookingsAdded.length})</option>
+              <option value="booking_modify" ${window._workAuditTypeFilter === 'booking_modify' ? 'selected' : ''}>✏️ Bookings Modified (${bookingsModified.length})</option>
+              <option value="booking_delete" ${window._workAuditTypeFilter === 'booking_delete' ? 'selected' : ''}>🗑️ Bookings Deleted (${bookingsDeleted.length})</option>
+              <option value="payment_add" ${window._workAuditTypeFilter === 'payment_add' ? 'selected' : ''}>💰 Payments Collected (${payments.length})</option>
+              <option value="advance_give" ${window._workAuditTypeFilter === 'advance_give' ? 'selected' : ''}>💵 Advances Given (${advances.length})</option>
+              <option value="expense_add" ${window._workAuditTypeFilter === 'expense_add' ? 'selected' : ''}>🧾 Expenses Entered (${expenses.length})</option>
+            </select>
+          </div>
+
+          <div style="margin-left:auto;font-size:12px;font-weight:800;color:#059669;">
+            📅 ${dateFormatted}
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI METRIC CARDS -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#15803D;">${bookingsAdded.length}</div>
+          <div style="font-size:11px;font-weight:800;color:#166534;text-transform:uppercase;">Bookings Added</div>
+          <div style="font-size:10px;color:#64748B;">on ${curDate}</div>
+        </div>
+
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#B45309;">${bookingsModified.length}</div>
+          <div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Bookings Modified</div>
+          <div style="font-size:10px;color:#64748B;">edits tracked</div>
+        </div>
+
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#DC2626;">${bookingsDeleted.length}</div>
+          <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;">Bookings Deleted</div>
+          <div style="font-size:10px;color:#64748B;">purged from register</div>
+        </div>
+
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:18px;font-weight:900;color:#1D4ED8;">₹${totalPaymentsAmount.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;font-weight:800;color:#1E40AF;text-transform:uppercase;">Payments Collected</div>
+          <div style="font-size:10px;color:#64748B;">${payments.length} collections</div>
+        </div>
+
+        <div style="background:#FDF2F8;border:1px solid #FBCFE8;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:18px;font-weight:900;color:#BE185D;">₹${totalAdvancesAmount.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;font-weight:800;color:#9D174D;text-transform:uppercase;">Advances Given</div>
+          <div style="font-size:10px;color:#64748B;">${advances.length} staff disbursements</div>
+        </div>
+
+        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:18px;font-weight:900;color:#6D28D9;">₹${totalExpensesAmount.toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;font-weight:800;color:#5B21B6;text-transform:uppercase;">Expenses Entered</div>
+          <div style="font-size:10px;color:#64748B;">${expenses.length} outflow entries</div>
+        </div>
+      </div>
+
+      <!-- MASTER ACTIONS TABLE / LIST -->
+      ${filteredActions.length > 0 ? `
+        <div style="border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);background:#FFFFFF;">
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:left;">
+            <thead>
+              <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
+                <th style="padding:10px 14px;width:95px;">Time</th>
+                <th style="padding:10px 14px;width:150px;">Staff / User</th>
+                <th style="padding:10px 14px;width:150px;">Action</th>
+                <th style="padding:10px 14px;">Full Particulars &amp; Details</th>
+                <th style="padding:10px 14px;text-align:right;width:110px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredActions.map((a, i) => {
+                const aTime = a.timestamp ? new Date(a.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+                const d = a.details || {};
+
+                // Action tag styles
+                const actionBadges = {
+                  booking_add: '<span style="background:#DCFCE7;color:#15803D;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #BBF7D0;">➕ Booking Added</span>',
+                  booking_modify: '<span style="background:#FEF3C7;color:#B45309;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #FDE68A;">✏️ Modified</span>',
+                  booking_delete: '<span style="background:#FEE2E2;color:#DC2626;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #FECACA;">🗑️ Deleted</span>',
+                  payment_add: '<span style="background:#DBEAFE;color:#1D4ED8;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #BFDBFE;">💰 Payment</span>',
+                  advance_give: '<span style="background:#FCE7F3;color:#BE185D;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #FBCFE8;">💵 Advance</span>',
+                  expense_add: '<span style="background:#EDE9FE;color:#6D28D9;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #DDD6FE;">🧾 Expense</span>'
+                };
+                const actionBadgeHtml = actionBadges[a.actionType] || `<span style="background:#F1F5F9;color:#334155;font-weight:700;font-size:11px;padding:3px 8px;border-radius:6px;">${a.actionTitle || 'Action'}</span>`;
+
+                // Description formatting
+                let descHtml = '';
+                let amtVal = null;
+
+                if (a.actionType === 'booking_add') {
+                  amtVal = d.totalAmount || 0;
+                  descHtml = `
+                    <div style="font-weight:700;color:#0F172A;">
+                      Guest: <span style="color:#0284C7;">${escapeHtml(d.guestName || 'Guest')}</span>
+                      ${d.bookingId ? ` &middot; <span style="font-family:monospace;font-size:11.5px;color:#475569;">${d.bookingId}</span>` : ''}
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      Room: <strong>${d.roomId || '-'}</strong> &middot; Check-in: <strong>${d.checkIn || '-'}</strong> to <strong>${d.checkOut || '-'}</strong> (${d.bookingMode || 'Direct'})
+                    </div>
+                  `;
+                } else if (a.actionType === 'booking_modify') {
+                  amtVal = d.totalAmount || null;
+                  descHtml = `
+                    <div style="font-weight:700;color:#0F172A;">
+                      Guest: <span style="color:#0284C7;">${escapeHtml(d.guestName || 'Guest')}</span>
+                      ${d.bookingId ? ` &middot; <span style="font-family:monospace;font-size:11.5px;color:#475569;">${d.bookingId}</span>` : ''}
+                    </div>
+                    <div style="font-size:11.5px;color:#B45309;margin-top:2px;font-style:italic;">
+                      ${escapeHtml(d.changes || 'Booking details updated')}
+                    </div>
+                  `;
+                } else if (a.actionType === 'booking_delete') {
+                  amtVal = d.totalAmount || null;
+                  descHtml = `
+                    <div style="font-weight:700;color:#DC2626;">
+                      Deleted: ${escapeHtml(d.guestName || 'Guest')} &middot; <span style="font-family:monospace;font-size:11.5px;">${d.bookingId || '-'}</span>
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      Purged from system register. Room: ${d.roomId || '-'}
+                    </div>
+                  `;
+                } else if (a.actionType === 'payment_add') {
+                  amtVal = d.amount || 0;
+                  descHtml = `
+                    <div style="font-weight:700;color:#0F172A;">
+                      Received via <strong>${d.mode || 'Cash/UPI'}</strong> by <strong style="color:#15803D;">${escapeHtml(d.receivedBy || a.userName || 'Staff')}</strong>
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      Guest: <strong>${escapeHtml(d.guestName || 'Guest')}</strong> &middot; Booking: <span style="font-family:monospace;">${d.bookingId || '-'}</span> ${d.notes ? `&middot; <em>"${escapeHtml(d.notes)}"</em>` : ''}
+                    </div>
+                  `;
+                } else if (a.actionType === 'advance_give') {
+                  amtVal = d.amount || 0;
+                  descHtml = `
+                    <div style="font-weight:700;color:#0F172A;">
+                      Given to: <strong style="color:#BE185D;">${escapeHtml(d.empName || d.empId || 'Staff')}</strong> &middot; Paid by: <strong>${escapeHtml(d.paidBy || a.userName || 'Management')}</strong>
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      Purpose: <em>${escapeHtml(d.reason || 'Staff Advance')}</em> (${d.mode || 'Cash'})
+                    </div>
+                  `;
+                } else if (a.actionType === 'expense_add') {
+                  amtVal = d.amount || 0;
+                  descHtml = `
+                    <div style="font-weight:700;color:#0F172A;">
+                      Category: <strong style="color:#6D28D9;">${escapeHtml(d.categoryName || 'General')}</strong> &middot; Room: <strong>${escapeHtml(d.roomName || 'Property')}</strong>
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      Paid by: <strong>${escapeHtml(d.paidBy || a.userName || 'Staff')}</strong> (${d.mode || 'UPI'}) ${d.notes ? `&middot; <em>"${escapeHtml(d.notes)}"</em>` : ''}
+                    </div>
+                  `;
+                } else {
+                  descHtml = `<div style="font-weight:600;color:#334155;">${JSON.stringify(d)}</div>`;
+                }
+
+                return `
+                  <tr style="border-bottom:1px solid #F1F5F9;${i%2===0 ? 'background:#FFFFFF;' : 'background:#FAFAFA;'}">
+                    <td style="padding:10px 14px;color:#64748B;font-weight:700;white-space:nowrap;">
+                      🕐 ${aTime}
+                    </td>
+                    <td style="padding:10px 14px;white-space:nowrap;">
+                      <div style="font-weight:800;color:#0F172A;display:flex;align-items:center;gap:4px;">
+                        <span>${escapeHtml(a.userName || 'Staff')}</span>
+                        <span style="font-size:10px;color:#64748B;">${a.device || ''}</span>
+                      </div>
+                      <div style="font-size:10.5px;color:#64748B;text-transform:capitalize;">${a.userRole || 'staff'}</div>
+                    </td>
+                    <td style="padding:10px 14px;white-space:nowrap;">
+                      ${actionBadgeHtml}
+                    </td>
+                    <td style="padding:10px 14px;">
+                      ${descHtml}
+                    </td>
+                    <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
+                      ${amtVal !== null ? `
+                        <span style="font-weight:900;font-size:13px;color:${a.actionType === 'payment_add' ? '#059669' : a.actionType === 'advance_give' ? '#BE185D' : a.actionType === 'expense_add' ? '#6D28D9' : '#0F172A'};">
+                          ₹${Number(amtVal).toLocaleString('en-IN')}
+                        </span>
+                      ` : '<span style="color:#CBD5E1;">—</span>'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : `
+        <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:14px;padding:36px 20px;text-align:center;color:#94A3B8;">
+          <div style="font-size:32px;margin-bottom:8px;">📝</div>
+          <div style="font-size:14px;font-weight:800;color:#1E293B;">No Operational Actions Recorded for ${dateFormatted}</div>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">
+            As staff add or delete bookings, collect payments, disburse advances, or enter expenses, they will stream here in real time.
+          </div>
+        </div>
+      `}
     `;
   };
 

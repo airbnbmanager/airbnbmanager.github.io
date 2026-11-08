@@ -3252,6 +3252,21 @@ async function saveAdv() {
     if (_btn) { _btn.disabled = false; _btn.textContent = '💾 Save Advance'; }
     return;
   }
+
+  // 📋 Audit log for Developer
+  if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+    const empSelect = document.getElementById('aEmp');
+    const empName = empSelect?.options?.[empSelect.selectedIndex]?.text || eid;
+    window.UserActionAudit.recordAction('advance_give', {
+      empId: eid,
+      empName: empName,
+      amount: amt,
+      paidBy: paidByVal,
+      reason: reasonText,
+      dateGiven: dateVal,
+      mode: document.getElementById('aMode')?.value || 'Cash'
+    });
+  }
   if (window.notifyDataChanged) window.notifyDataChanged();
   renderAdvanceTracker();
 }
