@@ -13,6 +13,13 @@
 (function() {
   'use strict';
 
+  function isDeveloperRecipient() {
+    if (typeof window.isDeveloperUser === 'function') {
+      return window.isDeveloperUser(window.SESSION?.userId, window.SESSION?.email, window.SESSION?.displayName, window.SESSION?.role);
+    }
+    return window.SESSION?.role === 'developer';
+  }
+
   // ═════════════════════════════════════════════════════════════
   // 1. SOUND & AUDIO ALERT (Web Audio API Chime)
   // ═════════════════════════════════════════════════════════════
@@ -48,17 +55,16 @@
     _lastPolledAlertTime: localStorage.getItem('uh_last_dev_alert_ts') || new Date().toISOString(),
     _seenAlertIds: new Set(JSON.parse(sessionStorage.getItem('uh_seen_alert_ids') || '[]')),
 
-    // Called whenever ANY user logs in (ANY role: admin, owner, manager, staff, cleaner, developer etc.)
+    // Called whenever ANY user logs in (ANY role: admin, owner, manager, staff, cleaner, developer, subowner, etc.)
     async notifyDevOnLogin(userId, displayName, role, email) {
       if (!userId) return;
-      // Never alert for Praveen's own login (Praveen is the recipient)
-      if (window.isPraveenUser && window.isPraveenUser(userId, email, displayName, role)) return;
-      if ((displayName || '').toLowerCase().includes('praveen') || (email || '').toLowerCase().includes('praveen')) return;
 
       const now = new Date();
       const alertId = `login_${userId}_${now.getTime()}`;
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
       const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const isMobile = /Android|iPhone|iPad|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const deviceStr = isMobile ? '📱 Mobile' : '💻 Desktop';
 
       const alertObj = {
         id: alertId,
@@ -67,6 +73,7 @@
         user_name: displayName || email || 'Staff User',
         user_role: role || 'staff',
         user_email: email || '',
+        device: deviceStr,
         timestamp: now.toISOString(),
         time_label: `${dateStr} at ${timeStr}`,
         read: false
@@ -85,7 +92,7 @@
         localStorage.setItem('uh_latest_login_alert', JSON.stringify(alertObj));
       } catch(e) {}
 
-      // 3. Central Supabase app_settings (syncs to Praveen across any phone/laptop/iPad)
+      // 3. Central Supabase app_settings (syncs to Developer group across any phone/laptop/iPad)
       try {
         if (window.sb) {
           const { data: rows } = await window.sb.from('app_settings')
@@ -98,7 +105,7 @@
             try { alertsList = JSON.parse(rows[0].value); } catch(e) {}
           }
           alertsList.unshift(alertObj);
-          if (alertsList.length > 200) alertsList = alertsList.slice(0, 200);
+          if (alertsList.length > 250) alertsList = alertsList.slice(0, 250);
 
           await window.sb.from('app_settings').upsert({
             key: 'dev_login_alerts',
@@ -129,13 +136,9 @@
       } catch(e) {}
     },
 
-    // Polled by Praveen's device every 10-12s
+    // Polled by Developer's device every 10-12s (Strictly Developer Group Only)
     async pollNewAlertsForDev() {
-      const isRecipient = (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-        (window.isPraveenUser && window.isPraveenUser(window.SESSION?.userId, window.SESSION?.email, window.SESSION?.displayName, window.SESSION?.role)) ||
-        (window.SESSION?.displayName || '').toLowerCase().includes('praveen') ||
-        (window.SESSION?.email || '').toLowerCase().includes('praveensingh');
-      if (!isRecipient) return;
+      if (!isDeveloperRecipient()) return;
 
       try {
         if (!window.sb) return;
@@ -149,6 +152,7 @@
         if (!Array.isArray(alertsList) || !alertsList.length) return;
 
         // Check for unseen alerts from the last 20 minutes
+        const curUid = window.SESSION?.userId;
         const freshAlerts = alertsList.filter(a => {
           if (this._seenAlertIds.has(a.id)) return false;
           const alertAgeMs = Date.now() - new Date(a.timestamp).getTime();
@@ -156,9 +160,14 @@
         });
 
         if (freshAlerts.length > 0) {
-          playLoginChime();
-          const newest = freshAlerts[0];
-          this.showFloatingToast(newest);
+          // Suppress audio chime & toast for the current session's own initial login
+          const alertToShow = freshAlerts.find(a => a.user_id !== curUid) || freshAlerts[0];
+          const isOwnRecentLogin = freshAlerts.every(a => a.user_id === curUid);
+
+          if (!isOwnRecentLogin) {
+            playLoginChime();
+            this.showFloatingToast(alertToShow);
+          }
 
           freshAlerts.forEach(a => this._seenAlertIds.add(a.id));
           sessionStorage.setItem('uh_seen_alert_ids', JSON.stringify(Array.from(this._seenAlertIds)));
@@ -210,6 +219,7 @@
           <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">User Login Detected</div>
           <div style="font-size:14px;font-weight:800;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${alert.user_name} <span style="background:#334155;color:#E2E8F0;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700;">${badgeText}</span>
+            <span style="background:#1E293B;color:#38BDF8;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700;">${alert.device || '💻 Desktop'}</span>
           </div>
           <div style="font-size:11.5px;color:#CBD5E1;margin-top:2px;">Logged in at ${alert.time_label || 'Just now'}</div>
         </div>
@@ -292,12 +302,14 @@
       const now = new Date();
       const today = now.toISOString().slice(0, 10);
       const curMonth = today.slice(0, 7);
+      const isMobile = /Android|iPhone|iPad|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       const entry = {
         userId: String(userId),
         displayName: displayName || 'User',
         role: role || 'staff',
         page,
+        device: isMobile ? '📱 Mobile' : '💻 Desktop',
         timestamp: now.toISOString(),
         date: today,
         month: curMonth
@@ -399,9 +411,14 @@
   });
 
   // ═════════════════════════════════════════════════════════════
-  // 4. MONTHLY USER AUDIT MODAL (For Praveen / Developer)
+  // 4. MONTHLY USER AUDIT MODAL (Developer Group Only)
   // ═════════════════════════════════════════════════════════════
   window.openUserAuditModal = async function(userId, displayName, role) {
+    if (!isDeveloperRecipient()) {
+      alert('🔒 Access Restricted: User Activity Audit & Intelligence is strictly reserved for the Developer group.');
+      return;
+    }
+
     const existing = document.getElementById('userAuditModalOverlay');
     if (existing) existing.remove();
 
@@ -728,43 +745,52 @@
       'reviews-followup': '⭐ Airbnb Review Followup'
     };
 
+    // Latest 25 visits in reverse chronological order for detailed activity stream
+    const recentVisitsStream = [...visits].reverse().slice(0, 25);
+
     bodyEl.innerHTML = `
       <!-- KPI CARDS -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-bottom:20px;">
-        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:24px;font-weight:900;color:#15803D;">${totalDaysLoggedIn}</div>
-          <div style="font-size:11px;font-weight:800;color:#166534;text-transform:uppercase;margin-top:2px;">Days Active</div>
-          <div style="font-size:10px;color:#64748B;margin-top:2px;">in this month</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(115px, 1fr));gap:10px;margin-bottom:20px;">
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#15803D;">${totalDaysLoggedIn}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#166534;text-transform:uppercase;margin-top:2px;">Days Active</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">in this month</div>
         </div>
 
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#1D4ED8;">${fmtHoursMins(totalSecondsOnline)}</div>
-          <div style="font-size:11px;font-weight:800;color:#1E40AF;text-transform:uppercase;margin-top:2px;">Total Online Time</div>
-          <div style="font-size:10px;color:#64748B;margin-top:2px;">Screen duration</div>
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:18px;font-weight:900;color:#1D4ED8;">${fmtHoursMins(totalSecondsOnline)}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#1E40AF;text-transform:uppercase;margin-top:2px;">Screen Time</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">total active</div>
         </div>
 
-        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:24px;font-weight:900;color:#C2410C;">${totalLoginsCount}</div>
-          <div style="font-size:11px;font-weight:800;color:#9A3412;text-transform:uppercase;margin-top:2px;">Total Logins</div>
-          <div style="font-size:10px;color:#64748B;margin-top:2px;">Browser sessions</div>
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#C2410C;">${totalLoginsCount}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#9A3412;text-transform:uppercase;margin-top:2px;">Total Logins</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">sessions</div>
         </div>
 
-        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:12px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#6D28D9;">${fmtHoursMins(avgSecsPerActiveDay)}</div>
-          <div style="font-size:11px;font-weight:800;color:#5B21B6;text-transform:uppercase;margin-top:2px;">Avg Daily Time</div>
-          <div style="font-size:10px;color:#64748B;margin-top:2px;">per active day</div>
+        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:18px;font-weight:900;color:#6D28D9;">${fmtHoursMins(avgSecsPerActiveDay)}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#5B21B6;text-transform:uppercase;margin-top:2px;">Avg Daily</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">per active day</div>
+        </div>
+
+        <div style="background:#ECFEFF;border:1px solid #A5F3FC;border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#0E7490;">${visits.length}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#155E75;text-transform:uppercase;margin-top:2px;">Navigations</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">pages visited</div>
         </div>
       </div>
 
       <!-- PAGES VISITED SECTION -->
-      <div style="margin-bottom:24px;">
+      <div style="margin-bottom:22px;">
         <div style="font-size:13px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
           <span>🧭 Pages Visited Breakdown</span>
           <span style="font-size:11.5px;font-weight:600;color:#64748B;text-transform:none;">${visits.length} total page actions</span>
         </div>
 
         ${sortedPages.length > 0 ? `
-          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:8px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px;">
             ${sortedPages.map(([pageKey, count]) => `
               <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
                 <span style="font-size:12.5px;font-weight:700;color:#1E293B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -778,10 +804,40 @@
           </div>
         ` : `
           <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;padding:16px;text-align:center;color:#94A3B8;font-size:12.5px;">
-            No specific page navigation tracked yet for this period. As the user navigates, pages will record in real-time.
+            No specific page navigation tracked yet for this period. As the user navigates, pages record in real-time.
           </div>
         `}
       </div>
+
+      <!-- RECENT PAGE NAVIGATION STREAM (LIVE TIMELINE) -->
+      ${recentVisitsStream.length > 0 ? `
+        <div style="margin-bottom:22px;">
+          <div style="font-size:13px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span>🕒 Recent Page Navigation Stream (Latest ${recentVisitsStream.length})</span>
+            <span style="font-size:11px;font-weight:700;color:#0284C7;background:#E0F2FE;padding:2px 8px;border-radius:6px;">Live Trace</span>
+          </div>
+          <div style="border:1px solid #E2E8F0;border-radius:10px;max-height:180px;overflow-y:auto;background:#FAFAFA;">
+            ${recentVisitsStream.map(v => {
+              const vDate = v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+              }) : '-';
+              return `
+                <div style="padding:6px 12px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                    <span style="color:#64748B;font-size:11px;white-space:nowrap;">${vDate}</span>
+                    <span style="font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${PAGE_HUMAN_NAMES[v.page] || v.page}
+                    </span>
+                  </div>
+                  <span style="font-size:10.5px;color:#0369A1;background:#E0F2FE;padding:1px 6px;border-radius:4px;flex-shrink:0;">
+                    ${v.device || '💻 Desktop'}
+                  </span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
 
       <!-- DAILY LOGIN & SCREEN TIME BREAKDOWN -->
       <div>
@@ -791,14 +847,15 @@
 
         ${dailyRecords.length > 0 ? `
           <div style="border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-            <table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:left;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
               <thead>
                 <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
-                  <th style="padding:10px 14px;">Date</th>
-                  <th style="padding:10px 14px;">First Login</th>
-                  <th style="padding:10px 14px;">Last Active</th>
-                  <th style="padding:10px 14px;text-align:center;">Sessions</th>
-                  <th style="padding:10px 14px;text-align:right;">Active Screen Time</th>
+                  <th style="padding:10px 12px;">Date</th>
+                  <th style="padding:10px 12px;">First Login</th>
+                  <th style="padding:10px 12px;">Last Active</th>
+                  <th style="padding:10px 10px;text-align:center;">Sessions</th>
+                  <th style="padding:10px 12px;text-align:right;">Screen Time</th>
+                  <th style="padding:10px 12px;">Pages Visited</th>
                 </tr>
               </thead>
               <tbody>
@@ -807,24 +864,39 @@
                   const dayName = dObj.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
                   const firstT = r.first_login_at ? new Date(r.first_login_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
                   const lastT = r.last_active_at ? new Date(r.last_active_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+
+                  const dayVisits = visitsByDate[r.log_date] || [];
+                  const dayDistinctPages = {};
+                  dayVisits.forEach(v => {
+                    const pk = v.page || 'page';
+                    dayDistinctPages[pk] = (dayDistinctPages[pk] || 0) + 1;
+                  });
+                  const dayPagesSummary = Object.entries(dayDistinctPages)
+                    .map(([pk, cnt]) => `${(PAGE_HUMAN_NAMES[pk] || pk).replace(/^[^\w\s]+\s*/, '')} (${cnt})`)
+                    .slice(0, 3)
+                    .join(', ');
+
                   return `
                     <tr style="border-bottom:1px solid #F1F5F9;${i%2===0 ? 'background:#FFFFFF;' : 'background:#FAFAFA;'}">
-                      <td style="padding:10px 14px;font-weight:800;color:#0F172A;">
+                      <td style="padding:10px 12px;font-weight:800;color:#0F172A;white-space:nowrap;">
                         ${dayName}
                       </td>
-                      <td style="padding:10px 14px;color:#64748B;">
+                      <td style="padding:10px 12px;color:#64748B;white-space:nowrap;">
                         🕐 ${firstT}
                       </td>
-                      <td style="padding:10px 14px;color:#64748B;">
+                      <td style="padding:10px 12px;color:#64748B;white-space:nowrap;">
                         ⏱ ${lastT}
                       </td>
-                      <td style="padding:10px 14px;text-align:center;">
-                        <span style="background:#F1F5F9;padding:2px 8px;border-radius:6px;font-weight:700;color:#334155;">
+                      <td style="padding:10px 10px;text-align:center;white-space:nowrap;">
+                        <span style="background:#F1F5F9;padding:2px 7px;border-radius:6px;font-weight:700;color:#334155;">
                           ${r.login_count || 1}x
                         </span>
                       </td>
-                      <td style="padding:10px 14px;text-align:right;font-weight:900;color:#059669;">
+                      <td style="padding:10px 12px;text-align:right;font-weight:900;color:#059669;white-space:nowrap;">
                         ${fmtHoursMins(r.computedSeconds || r.active_seconds)}
+                      </td>
+                      <td style="padding:10px 12px;color:#64748B;font-size:11px;">
+                        ${dayPagesSummary ? `${dayPagesSummary}${Object.keys(dayDistinctPages).length > 3 ? '...' : ''}` : '<span style="color:#CBD5E1;">—</span>'}
                       </td>
                     </tr>
                   `;
@@ -845,19 +917,14 @@
   // 5. HOOKS INTO CORE.JS
   // ═════════════════════════════════════════════════════════════
 
-  // Hook into UserActivityTracker.recordLogin
+  // Hook into UserActivityTracker.recordLogin (Capture ANY user from ANY group)
   const checkAndHookTracker = () => {
     if (window.UserActivityTracker && !window.UserActivityTracker._auditHooked) {
       window.UserActivityTracker._auditHooked = true;
       const origRecordLogin = window.UserActivityTracker.recordLogin.bind(window.UserActivityTracker);
       window.UserActivityTracker.recordLogin = async function(userId, displayName, role) {
         await origRecordLogin(userId, displayName, role);
-        const isSelfPraveen = window.isPraveenUser
-          ? window.isPraveenUser(userId, window.SESSION?.email, displayName, role)
-          : ((displayName || '').toLowerCase().includes('praveen') || (window.SESSION?.email || '').toLowerCase().includes('praveensingh'));
-        if (!isSelfPraveen) {
-          await window.DevLoginAlert.notifyDevOnLogin(userId, displayName, role, window.SESSION?.email);
-        }
+        await window.DevLoginAlert.notifyDevOnLogin(userId, displayName, role, window.SESSION?.email);
       };
     }
   };
@@ -920,36 +987,31 @@
     window._pendingLoginAlert = null;
   }
 
-  const isCurrentPraveenSession = () => {
-    return (window.isCurrentSessionPraveen && window.isCurrentSessionPraveen()) ||
-      (window.isPraveenUser && window.isPraveenUser(window.SESSION?.userId, window.SESSION?.email, window.SESSION?.displayName, window.SESSION?.role)) ||
-      (window.SESSION?.displayName || '').toLowerCase().includes('praveen') ||
-      (window.SESSION?.email || '').toLowerCase().includes('praveensingh');
-  };
-
-  // Fast poller for Praveen alerts (every 10 seconds)
+  // Fast poller for Developer alerts (every 10 seconds - Developer Group Only)
   setInterval(() => {
-    if (isCurrentPraveenSession() && window.DevLoginAlert?.pollNewAlertsForDev) {
+    if (isDeveloperRecipient() && window.DevLoginAlert?.pollNewAlertsForDev) {
       window.DevLoginAlert.pollNewAlertsForDev();
     }
   }, 10000);
 
-  // Poll immediately when Praveen switches to the tab or focuses window
+  // Poll immediately when Developer switches to the tab or focuses window
   window.addEventListener('focus', () => {
-    if (isCurrentPraveenSession() && window.DevLoginAlert?.pollNewAlertsForDev) {
+    if (isDeveloperRecipient() && window.DevLoginAlert?.pollNewAlertsForDev) {
       window.DevLoginAlert.pollNewAlertsForDev();
     }
   });
 
-  // Real-time BroadcastChannel listener (Instant 0ms across tabs in same browser)
+  // Real-time BroadcastChannel listener (Instant 0ms across tabs in same browser - Developer Group Only)
   try {
     if (window.BroadcastChannel) {
       const bc = new BroadcastChannel('tuhh_login_channel');
       bc.onmessage = function(ev) {
         if (ev?.data?.type === 'NEW_LOGIN' && ev.data.alert) {
-          if (isCurrentPraveenSession()) {
-            playLoginChime();
-            window.DevLoginAlert.showFloatingToast(ev.data.alert);
+          if (isDeveloperRecipient()) {
+            if (ev.data.alert.user_id !== window.SESSION?.userId) {
+              playLoginChime();
+              window.DevLoginAlert.showFloatingToast(ev.data.alert);
+            }
             window.DevLoginAlert.updateBellBadge(1);
           }
         }
@@ -957,14 +1019,16 @@
     }
   } catch(e) {}
 
-  // Real-time storage listener (Cross-tab fallback)
+  // Real-time storage listener (Cross-tab fallback - Developer Group Only)
   window.addEventListener('storage', function(e) {
     if (e.key === 'uh_latest_login_alert' && e.newValue) {
       try {
         const alert = JSON.parse(e.newValue);
-        if (isCurrentPraveenSession() && alert) {
-          playLoginChime();
-          window.DevLoginAlert.showFloatingToast(alert);
+        if (isDeveloperRecipient() && alert) {
+          if (alert.user_id !== window.SESSION?.userId) {
+            playLoginChime();
+            window.DevLoginAlert.showFloatingToast(alert);
+          }
           window.DevLoginAlert.updateBellBadge(1);
         }
       } catch(err) {}
@@ -972,11 +1036,23 @@
   });
 
   // ═════════════════════════════════════════════════════════════
-  // 6. RENDER ALERTS TAB IN USER MANAGEMENT
+  // 6. RENDER ALERTS TAB IN USER MANAGEMENT (Developer Group Only)
   // ═════════════════════════════════════════════════════════════
   window.renderAlertsTabContent = async function() {
     const el = document.getElementById('alertsTabContainer');
     if (!el) return;
+
+    if (!isDeveloperRecipient()) {
+      el.innerHTML = `
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:24px;text-align:center;color:#991B1B;">
+          <div style="font-size:24px;margin-bottom:6px;">🔒</div>
+          <div style="font-size:14px;font-weight:800;">Access Restricted</div>
+          <div style="font-size:12px;margin-top:4px;">Login alerts and user tracking are visible exclusively to Developer group accounts.</div>
+        </div>
+      `;
+      return;
+    }
+
     el.innerHTML = '<div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div>';
 
     const alerts = await window.DevLoginAlert.fetchAlerts(100);
@@ -985,7 +1061,7 @@
         <div style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px;padding:32px;text-align:center;color:#94A3B8;">
           <div style="font-size:28px;margin-bottom:8px;">🔔</div>
           <div style="font-size:14px;font-weight:700;color:#1E293B;">No Login Alerts Recorded Yet</div>
-          <div style="font-size:12px;color:#64748B;margin-top:4px;">When any staff or user logs in, Praveen will receive an alert here in real time.</div>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">When any user logs in, real-time alerts will appear here.</div>
         </div>
       `;
       return;
@@ -999,8 +1075,11 @@
 
       const roleBadge = a.user_role === 'owner' ? '👑 Owner' :
         a.user_role === 'admin' ? '🛡️ Admin' :
+        a.user_role === 'developer' ? '⚡ Developer' :
         a.user_role === 'manager' ? '💼 Manager' :
-        a.user_role === 'booking_staff' ? '📅 Staff' : (a.user_role || 'Staff');
+        a.user_role === 'booking_staff' ? '📅 Staff' :
+        a.user_role === 'cleaner' ? '🧹 Cleaner' :
+        a.user_role === 'caretaker' ? '🔑 Caretaker' : (a.user_role || 'Staff');
 
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #F1F5F9;${unread ? 'background:#F0F9FF;border-left:3px solid #0284C7;' : 'background:#FFFFFF;'}">
@@ -1012,6 +1091,7 @@
               <div style="font-size:13.5px;font-weight:800;color:#0F172A;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <span>${escapeHtml(a.user_name || 'Unknown')}</span>
                 <span style="background:#E2E8F0;color:#334155;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">${roleBadge}</span>
+                ${a.device ? `<span style="background:#F1F5F9;color:#0284C7;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #E2E8F0;">${a.device}</span>` : ''}
                 ${unread ? '<span style="background:#EF4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;">NEW</span>' : ''}
               </div>
               <div style="font-size:12px;color:#64748B;margin-top:2px;">
@@ -1033,7 +1113,7 @@
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <div style="font-size:13px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;">
-          🔔 Real-Time Login Alerts (Praveen / Developer Only)
+          🔔 Real-Time Login Alerts (Developer Group Only &middot; ${alerts.length} Total)
         </div>
         <button class="btn-sm" onclick="window.DevLoginAlert.markAllRead();renderAlertsTabContent();"
           style="background:#F1F5F9;color:#334155;font-weight:700;border:1px solid #CBD5E1;font-size:12px;padding:6px 12px;">

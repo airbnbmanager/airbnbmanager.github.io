@@ -576,6 +576,40 @@
       </div>
     ` : '';
     
+    // Check Developer-only login feed
+    let devLoginsHtml = '';
+    const isDev = (typeof window.isDeveloperUser === 'function' && window.isDeveloperUser()) || (window.SESSION?.role === 'developer');
+    if (isDev && window.DevLoginAlert?.fetchAlerts) {
+      try {
+        const devAlerts = await window.DevLoginAlert.fetchAlerts(4);
+        if (devAlerts && devAlerts.length > 0) {
+          devLoginsHtml = `
+            <div style="padding:8px 12px;background:#F0FDF4;border-bottom:1px solid #DCFCE7;font-weight:800;font-size:11.5px;color:#166534;text-transform:uppercase;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">
+              <span>👑 User Logins (Developer Only)</span>
+              <button type="button" onclick="navigate('user-mgmt');window._userMgmtTab='alerts';this.closest('.notif-panel-overlay')?.remove();" style="border:none;background:transparent;color:#15803D;font-size:11px;font-weight:700;cursor:pointer;text-decoration:underline;">View All Alerts →</button>
+            </div>
+            ${devAlerts.map(a => `
+              <div class="notif-item" style="background:#F8FAFC;border-left:4px solid #10B981;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                  <div style="font-size:16px;">${(a.device || '').includes('Mobile') ? '📱' : '💻'}</div>
+                  <div style="min-width:0;">
+                    <div style="font-size:12px;font-weight:800;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${(a.user_name || 'Staff')} <span style="background:#E2E8F0;font-size:9.5px;padding:1px 5px;border-radius:4px;color:#334155;font-weight:700;">${a.user_role || 'staff'}</span>
+                    </div>
+                    <div style="font-size:11px;color:#64748B;">${a.time_label || (a.timestamp ? timeAgo(a.timestamp) : 'Recently')}</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-sm" onclick="window.openUserAuditModal('${a.user_id}','${(a.user_name||'').replace(/'/g, "\\'")}', '${a.user_role}');this.closest('.notif-panel-overlay')?.remove();"
+                  style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;padding:4px 8px;font-size:11px;flex-shrink:0;">
+                  📊 Audit
+                </button>
+              </div>
+            `).join('')}
+          `;
+        }
+      } catch(e) {}
+    }
+
     const o = document.createElement('div');
     o.className = 'notif-panel-overlay';
     o.innerHTML = `
@@ -598,6 +632,7 @@
           <button onclick="navigate('reminders');this.closest('.notif-panel-overlay').remove();" style="background:#7C3AED;color:#fff;">View All Reminders →</button>
         </div>
         <div class="notif-panel-list">
+          ${devLoginsHtml}
           ${remHtml}
           ${NOTIF.history.length === 0
             ? (remHtml ? '' : '<div class="notif-empty">No notifications yet</div>')

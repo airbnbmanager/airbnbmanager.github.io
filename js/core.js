@@ -250,20 +250,24 @@ window.canManageStaff = function() {
   return ['developer', 'owner', 'admin'].includes(SESSION.role);
 };
 
-// 👑 IDENTIFY PRAVEEN (Developer / Master System Recipient)
-window.isPraveenUser = function(userId, email, displayName, role) {
-  const uid = (userId || '').toLowerCase();
-  const em = (email || '').toLowerCase();
-  const name = (displayName || '').toLowerCase();
+// 👑 IDENTIFY DEVELOPER (Developer Group / Master System Recipient)
+window.isDeveloperUser = function(userId, email, displayName, role) {
+  const r = role || window.SESSION?.role;
+  if (r === 'developer') return true;
+  const uid = (userId || window.SESSION?.userId || '').toLowerCase();
+  const em = (email || window.SESSION?.email || '').toLowerCase();
+  const name = (displayName || window.SESSION?.displayName || '').toLowerCase();
   if (uid === 'c6343844-a307-4668-9b16-1947a0c0f8fa') return true;
   if (em === 'praveensinghaws@gmail.com' || em.includes('praveensingh')) return true;
   if (name.includes('praveen')) return true;
   return false;
 };
 
+window.isPraveenUser = window.isDeveloperUser;
+
 window.isCurrentSessionPraveen = function() {
   if (!window.SESSION) return false;
-  return window.isPraveenUser(SESSION.userId, SESSION.email, SESSION.displayName, SESSION.role);
+  return window.isDeveloperUser(SESSION.userId, SESSION.email, SESSION.displayName, SESSION.role);
 };
 
 
@@ -3029,13 +3033,15 @@ async function renderUserManagement() {
         style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
         ⏱️ Daily Logins & Screen Time Logs
       </button>
-      <button type="button" class="btn-sm" onclick="setUserMgmtTab('alerts')"
-        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
-        🔔 Login Alerts
-      </button>
+      ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
+        <button type="button" class="btn-sm" onclick="setUserMgmtTab('alerts')"
+          style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
+          🔔 Developer Login Alerts
+        </button>
+      ` : ''}
     </div>
 
-    ${currentTab === 'users' ? renderUsersTabContent() : currentTab === 'activity' ? renderActivityTabContent() : '<div id="alertsTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div></div>'}
+    ${currentTab === 'users' ? renderUsersTabContent() : currentTab === 'activity' ? renderActivityTabContent() : ((window.isDeveloperUser && window.isDeveloperUser()) ? '<div id="alertsTabContainer" style="margin-top:8px;"><div style="text-align:center;padding:24px;color:#64748B;">⏳ Loading login alerts...</div></div>' : renderUsersTabContent())}
   `, 'user-mgmt');
 
   if (currentTab === 'alerts' && typeof window.renderAlertsTabContent === 'function') {
@@ -3254,9 +3260,11 @@ async function renderUserManagement() {
                   <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
                     🔧 Role
                   </button>
-                  <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
-                    📊 Audit
-                  </button>
+                  ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
+                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
+                      📊 Audit
+                    </button>
+                  ` : ''}
                   ${!isCurrentUser ? `
                     ${u.isFiredStaff && u.is_approved ? `
                       <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
@@ -3339,7 +3347,9 @@ async function renderUserManagement() {
                       </td>
                       <td class="table-actions" style="text-align:right;">
                         <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
-                        <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
+                        ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
+                          <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
+                        ` : ''}
                         ${!isCurrentUser ? `
                           ${u.isFiredStaff && u.is_approved ? `
                             <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
