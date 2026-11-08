@@ -242,7 +242,7 @@
       group: 'Properties & Ops',
       icon: '🏢',
       title: 'Properties & Units (Pricing & Amenities)',
-      sub: '17 homestays details, unit numbers, pricing & property amenities',
+      sub: '19 homestays details, unit numbers, pricing & property amenities',
       keywords: ['rooms', 'properties', 'units', 'pricing', 'villas', 'apartments', 'flats pricing', 'amenities', 'homestays'],
       action: () => window.navigate('rooms')
     },

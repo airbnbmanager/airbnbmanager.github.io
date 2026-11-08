@@ -872,7 +872,7 @@
     if (/photo|photos|video|tasveer|image|pic|pics|dekhna/i.test(msg)) {
       return {
         text: `📸 **Property Photos & Walkthrough Videos:**\n\n` +
-              `• Aap website par sabhi **17 properties ki HD photo galleries** explore kar sakte hain.\n` +
+              `• Aap website par sabhi **19 properties ki HD photo galleries** explore kar sakte hain.\n` +
               `• Agar aapko kisi specific property ka detailed video tour ya bathroom/kitchen photos chahiye, to WhatsApp par hum instant album bhej denge!`,
         actions: [{ label: '📲 Get HD Photos on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! Please share HD photos and video tour of available properties.` }],
         quickReplies: ['Gomti Grand Villa photos', '3BHK Flat photos', 'Rates list']
@@ -1156,7 +1156,7 @@
     if (parsed.isAvailQuery || /available|free hai|khali hai|availability/i.test(msg)) {
       return {
         text: `🗓️ **Live Availability & Slot Check:**\n\n` +
-              `• Hamaare sabhi 17 homestays ka calendar real-time Supabase database se synced rehta hai.\n` +
+              `• Hamaare sabhi 19 homestays ka calendar real-time Supabase database se synced rehta hai.\n` +
               `• Aap apni **Dates (Jaise: 15 to 17 Oct)** aur **Property Name** yahan type karein, hum turant bata denge!\n` +
               `• Ya aap seedha WhatsApp par instant calendar slot check karwa sakte hain:`,
         actions: [{ label: '📲 Check Live Slots on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! Please check availability for my dates.` }],

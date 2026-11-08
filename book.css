@@ -1588,17 +1588,93 @@ input, select, textarea {
 
 @media (max-width: 768px) {
   :root {
-    --header-height: 68px;
+    --header-height: 64px;
   }
   
+  .site-header {
+    height: var(--header-height);
+  }
+
+  .nav-container {
+    padding: 8px 14px;
+    gap: 8px;
+  }
+
+  .brand-meta .brand-tag {
+    display: none;
+  }
+
+  .brand-meta .brand-title {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
   .nav-capsule-switcher {
     display: none;
   }
-  
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  /* Prevent header clutter on mobile — 15% direct discount is prominently highlighted in booking widget and rate card */
+  .nav-direct-badge {
+    display: none;
+  }
+
+  .nav-my-booking-pill {
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .nav-wa-pill {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Mehmanghar-Inspired Location & Category Filter Bar — Stack cleanly on mobile with 100% scrollable pills */
+  .book-location-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 14px;
+    margin: 12px 0 18px;
+    border-radius: 14px;
+  }
+
+  .book-filter-title {
+    font-size: 11.5px;
+    letter-spacing: 0.2px;
+  }
+
+  .book-filter-pills {
+    width: 100%;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+
+  .book-filter-pill {
+    padding: 6px 13px;
+    font-size: 12px;
+  }
+
+  .listing-title {
+    font-size: 21px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+
+  .listing-meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .mosaic-gallery-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: 280px;
-    height: 280px;
+    grid-template-rows: 240px;
+    height: 240px;
+    border-radius: 14px;
   }
   
   .mosaic-item:not(.mosaic-item-main) {
@@ -1618,6 +1694,26 @@ input, select, textarea {
   }
   
   .airbnb-page-wrapper {
-    padding-bottom: 110px;
+    padding: 16px 16px 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 8px 10px;
+  }
+  .brand-logo-frame {
+    width: 32px;
+    height: 32px;
+  }
+  .brand-meta .brand-title {
+    font-size: 12px;
+  }
+  .nav-my-booking-pill span:last-child {
+    display: none; /* Show search icon on very small phones */
+  }
+  .nav-wa-pill {
+    padding: 5px 10px !important;
+    font-size: 11.5px !important;
   }
 }
