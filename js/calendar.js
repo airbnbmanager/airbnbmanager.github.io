@@ -1094,7 +1094,16 @@ window.calOpenWhatsApp = function(bkId, btn) {
 };
 
 window.calDeleteBooking = async function(bkId, guestName, roomId) {
-  if (!confirm(`Delete booking for "${guestName || 'Guest'}"?\n\nPayments and records for this booking will also be deleted.`)) return;
+  if (typeof window.archiveAndSoftDeleteBooking === 'function') {
+    const ok = await window.archiveAndSoftDeleteBooking(bkId, guestName, roomId);
+    if (ok) {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+      if (typeof window.closeBookingDrawer === 'function') window.closeBookingDrawer();
+      if (typeof renderCalendar === 'function') renderCalendar();
+    }
+    return;
+  }
+  if (!confirm(`Delete booking for "${guestName || 'Guest'}"?`)) return;
 
   try {
     // 1. Delete associated photos from storage if any

@@ -1353,17 +1353,58 @@
       } catch(e) {}
 
       // 3. Database Cross-Correlation for targetDate:
-      // A) payment_history
+      // A) guest_register bookings (check_in on targetDate OR airbnb_booking_date on targetDate)
+      try {
+        if (window.sb) {
+          const { data: bks } = await window.sb.from('guest_register')
+            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, airbnb_booking_date, rooms(nickname, unit_no)')
+            .or(`check_in.eq.${targetDate},airbnb_booking_date.eq.${targetDate}`)
+            .neq('is_cancelled', true);
+
+          (bks || []).forEach(b => {
+            const bId = `db_bk_${b.booking_id}`;
+            const bUser = (b.booked_by || '').trim() || 'Staff';
+            const matchUser = !targetUserId || b.created_by === targetUserId || bUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            if (matchUser && !seenActionIds.has(bId)) {
+              seenActionIds.add(bId);
+              actions.push({
+                id: bId,
+                timestamp: `${targetDate}T10:00:00.000Z`,
+                date: targetDate,
+                month: monthStr,
+                userId: b.created_by || 'staff',
+                userName: bUser,
+                userRole: (bUser.toLowerCase().includes('praveen') || bUser.toLowerCase().includes('admin')) ? 'manager' : (bUser === 'Gmail Sync' ? 'system' : 'staff'),
+                actionType: 'booking_add',
+                actionTitle: '➕ Added Booking',
+                device: '💻 System Record',
+                details: {
+                  bookingId: b.booking_id,
+                  guestName: b.guest_name,
+                  roomId: b.rooms?.nickname || b.rooms?.unit_no || b.room_id,
+                  checkIn: b.check_in,
+                  checkOut: b.check_out,
+                  totalAmount: b.total_amount,
+                  paymentStatus: b.payment_status,
+                  bookingMode: b.booked_by === 'Gmail Sync' ? 'Airbnb Sync' : 'Direct'
+                }
+              });
+            }
+          });
+        }
+      } catch(e) {}
+
+      // B) payment_history
       try {
         if (window.sb) {
           const { data: pays } = await window.sb.from('payment_history')
             .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id)')
-            .or(`payment_date.eq.${targetDate},paid_at.gte.${targetDate}T00:00:00.lte.${targetDate}T23:59:59`)
+            .eq('payment_date', targetDate)
             .order('paid_at', { ascending: false });
 
           (pays || []).forEach(p => {
             const pId = `db_pay_${p.id}`;
-            const pUser = p.received_by || 'Staff';
+            const pUser = (p.received_by || '').trim() || 'Staff';
             const matchUser = !targetUserId || p.created_by === targetUserId || pUser.toLowerCase() === (targetUserId || '').toLowerCase();
             if (matchUser && !seenActionIds.has(pId)) {
               seenActionIds.add(pId);
@@ -1933,12 +1974,18 @@
                   `;
                 } else if (a.actionType === 'booking_delete') {
                   amtVal = d.totalAmount || null;
+                  const canRestore = window.isPraveenUser && window.isPraveenUser();
                   descHtml = `
-                    <div style="font-weight:700;color:#DC2626;">
-                      Deleted: ${escapeHtml(d.guestName || 'Guest')} &middot; <span style="font-family:monospace;font-size:11.5px;">${d.bookingId || '-'}</span>
+                    <div style="font-weight:700;color:#DC2626;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                      <span>Deleted: ${escapeHtml(d.guestName || 'Guest')} &middot; <span style="font-family:monospace;font-size:11.5px;">${d.bookingId || '-'}</span></span>
+                      ${canRestore && d.bookingId ? `
+                        <button type="button" class="btn-sm" onclick="window.restoreDeletedBooking('${d.bookingId}')" style="background:#10B981;color:#fff;border:none;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                          🔄 Restore Booking
+                        </button>
+                      ` : ''}
                     </div>
                     <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
-                      Purged from system register. Room: ${d.roomId || '-'}
+                      Archived in Trash Vault. Room: ${d.roomId || '-'} ${canRestore ? ' &middot; <span style="color:#059669;font-weight:600;">Restorable by Praveen</span>' : ''}
                     </div>
                   `;
                 } else if (a.actionType === 'payment_add') {

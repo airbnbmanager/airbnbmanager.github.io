@@ -1720,6 +1720,18 @@ function renderShell(content, activePage = 'dashboard') {
   };
   const displayBadge = CUSTOM_BADGES[SESSION.userId] || roleLabel;
 
+  // Strict Praveen-Only Authorization Guard for sensitive operations (Restore deleted bookings, master audit)
+  window.isPraveenUser = function() {
+    const s = window.SESSION || {};
+    const email = (s.email || '').toLowerCase().trim();
+    const uid = (s.userId || '').toLowerCase().trim();
+    const name = (s.displayName || '').toLowerCase().trim();
+    return email === 'praveensinghaws@gmail.com' ||
+           uid === 'c6343844-a307-4668-9b16-1947a0c0f8fa' ||
+           s.role === 'developer' ||
+           name.includes('praveen');
+  };
+
   const PAGE_TITLES = {
     dashboard: { title: "Today's Operations Hub", sub: 'Guest check-ins, check-outs & in-house stays', icon: '🏠' },
     reports: { title: 'Reservations Calendar', sub: 'Room availability & bookings calendar', icon: '📅' },

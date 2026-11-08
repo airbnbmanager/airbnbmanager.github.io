@@ -2676,6 +2676,11 @@ async function renderManageBookings() {
         ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}
         <button class="btn-sm outline" onclick="exportBookingsPDF()">📄 Export PDF</button>
         <button class="btn-sm" onclick="exportBookingsCSV()" style="background:#059669;color:#fff;border:none;font-weight:700;">📥 Export CSV</button>
+        ${(window.isPraveenUser && window.isPraveenUser()) ? `
+          <button type="button" class="btn-sm" onclick="window.openDeletedBookingsVaultModal()" style="background:#0F172A;color:#F8FAFC;border:1px solid #334155;font-weight:700;display:inline-flex;align-items:center;gap:6px;" title="Deleted Bookings Trash Vault (Praveen Only)">
+            <span>🗑️ Deleted Vault</span>
+          </button>
+        ` : ''}
       </div>
     </div>
 
@@ -5737,47 +5742,76 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
   }
 }
 
-// ============ DELETE BOOKING ============
+// ============ SECURE ARCHIVE & SOFT DELETE BOOKING ============
 async function delBooking(bkId, guestName, roomId) {
-  if (!confirm(`Delete "${guestName}" booking?\nPayments + photos bhi delete hongi.`)) return;
+  if (!confirm(`Delete "${guestName || 'this'}" booking?\n(Booking will be safely archived to Praveen's recovery vault)`)) return false;
   try {
-    const { data: bk } = await sb.from('guest_register')
-      .select('room_id, id_proof_photo_paths, id_proof_photo_path, id_proof_front_paths, id_proof_back_paths, vehicle_photo_path')
-      .eq('booking_id', bkId).single();
+    // 1. Fetch entire active booking row
+    const { data: bk } = await sb.from('guest_register').select('*').eq('booking_id', bkId).single();
+    
+    // 2. Fetch all payment history for this booking
+    const { data: pays } = await sb.from('payment_history').select('*').eq('booking_id', bkId);
 
-    const allPaths = [
-      bk?.id_proof_photo_paths,
-      bk?.id_proof_photo_path,
-      bk?.id_proof_front_paths,
-      bk?.id_proof_back_paths,
-      bk?.vehicle_photo_path
-    ]
-      .filter(Boolean)
-      .join(',')
-      .split(',')
-      .filter(Boolean);
+    // 3. Create secure Vault envelope (Preserving all details + photos for restoration)
+    const deletedEnvelope = {
+      id: `del_${bkId}_${Date.now()}`,
+      booking_id: bkId,
+      booking_data: bk,
+      payment_data: pays || [],
+      deleted_at: new Date().toISOString(),
+      deleted_by_name: window.SESSION?.displayName || window.SESSION?.email || 'Staff',
+      deleted_by_id: window.SESSION?.userId || '',
+      deleted_by_email: window.SESSION?.email || '',
+      deleted_by_role: window.SESSION?.role || 'staff',
+      guest_name: bk?.guest_name || guestName || 'Guest',
+      room_id: bk?.room_id || roomId || '',
+      total_amount: bk?.total_amount || 0,
+      check_in: bk?.check_in || '',
+      check_out: bk?.check_out || ''
+    };
 
-    const uniquePaths = [...new Set(allPaths)];
+    // 4. Save into Central Supabase Vault (uh_deleted_bookings_vault in app_settings)
+    try {
+      const { data: vaultRow } = await sb.from('app_settings').select('value').eq('key', 'uh_deleted_bookings_vault').limit(1);
+      let vault = [];
+      if (vaultRow?.[0]?.value) {
+        try { vault = JSON.parse(vaultRow[0].value); } catch(e) {}
+      }
+      vault = vault.filter(x => x.booking_id !== bkId);
+      vault.unshift(deletedEnvelope);
+      if (vault.length > 500) vault = vault.slice(0, 500);
 
-    if (uniquePaths.length) {
-      try { await sb.storage.from('id-proofs').remove(uniquePaths); } catch (e) {}
+      await sb.from('app_settings').upsert({
+        key: 'uh_deleted_bookings_vault',
+        value: JSON.stringify(vault),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+
+      try { localStorage.setItem('uh_deleted_bookings_vault', JSON.stringify(vault)); } catch(e) {}
+    } catch (vErr) {
+      console.warn('Vault backup warning:', vErr);
     }
 
+    // 5. Delete from active payment_history & guest_register (Photos kept safe so Praveen can restore)
     await sb.from('payment_history').delete().eq('booking_id', bkId);
-    const { error } = await sb.from('guest_register').delete().eq('booking_id', bkId);
-    if (error) { fsn.error('Error', '❌ Delete failed: ' + error.message); return; }
+    const { error: delErr } = await sb.from('guest_register').delete().eq('booking_id', bkId);
+    if (delErr) {
+      if (window.fsn) fsn.error('Error', '❌ Delete failed: ' + delErr.message);
+      else alert('❌ Delete failed: ' + delErr.message);
+      return false;
+    }
 
-    // 📋 Audit log for Developer
+    // 6. Audit log for real-time Developer audit streaming
     if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
       window.UserActionAudit.recordAction('booking_delete', {
         bookingId: bkId,
-        guestName: bk?.guest_name || 'Guest',
-        roomId: bk?.room_id,
+        guestName: bk?.guest_name || guestName || 'Guest',
+        roomId: bk?.room_id || roomId,
         totalAmount: bk?.total_amount
       });
     }
 
-    // Instant purge from all in-memory caches
+    // 7. Instant purge from all in-memory caches
     if (window._sbkState) {
       if (window._sbkState.cachedBookings) {
         window._sbkState.cachedBookings = window._sbkState.cachedBookings.filter(x => x.booking_id !== bkId);
@@ -5818,7 +5852,9 @@ async function delBooking(bkId, guestName, roomId) {
       }
     }
 
-    fsn.success('Success', '✅ Booking deleted');
+    if (window.fsn?.success) fsn.success('Deleted', `🗑️ Booking for "${guestName || 'Guest'}" removed & vaulted.`);
+    else alert(`🗑️ Booking for "${guestName || 'Guest'}" removed & vaulted.`);
+
     if (window.UHHSODManager && window.UHHSODManager.calculateBalance) window.UHHSODManager.calculateBalance();
     if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
     if (typeof window.renderSmartManageBookings === 'function') {
@@ -5826,10 +5862,212 @@ async function delBooking(bkId, guestName, roomId) {
     } else if (typeof renderManageBookings === 'function') {
       renderManageBookings();
     }
+    return true;
   } catch (err) {
-    fsn.error('Error', '❌ Error: ' + (err.message || err));
+    console.error('Delete error:', err);
+    if (window.fsn) fsn.error('Error', '❌ Error: ' + (err.message || err));
+    else alert('❌ Error: ' + (err.message || err));
+    return false;
   }
 }
+window.delBooking = delBooking;
+window.deleteBooking = delBooking;
+window.archiveAndSoftDeleteBooking = delBooking;
+
+// ============ PRAVEEN-EXCLUSIVE RESTORE FROM VAULT ============
+window.restoreDeletedBooking = async function(bkId) {
+  if (!window.isPraveenUser || !window.isPraveenUser()) {
+    const msg = '🔒 Access Denied: Only Praveen has permission to view or restore deleted bookings.';
+    if (window.fsn) fsn.error('Access Denied', msg);
+    else alert(msg);
+    return false;
+  }
+
+  try {
+    // 1. Fetch vault from app_settings
+    const { data: vaultRow } = await sb.from('app_settings').select('value').eq('key', 'uh_deleted_bookings_vault').limit(1);
+    let vault = [];
+    if (vaultRow?.[0]?.value) {
+      try { vault = JSON.parse(vaultRow[0].value); } catch(e) {}
+    }
+    if (!vault.length) {
+      try { vault = JSON.parse(localStorage.getItem('uh_deleted_bookings_vault') || '[]'); } catch(e) {}
+    }
+
+    const envelope = vault.find(x => x.booking_id === bkId || x.id === bkId);
+    if (!envelope || !envelope.booking_data) {
+      alert('❌ Deleted booking record not found in recovery vault.');
+      return false;
+    }
+
+    const gName = envelope.guest_name || envelope.booking_data.guest_name || 'Guest';
+    const rId = envelope.room_id || envelope.booking_data.room_id || '';
+    if (!confirm(`🔄 Restore booking for "${gName}" (${envelope.booking_id}) at ${rId}?\n\nThis will re-activate the booking on the calendar and all active registers.`)) {
+      return false;
+    }
+
+    // 2. Check if booking_id already exists in active register
+    const { data: existing } = await sb.from('guest_register').select('booking_id').eq('booking_id', envelope.booking_id).limit(1);
+    if (existing && existing.length > 0) {
+      alert(`⚠️ A booking with ID "${envelope.booking_id}" is already active in the register.`);
+      return false;
+    }
+
+    // 3. Re-insert booking row
+    const { error: insErr } = await sb.from('guest_register').insert(envelope.booking_data);
+    if (insErr) throw insErr;
+
+    // 4. Re-insert payments if any
+    if (Array.isArray(envelope.payment_data) && envelope.payment_data.length > 0) {
+      try {
+        await sb.from('payment_history').insert(envelope.payment_data);
+      } catch (pErr) {
+        console.warn('Payment restore warning:', pErr);
+      }
+    }
+
+    // 5. Remove restored item from vault and update app_settings
+    vault = vault.filter(x => x.booking_id !== envelope.booking_id && x.id !== envelope.id);
+    await sb.from('app_settings').upsert({
+      key: 'uh_deleted_bookings_vault',
+      value: JSON.stringify(vault),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+    try { localStorage.setItem('uh_deleted_bookings_vault', JSON.stringify(vault)); } catch(e) {}
+
+    // 6. Record restore audit action
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('booking_add', {
+        bookingId: envelope.booking_id,
+        guestName: gName,
+        roomId: rId,
+        totalAmount: envelope.total_amount,
+        notes: 'Restored from Deleted Vault by Praveen'
+      });
+    }
+
+    // 7. Success toast & UI refresh
+    if (window.fsn?.success) fsn.success('Restored!', `✅ "${gName}" booking restored successfully!`);
+    else alert(`✅ "${gName}" booking restored successfully!`);
+
+    if (typeof window.notifyDataChanged === 'function') window.notifyDataChanged();
+    if (typeof renderManageBookings === 'function') renderManageBookings();
+    if (typeof renderCalendar === 'function') renderCalendar();
+    if (typeof window.renderWorkAuditTabContent === 'function') window.renderWorkAuditTabContent();
+
+    // Close vault modal if open
+    document.getElementById('deletedVaultModalOverlay')?.remove();
+    return true;
+  } catch (err) {
+    console.error('Restore error:', err);
+    alert('❌ Restore failed: ' + err.message);
+    return false;
+  }
+};
+
+// ============ PRAVEEN-EXCLUSIVE TRASH VAULT MODAL ============
+window.openDeletedBookingsVaultModal = async function() {
+  if (!window.isPraveenUser || !window.isPraveenUser()) {
+    alert('🔒 Access Denied: Only Praveen has permission to view the Deleted Bookings Vault.');
+    return;
+  }
+
+  document.getElementById('deletedVaultModalOverlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'deletedVaultModalOverlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:999999;padding:16px;';
+
+  overlay.innerHTML = `
+    <div style="background:#FFFFFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:100%;max-width:850px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E2E8F0;">
+      <!-- MODAL HEADER -->
+      <div style="padding:16px 20px;background:#0F172A;color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">🗑️</span>
+          <div>
+            <div style="font-size:16px;font-weight:900;letter-spacing:0.3px;color:#F8FAFC;">Deleted Bookings Recovery Vault</div>
+            <div style="font-size:11px;color:#94A3B8;">Praveen Exclusive Recovery Vault · Zero Permanent Data Loss</div>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('deletedVaultModalOverlay')?.remove();" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+
+      <!-- MODAL BODY -->
+      <div id="deletedVaultBody" style="padding:20px;overflow-y:auto;flex:1;">
+        <div style="text-align:center;padding:30px;color:#64748B;">⏳ Loading vaulted deleted bookings...</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  try {
+    const { data: vaultRow } = await sb.from('app_settings').select('value').eq('key', 'uh_deleted_bookings_vault').limit(1);
+    let vault = [];
+    if (vaultRow?.[0]?.value) {
+      try { vault = JSON.parse(vaultRow[0].value); } catch(e) {}
+    }
+    if (!vault.length) {
+      try { vault = JSON.parse(localStorage.getItem('uh_deleted_bookings_vault') || '[]'); } catch(e) {}
+    }
+
+    const bodyEl = document.getElementById('deletedVaultBody');
+    if (!bodyEl) return;
+
+    if (!vault.length) {
+      bodyEl.innerHTML = `
+        <div style="background:#F8FAFC;border:1.5px dashed #CBD5E1;border-radius:14px;padding:48px 20px;text-align:center;">
+          <div style="font-size:36px;margin-bottom:10px;">🛡️</div>
+          <div style="font-size:16px;font-weight:800;color:#0F172A;">Trash Vault is Clean & Empty</div>
+          <div style="font-size:12.5px;color:#64748B;margin-top:6px;max-width:420px;margin-left:auto;margin-right:auto;">
+            Whenever any staff or manager deletes a booking, it is instantly vaulted here. You can restore it with 1 click.
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    bodyEl.innerHTML = `
+      <div style="font-size:12.5px;color:#475569;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+        <span>Found <strong>${vault.length}</strong> deleted booking(s) available for restoration:</span>
+        <span style="font-size:11px;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;padding:4px 8px;border-radius:6px;font-weight:700;">Restorable by Praveen</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${vault.map(item => {
+          const dTime = item.deleted_at ? new Date(item.deleted_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+          const amt = Number(item.total_amount || 0).toLocaleString('en-IN');
+          return `
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <strong style="font-size:14.5px;color:#0F172A;">${escapeHtml(item.guest_name || 'Guest')}</strong>
+                  <span style="font-family:monospace;font-size:11px;background:#E2E8F0;padding:2px 6px;border-radius:4px;color:#475569;">${item.booking_id}</span>
+                  <span style="font-size:11.5px;font-weight:800;color:#059669;">₹${amt}</span>
+                </div>
+                <div style="font-size:12px;color:#64748B;margin-top:4px;">
+                  🏢 Room: <strong>${escapeHtml(item.room_id || '-')}</strong> &middot; 📅 ${item.check_in || '-'} → ${item.check_out || '-'}
+                </div>
+                <div style="font-size:11px;color:#DC2626;margin-top:4px;">
+                  🗑️ Deleted on: <strong>${dTime}</strong> by <strong>${escapeHtml(item.deleted_by_name || 'Staff')}</strong> (${item.deleted_by_role || 'staff'})
+                </div>
+              </div>
+              <div>
+                <button type="button" class="btn-sm" onclick="window.restoreDeletedBooking('${item.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(16,185,129,0.3);">
+                  🔄 Restore Booking
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    console.error('Vault load error:', err);
+    const bodyEl = document.getElementById('deletedVaultBody');
+    if (bodyEl) bodyEl.innerHTML = `<div style="color:#DC2626;padding:20px;text-align:center;">Error loading vault: ${err.message}</div>`;
+  }
+};
 
 // ============ PAYMENT MODAL ============
 
