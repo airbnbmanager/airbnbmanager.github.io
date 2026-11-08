@@ -465,7 +465,7 @@ async function renderReports() {
             <tbody>
               ${displayRooms.map(r => {
                 const rent = r.rent_per_night || 5200;
-                const propLabel = (r.nickname || r.property_name || r.unit_no);
+                const propLabel = (r.unit_no ? r.unit_no + ' — ' : '') + (r.nickname || r.property_name || r.unit_no);
                 const thumbHtml = getPropThumb(r);
                 const propBookings = allBks.filter(b => b.room_id === r.room_id && b.check_out > tDates[0] && b.check_in <= tDates[tDates.length - 1]);
 
@@ -675,8 +675,8 @@ async function renderReports() {
 
         <div>
           <select onchange="window._calRoom = this.value; renderReports();" style="padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;background:#F8FAFC;font-size:12px;font-weight:700;color:#0F172A;cursor:pointer;">
-            ${allRooms.length > 0 ? `<option value="all" ${selRoom==='all'?'selected':''}>All Properties (${allRooms.length})</option>` : ''}
-            ${allRooms.map(r => `<option value="${r.room_id}" ${selRoom===r.room_id?'selected':''}>${escapeHtml(r.nickname || r.property_name || r.unit_no)}</option>`).join('')}
+            ${allRooms.length > 0 ? `<option value="all" ${selRoom==='all'?'selected':''}>🏘️ All Properties (${allRooms.length})</option>` : ''}
+            ${allRooms.map(r => `<option value="${r.room_id}" ${selRoom===r.room_id?'selected':''}>${escapeHtml((r.unit_no ? r.unit_no + ' — ' : '') + (r.nickname || r.property_name || r.unit_no))}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -880,8 +880,11 @@ async function renderReports() {
           <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;">
             ${thumbHtml}
             <div style="min-width:0;">
-              <strong style="font-size:14px;color:var(--dark);word-break:break-word;display:block;line-height:1.2;">${r.nickname || r.property_name || r.unit_no}</strong>
-              <span style="color:var(--muted);font-size:11.5px;word-break:break-word;">${r.unit_no}${r.rent_per_night ? ' · <span style="color:#059669;font-weight:700;">₹' + r.rent_per_night.toLocaleString('en-IN') + '/night</span>' : ''}</span>
+              <strong style="font-size:14px;color:var(--dark);word-break:break-word;display:flex;align-items:center;flex-wrap:wrap;gap:6px;line-height:1.2;">
+                ${r.unit_no ? `<span style="background:#0284C7;color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:0.3px;">${escapeHtml(r.unit_no)}</span>` : ''}
+                <span>${escapeHtml(r.nickname || r.property_name || r.unit_no)}</span>
+              </strong>
+              <span style="color:var(--muted);font-size:11.5px;word-break:break-word;margin-top:2px;display:inline-block;">${r.unit_no}${r.rent_per_night ? ' · <span style="color:#059669;font-weight:700;">₹' + r.rent_per_night.toLocaleString('en-IN') + '/night</span>' : ''}</span>
             </div>
           </div>
         </div>
@@ -1300,11 +1303,27 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
     return openBookingDetails(directBookingId);
   }
 
-  // Support room_id normalization & aliases (e.g., GOM-402 vs FLAT402 vs Flat 402)
+  // Support room_id normalization & aliases (e.g., GOM-301 vs FLAT301 vs Flat 301, GOM-402 vs FLAT402)
   const roomAliases = [roomId];
   const cleanRid = String(roomId || '').replace(/[\s\-_]/g, '').toUpperCase();
-  if (cleanRid === 'GOM402' || cleanRid === 'FLAT402' || cleanRid === '402') {
-    roomAliases.push('GOM-402', 'FLAT402', 'Flat 402', '402');
+  if (cleanRid.includes('301')) {
+    roomAliases.push('GOM-301', 'FLAT301', 'Flat 301', '301');
+  } else if (cleanRid.includes('402')) {
+    roomAliases.push('GOM-402', 'FLAT402', 'Flat 402', '402', 'LUL-402');
+  } else if (cleanRid.includes('101')) {
+    roomAliases.push('GOM-101', 'FLAT101', 'Flat 101', '101', 'VIL-101', 'LUL-101');
+  } else if (cleanRid.includes('102')) {
+    roomAliases.push('GOM-102', 'FLAT102', 'Flat 102', '102', 'VIL-102');
+  } else if (cleanRid.includes('201')) {
+    roomAliases.push('GOM-201', 'FLAT201', 'Flat 201', '201');
+  } else if (cleanRid.includes('202')) {
+    roomAliases.push('GOM-202', 'FLAT202', 'Flat 202', '202');
+  } else if (cleanRid.includes('302')) {
+    roomAliases.push('GOM-302', 'FLAT302', 'Flat 302', '302');
+  } else if (cleanRid.includes('401')) {
+    roomAliases.push('GOM-401', 'FLAT401', 'Flat 401', '401');
+  } else if (cleanRid.includes('501')) {
+    roomAliases.push('GOM-501', 'FLAT501', 'Flat 501', '501');
   }
 
   // 1. Fetch standard overnight stays active on dateStr
