@@ -1310,21 +1310,41 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
     return openBookingDetails(directBookingId);
   }
 
-  // Support room_id normalization & aliases (e.g., GOM-301 vs FLAT301 vs Flat 301, GOM-402 vs FLAT402)
+  // Support room_id normalization & aliases strictly separated to prevent cross-property bleed
   const roomAliases = [roomId];
   const cleanRid = String(roomId || '').replace(/[\s\-_]/g, '').toUpperCase();
-  if (cleanRid.includes('301')) {
-    roomAliases.push('GOM-301', 'FLAT301', 'Flat 301', '301');
-  } else if (cleanRid.includes('402')) {
-    roomAliases.push('GOM-402', 'FLAT402', 'Flat 402', '402', 'LUL-402');
-  } else if (cleanRid.includes('101')) {
-    roomAliases.push('GOM-101', 'FLAT101', 'Flat 101', '101', 'VIL-101', 'LUL-101');
-  } else if (cleanRid.includes('102')) {
-    roomAliases.push('GOM-102', 'FLAT102', 'Flat 102', '102', 'VIL-102');
+  if (cleanRid.startsWith('LUL402')) {
+    roomAliases.push('LUL-402', 'LUL402');
+  } else if (cleanRid.startsWith('FLAT402') || cleanRid.startsWith('GOM402') || cleanRid === '402') {
+    roomAliases.push('Flat 402', 'GOM-402', 'FLAT402', 'GOM402', '402');
+  } else if (cleanRid.startsWith('VIL101')) {
+    roomAliases.push('VIL-101', 'VIL101');
+  } else if (cleanRid.startsWith('LUL101')) {
+    roomAliases.push('LUL-101', 'LUL101');
+  } else if (cleanRid.startsWith('GOM101') || cleanRid === 'FLAT101' || cleanRid === '101') {
+    roomAliases.push('GOM-101', 'FLAT101', 'Flat 101', '101');
+  } else if (cleanRid.startsWith('VIL102')) {
+    roomAliases.push('VIL-102', 'VIL102');
+  } else if (cleanRid.startsWith('GOM102') || cleanRid === 'FLAT102' || cleanRid === '102') {
+    roomAliases.push('GOM-102', 'FLAT102', 'Flat 102', '102');
+  } else if (cleanRid.startsWith('VIL103')) {
+    roomAliases.push('VIL-103', 'VIL103');
+  } else if (cleanRid.startsWith('VIL104')) {
+    roomAliases.push('VIL-104', 'VIL104');
+  } else if (cleanRid.startsWith('VIL105')) {
+    roomAliases.push('VIL-105', 'VIL105');
+  } else if (cleanRid.startsWith('VIL106')) {
+    roomAliases.push('VIL-106', 'VIL106');
+  } else if (cleanRid.startsWith('VIL107')) {
+    roomAliases.push('VIL-107', 'VIL107');
+  } else if (cleanRid.startsWith('VIL108')) {
+    roomAliases.push('VIL-108', 'VIL108');
   } else if (cleanRid.includes('201')) {
     roomAliases.push('GOM-201', 'FLAT201', 'Flat 201', '201');
   } else if (cleanRid.includes('202')) {
     roomAliases.push('GOM-202', 'FLAT202', 'Flat 202', '202');
+  } else if (cleanRid.includes('301')) {
+    roomAliases.push('GOM-301', 'FLAT301', 'Flat 301', '301');
   } else if (cleanRid.includes('302')) {
     roomAliases.push('GOM-302', 'FLAT302', 'Flat 302', '302');
   } else if (cleanRid.includes('401')) {

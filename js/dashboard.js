@@ -198,9 +198,11 @@ window.renderAirbnbOverlappingMedia = function (b) {
   if (!b) return '';
   const roomId = (b.room_id || '').trim();
   const cleanRid = roomId.replace(/[\s\-_]/g, '').toUpperCase();
-  const isTehzeeb = cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' ||
+  const isTehzeeb = !cleanRid.startsWith('LUL') && (
+    cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' ||
     (b.rooms?.nickname || '').toLowerCase().includes('tehzeeb') ||
-    (b.rooms?.property_name || '').toLowerCase().includes('tehzeeb');
+    (b.rooms?.property_name || '').toLowerCase().includes('tehzeeb')
+  );
 
   const base = (window.ShowcaseData && (
     (typeof window.ShowcaseData.getProperty === 'function' && (

@@ -77,9 +77,9 @@ INSERT INTO public.knowledge_base (category, room_id, title, content, keywords, 
  '{"wifi_ssid":"UniqueHaven_Starlight","wifi_pass":"Airbnb.in1","caretaker":"Arman & Shuaib","phone":"8467080284","rent":6900}'::jsonb),
 
 ('property', 'Flat 402', 'The Tehzeeb Nest (3BHK Blossom Skyline)',
- 'The Tehzeeb Nest is located on the 4th Floor of Blossom Skyline in Vikalp Khand, Gomti Nagar. High-end interiors, 3 AC bedrooms, kitchen, lift, reserved parking. Accommodates up to 10 guests. Caretaker: Arman Commandar (+91 8467080284). Map: https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA. Tariff: ₹5,200/night.',
- ARRAY['tehzeeb', 'blossom skyline', 'flat 402', 'vikalp', 'gomtinagar', '3bhk'],
- '{"wifi_ssid":"UniqueHaven_Tehzeeb","wifi_pass":"Airbnb.in1","caretaker":"Arman Commandar","phone":"8467080284","rent":5200}'::jsonb),
+ 'The Tehzeeb Nest is located on the 4th Floor of Blossom Skyline in Vikalp Khand, Gomti Nagar. High-end interiors, 3 AC bedrooms, kitchen, lift, reserved parking. Accommodates up to 10 guests. Caretaker: Arman Commandar (+91 8467080284). Map: https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA. Airbnb: https://www.airbnb.co.in/rooms/1814548211970648885. Tariff: ₹5,200/night.',
+ ARRAY['tehzeeb', 'blossom skyline', 'flat 402', 'vikalp', 'gomtinagar', '3bhk', '1814548211970648885'],
+ '{"wifi_ssid":"UniqueHaven_Tehzeeb","wifi_pass":"Airbnb.in1","caretaker":"Arman Commandar","phone":"8467080284","rent":5200,"airbnb_url":"https://www.airbnb.co.in/rooms/1814548211970648885","ical_url":"https://www.airbnb.co.in/calendar/ical/1814548211970648885.ics?t=687d27eb922a4e7c97c6c9581f57a2a4"}'::jsonb),
 
 ('property', 'VIL-103', 'The Pink House (5BR Duplex Villa)',
  'The Pink House is a grand 5BR Duplex Villa spanning the 2nd & 3rd Floors at 3/64 Vishesh Khand 3, Gomti Nagar. Ideal for big families, weddings, and group stays (up to 10-14 guests). Fast Wi-Fi, private terrace, full modular kitchen. Caretaker: Aniket (+91 9214246820). Map: https://maps.app.goo.gl/pCGigAPQGHjcfadQ8. Tariff: ₹10,350/night.',
@@ -112,9 +112,9 @@ INSERT INTO public.knowledge_base (category, room_id, title, content, keywords, 
  '{"wifi_ssid":"UniqueHaven_Luxe","wifi_pass":"Airbnb.in1","caretaker":"Shrwan","phone":"8858034382","rent":2650}'::jsonb),
 
 ('property', 'LUL-402', 'Celebrity Garden (5-Bed Luxury Villa)',
- 'Celebrity Garden is a massive 5-Bedroom luxury estate in Golf City Sector B, right behind Lulu Mall, Medanta, and Ekana Stadium. Accommodates 10-15 guests. Wi-Fi, lush private gardens, outdoor seating, ample parking. Caretaker: Sarvan (+91 8858034382). Tariff: ₹11,500/night.',
- ARRAY['celebrity garden', 'lul-402', '5 bed', 'golf city', 'lulu mall', 'ekana'],
- '{"wifi_ssid":"UniqueHaven_Celebrity","wifi_pass":"Airbnb.in1","caretaker":"Sarvan","phone":"8858034382","rent":11500}'::jsonb),
+ 'Celebrity Garden is a massive 5-Bedroom luxury estate in Golf City Sector B, right behind Lulu Mall, Medanta, and Ekana Stadium. Accommodates 10-15 guests. Wi-Fi, lush private gardens, outdoor seating, ample parking. Caretaker: Sarvan (+91 8858034382). Airbnb: https://www.airbnb.co.in/rooms/1606514664948608755. Tariff: ₹11,500/night.',
+ ARRAY['celebrity garden', 'lul-402', '5 bed', 'golf city', 'lulu mall', 'ekana', '1606514664948608755'],
+ '{"wifi_ssid":"UniqueHaven_Celebrity","wifi_pass":"Airbnb.in1","caretaker":"Sarvan","phone":"8858034382","rent":11500,"airbnb_url":"https://www.airbnb.co.in/rooms/1606514664948608755","ical_url":"https://www.airbnb.co.in/calendar/ical/1606514664948608755.ics?t=207cb15204934234b014f8dde91b08b3"}'::jsonb),
 
 ('property', 'VIL-106', 'Green Forest View (2nd Floor 3BHK)',
  'Green Forest is a peaceful 3BHK luxury floor near Shaheed Path & Lulu Mall. Scenic tree-lined views, 3 AC bedrooms, modular kitchen. Caretaker: Sarvan (+91 8858034382). Tariff: ₹5,200/night.',
@@ -164,3 +164,4 @@ INSERT INTO public.knowledge_base (category, room_id, title, content, keywords, 
  ARRAY['distance', 'lulu mall', 'medanta', 'ekana', 'airport', 'location', 'palassio'],
  '{"airport_mins":20,"lulu_mins":5,"ekana_mins":7}'::jsonb)
 ON CONFLICT DO NOTHING;
+

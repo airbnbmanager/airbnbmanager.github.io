@@ -36,6 +36,8 @@ const PROPERTIES = [
   { room_id:'VIL-106', slug:'green-forest',             name:'Green Forest',             airbnb_id:'1739254108962193705' },
   { room_id:'VIL-108', slug:'pink-paradise',            name:'Pink Paradise',            airbnb_id:'1756799939825259443' },
   { room_id:'LUL-402', slug:'celebrity-garden',         name:'Celebrity Garden',         airbnb_id:'1606514664948608755' },
+  { room_id:'Flat 402',slug:'the-tehzeeb-nest',         name:'The Tehzeeb Nest',         airbnb_id:'1814548211970648885' },
+  { room_id:'LUL-101', slug:'the-luxe-haven',           name:'The Luxe Haven',           airbnb_id:'1798067011361845302' },
   { room_id:'VIL-101', slug:'gomti-grand-villa',        name:'Gomti Grand Villa',        airbnb_id:'1721732716374002170' },
   { room_id:'VIL-102', slug:'royal-white-house',        name:'Royal White House',        airbnb_id:'1718315215180636685' },
   { room_id:'VIL-107', slug:'the-velvet-house',         name:'The Velvet House',         airbnb_id:'1727830063287100082' },

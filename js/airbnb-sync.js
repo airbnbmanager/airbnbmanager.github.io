@@ -144,7 +144,8 @@
     if (l.includes('pink paradise') || l.includes('vil-108') || l.includes('villa (eight)')) return 'VIL-108';
     if (l.includes('yellow house') || l.includes('vil-105') || l.includes('villa (five)')) return 'VIL-105';
     if (l.includes('green forest') || l.includes('vil-106') || l.includes('villa (six)')) return 'VIL-106';
-    if (l.includes('celebrity') || l.includes('lul-402') || l.includes('flat402')) return 'LUL-402';
+    if (l.includes('tehzeeb') || l.includes('blossom skyline') || l.includes('1814548211970648885') || (l.includes('flat') && l.includes('402') && !l.includes('celebrity') && !l.includes('lul'))) return 'Flat 402';
+    if (l.includes('celebrity') || l.includes('lul-402') || l.includes('1606514664948608755')) return 'LUL-402';
     if (l.includes('unique') || l.includes('gom-302') || l.includes('flat302')) return 'GOM-302';
     if (l.includes('light green') || l.includes('gom-301') || l.includes('flat301')) return 'GOM-301';
     if (l.includes('starlight') || l.includes('penthouse') || l.includes('gom-501') || l.includes('flat501')) return 'GOM-501';

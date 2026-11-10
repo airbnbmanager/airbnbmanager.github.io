@@ -779,7 +779,7 @@ function getPropertyCoverThumb(b) {
   const cleanRid = roomId.replace(/[\s\-_]/g, '').toUpperCase();
   const nick = (b?.rooms?.nickname || b?.rooms?.property_name || '').toLowerCase();
 
-  if (cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' || nick.includes('tehzeeb')) {
+  if (!cleanRid.startsWith('LUL') && (cleanRid === 'FLAT402' || cleanRid === 'GOM402' || cleanRid === '402' || nick.includes('tehzeeb'))) {
     return 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp';
   }
   if (window.ShowcaseData && typeof window.ShowcaseData.getProperty === 'function') {

@@ -174,6 +174,32 @@ window.UHHS_PROPERTIES = [
     location: 'Gomti Nagar',
     ical_url: 'https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799',
     active: true,
+  },
+  {
+    id: 18,
+    property_name: 'The Tehzeeb Nest | 3BHK Blossom Skyline Gomtinagar',
+    nickname: 'The Tehzeeb Nest',
+    unit_no: 'FLAT402',
+    room_id: 'Flat 402',
+    type: '3 BHK Luxury Flat',
+    location: 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
+    airbnb_id: '1814548211970648885',
+    airbnb_url: 'https://www.airbnb.co.in/rooms/1814548211970648885',
+    ical_url: 'https://www.airbnb.co.in/calendar/ical/1814548211970648885.ics?t=687d27eb922a4e7c97c6c9581f57a2a4',
+    active: true,
+  },
+  {
+    id: 19,
+    property_name: 'The Luxe Haven | 1BHK Near Lulu Mall & Medanta',
+    nickname: 'The Luxe Haven',
+    unit_no: '101',
+    room_id: 'LUL-101',
+    type: '1 BHK Luxury Flat',
+    location: 'Golf City, Near Lulu Mall',
+    airbnb_id: '1798067011361845302',
+    airbnb_url: 'https://www.airbnb.co.in/rooms/1798067011361845302',
+    ical_url: 'https://www.airbnb.co.in/calendar/ical/1798067011361845302.ics?t=b561f047fb10494aa2ac406aa6161f3c',
+    active: true,
   }
 ];
 
