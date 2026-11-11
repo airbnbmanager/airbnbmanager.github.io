@@ -3181,15 +3181,13 @@ async function renderAddBooking(prefillOpts) {
         </div>
       </div>
 
-      <div class="form-group" style="padding:12px;background:#FFF8E1;border-radius:8px;border:1px solid #FFC107;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
-          <input type="checkbox" id="isReviewBooking" onchange="toggleReviewBooking()" style="width:18px;height:18px;" />
-          <span>🔗 Review Booking (Airbnb duplicate — for reviews only)</span>
+      <div class="form-group" style="padding:12px;background:#FFFBEB;border-radius:8px;border:1.5px solid #FCD34D;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;color:#92400E;">
+          <input type="checkbox" id="isReviewBooking" style="width:18px;height:18px;" />
+          <span>⭐ Review Booking (Verified Rating Stay)</span>
         </label>
-        <div id="linkedBookingWrap" style="display:none;margin-top:8px;">
-          <label style="font-size:12px;color:#666;">Link to existing booking:</label>
-          <select id="linkedBookingId" style="width:100%;padding:8px;margin-top:4px;"><option value="">-- Select existing booking --</option>${(recentBookings || []).map(rb => `<option value="${rb.booking_id}">${rb.guest_name} — ${rb.rooms?.nickname || rb.room_id} (${rb.check_in} to ${rb.check_out})</option>`).join('')}</select>
-          <div style="font-size:11px;color:#888;margin-top:4px;">This booking will skip clash check + not count in revenue/occupancy</div>
+        <div style="font-size:11.5px;color:#B45309;margin-top:4px;margin-left:26px;">
+          Property upar already select ho chuki hai (neeche dobara select karne ki zaroorat nahi). Checked karne par booking par ⭐ Review Booking ka tag lag jayega aur normal revenue me count hoga.
         </div>
       </div>
 
@@ -4990,15 +4988,13 @@ async function editBooking(bkId) {
           <div id="guestRatingWarning" style="margin-top:6px;"></div>
         </div>
       </div>
-      <div class="form-group" style="padding:12px;background:#FFF8E1;border-radius:8px;border:1px solid #FFC107;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
-          <input type="checkbox" id="isReviewBooking" ${b.is_review_booking ? 'checked' : ''} onchange="toggleReviewBooking()" style="width:18px;height:18px;" />
-          <span>🔗 Review Booking (Airbnb duplicate — for reviews only)</span>
+      <div class="form-group" style="padding:12px;background:#FFFBEB;border-radius:8px;border:1.5px solid #FCD34D;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;color:#92400E;">
+          <input type="checkbox" id="isReviewBooking" ${b.is_review_booking ? 'checked' : ''} style="width:18px;height:18px;" />
+          <span>⭐ Review Booking (Verified Rating Stay)</span>
         </label>
-        <div id="linkedBookingWrap" style="display:${b.is_review_booking ? 'block' : 'none'};margin-top:8px;">
-          <label style="font-size:12px;color:#666;">Link to existing booking:</label>
-          <select id="linkedBookingId" style="width:100%;padding:8px;margin-top:4px;"><option value="">-- Select existing booking --</option>${(recentBookings || []).map(rb => `<option value="${rb.booking_id}" ${b.linked_booking_id === rb.booking_id ? 'selected' : ''}>${rb.guest_name} — ${rb.rooms?.nickname || rb.room_id} (${rb.check_in})</option>`).join('')}</select>
-          <div style="font-size:11px;color:#888;margin-top:4px;">Skips clash check + not counted in revenue/occupancy</div>
+        <div style="font-size:11.5px;color:#B45309;margin-top:4px;margin-left:26px;">
+          Property upar already select ho chuki hai (neeche dobara select karne ki zaroorat nahi). Checked karne par booking par ⭐ Review Booking ka tag lag jayega aur normal revenue me count hoga.
         </div>
       </div>
 

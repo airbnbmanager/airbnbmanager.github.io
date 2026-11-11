@@ -904,6 +904,29 @@ function renderSingleAirbnbResCard(b, paidMap, canM, today) {
             <span class="airbnb-chip paid">✅ Paid ₹${dynamicTotal.toLocaleString('en-IN')}</span>
           `}
 
+          ${(b.is_review_booking || (b.notes && b.notes.includes('Review Booking'))) ? `
+            <span class="airbnb-chip" style="background:#FEF3C7;color:#92400E;border:1.5px solid #FCD34D;font-weight:800;" title="Review Booking Stay">
+              ⭐ Review Booking
+            </span>
+          ` : ''}
+
+          ${(() => {
+            const secAmt = b.security_deposit || (b.notes && b.notes.includes('SECURITY_DEPOSIT') ? (() => {
+              try {
+                const match = b.notes.match(/\[SECURITY_DEPOSIT:(.*?)\]/);
+                if (match && match[1]) {
+                  const parsed = JSON.parse(match[1]);
+                  return parsed.amount || 0;
+                }
+              } catch(e) {}
+              return 0;
+            })() : 0);
+            if (secAmt > 0) {
+              return `<span class="airbnb-chip" style="background:#EFF6FF;color:#1E40AF;border:1.5px solid #BFDBFE;font-weight:800;" title="Security Deposit Held: ₹${secAmt}">🛡️ Sec: ₹${Number(secAmt).toLocaleString('en-IN')}</span>`;
+            }
+            return '';
+          })()}
+
           ${(b.stay_group_id || (b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1)) ? `
             <span class="airbnb-chip" style="background:#EEF2FF;color:#4F46E5;font-weight:800;cursor:pointer;" onclick="event.stopPropagation();window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="Multi-Property Group Booking · Click to view combined receipt">
               🏢 Group Stay${(!b.stay_group_id && b.phone && (window._sbkState?.phoneCounts?.[String(b.phone).replace(/\D/g, '').slice(-10)] || 0) > 1) ? ` (${window._sbkState.phoneCounts[String(b.phone).replace(/\D/g, '').slice(-10)]})` : ''}
@@ -2733,24 +2756,46 @@ async function renderSmartAddBooking(prefillOpts) {
             <span id="accSecurityIcon">▼</span>
           </div>
           <div class="sbk-accordion-body" id="accSecurity" style="display:none;">
-            <label style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px;cursor:pointer;">
-              <input type="checkbox" id="hasSecurityDeposit" onchange="document.getElementById('secDepositFields').style.display=this.checked?'block':'none'" />
-              <span>Collect Security Deposit from this guest?</span>
-            </label>
-            <div id="secDepositFields" style="display:none;">
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px;">
+              <div style="font-weight:700;font-size:13px;color:#1E293B;margin-bottom:8px;">
+                🛡️ Kya guest se Security Deposit li gayi hai?
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button type="button" id="secBtnNo" onclick="window.setSecurityDepositChoice(false)" 
+                  style="flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:13px;border:2px solid #DC2626;background:#DC2626;color:#FFFFFF;cursor:pointer;">
+                  ❌ Nahi (No)
+                </button>
+                <button type="button" id="secBtnYes" onclick="window.setSecurityDepositChoice(true)" 
+                  style="flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:13px;border:2px solid #E2E8F0;background:#FFFFFF;color:#64748B;cursor:pointer;">
+                  ✅ Haan (Yes)
+                </button>
+              </div>
+              <input type="hidden" id="hasSecurityDepositVal" value="no" />
+            </div>
+
+            <div id="secDepositFields" style="display:none;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:14px;">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Deposit Amount ₹</label>
-                  <input id="secAmount" type="number" placeholder="2000" value="2000" />
+                  <label style="font-weight:700;font-size:12px;color:#166534;">Kitna Security? (₹ Amount)</label>
+                  <input id="secAmount" type="number" placeholder="2000" value="2000" style="font-weight:700;" />
                 </div>
                 <div class="form-group">
-                  <label>Mode</label>
-                  <select id="secMode">
-                    <option value="UPI">UPI</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Bank">Bank Transfer</option>
+                  <label style="font-weight:700;font-size:12px;color:#166534;">Payment Mode</label>
+                  <select id="secMode" style="font-weight:600;">
+                    <option value="UPI">📱 UPI / QR</option>
+                    <option value="Cash">💵 Cash</option>
+                    <option value="Bank">🏦 Bank Transfer</option>
                   </select>
                 </div>
+                <div class="form-group">
+                  <label style="font-weight:700;font-size:12px;color:#166534;">Kisko mila payment?</label>
+                  <select id="secReceivedBy" style="font-weight:600;">
+                    <option value="">-- Select Member / Receiver --</option>
+                  </select>
+                </div>
+              </div>
+              <div style="font-size:11.5px;color:#15803D;margin-top:8px;">
+                ℹ️ Note: Security Deposit refundable liability hai. Stay revenue me count nahi hoti aur checkout ke waqt refund ki jaati hai.
               </div>
             </div>
           </div>
@@ -2801,15 +2846,41 @@ async function renderSmartAddBooking(prefillOpts) {
                   <input id="airbnbCode" placeholder="e.g. HMXYZ12345" />
                 </div>
               </div>
-              <div style="margin-top:8px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">
-                  <input type="checkbox" id="isReviewBooking" />
-                  <span>Review / Duplicate stay (skip revenue calculations)</span>
-                </label>
-              </div>
             </div>
           </div>
         ` : ''}
+
+        <!-- Accordion 5: ⭐ Review Booking Tag -->
+        <div class="sbk-accordion-card">
+          <div class="sbk-accordion-header" onclick="window.toggleAccordion('accReview')">
+            <span>⭐ Review Booking Tag</span>
+            <span id="accReviewIcon">▼</span>
+          </div>
+          <div class="sbk-accordion-body" id="accReview" style="display:none;">
+            <div style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:10px;padding:14px;">
+              <div style="font-weight:700;font-size:13.5px;color:#92400E;margin-bottom:6px;">
+                ⭐ Kya ye Review Booking hai?
+              </div>
+              <p style="font-size:12px;color:#B45309;margin-bottom:12px;line-height:1.4;">
+                Property selection upar already ho chuki hai (neeche dobara select karne ki zaroorat nahi). Agar ye stay reviews ke liye hai to "Haan" choose karein — booking card aur daily reports me ⭐ Review Booking ka tag lag jayega. Revenue normal count hoga.
+              </p>
+              <div style="display:flex;gap:10px;">
+                <button type="button" id="reviewBtnNo" onclick="window.setReviewBookingChoice(false)" 
+                  style="flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:13px;border:2px solid #475569;background:#475569;color:#FFFFFF;cursor:pointer;">
+                  ❌ Normal Booking (No)
+                </button>
+                <button type="button" id="reviewBtnYes" onclick="window.setReviewBookingChoice(true)" 
+                  style="flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:13px;border:2px solid #E2E8F0;background:#FFFFFF;color:#64748B;cursor:pointer;">
+                  ⭐ Haan (Review Booking)
+                </button>
+              </div>
+              <input type="hidden" id="isReviewBookingVal" value="no" />
+              <div id="reviewBookingBadgeNote" style="display:none;margin-top:10px;font-weight:700;font-size:12px;color:#92400E;background:#FEF3C7;padding:8px 12px;border-radius:6px;border:1px solid #FDE68A;">
+                ✅ Is booking par <strong>⭐ Review Booking</strong> ka tag lagega aur dashboard/reports me clearly dikhega.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Action Button & Errors -->
@@ -3135,22 +3206,82 @@ window.reusePastGuestIds = async function(phone) {
 
 window.loadSmartReceivers = async function() {
   const sel = document.getElementById('advReceivedBy');
-  if (!sel) return;
+  const secSel = document.getElementById('secReceivedBy');
+  if (!sel && !secSel) return;
 
+  let optionsHtml = '';
   if (typeof loadReceiveByHolders === 'function') {
     const data = await loadReceiveByHolders();
     const allReceivers = [...(data.owners || []), ...(data.manager || []), ...(data.employees || [])];
     const unique = [...new Set(allReceivers)];
-    sel.innerHTML = '<option value="">-- Select Team Member --</option>' +
+    optionsHtml = '<option value="">-- Select Team Member --</option>' +
       unique.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
   } else {
-    sel.innerHTML = `
+    optionsHtml = `
       <option value="">-- Select Team Member --</option>
       <option value="Shahenshah">👑 Shahenshah (Owner)</option>
       <option value="Firoz">👑 Firoz (Owner)</option>
       <option value="Manager">👔 Manager</option>
       <option value="Caretaker">🧹 Caretaker</option>
     `;
+  }
+  if (sel) sel.innerHTML = optionsHtml;
+  if (secSel) secSel.innerHTML = optionsHtml;
+};
+
+window.setSecurityDepositChoice = function(isYes) {
+  const hidden = document.getElementById('hasSecurityDepositVal');
+  const btnYes = document.getElementById('secBtnYes');
+  const btnNo = document.getElementById('secBtnNo');
+  const fields = document.getElementById('secDepositFields');
+  if (hidden) hidden.value = isYes ? 'yes' : 'no';
+
+  if (btnYes && btnNo) {
+    if (isYes) {
+      btnYes.style.background = '#059669';
+      btnYes.style.color = '#FFFFFF';
+      btnYes.style.borderColor = '#059669';
+      btnNo.style.background = '#FFFFFF';
+      btnNo.style.color = '#64748B';
+      btnNo.style.borderColor = '#E2E8F0';
+      if (fields) fields.style.display = 'block';
+    } else {
+      btnNo.style.background = '#DC2626';
+      btnNo.style.color = '#FFFFFF';
+      btnNo.style.borderColor = '#DC2626';
+      btnYes.style.background = '#FFFFFF';
+      btnYes.style.color = '#64748B';
+      btnYes.style.borderColor = '#E2E8F0';
+      if (fields) fields.style.display = 'none';
+    }
+  }
+};
+
+window.setReviewBookingChoice = function(isYes) {
+  const hidden = document.getElementById('isReviewBookingVal');
+  const btnYes = document.getElementById('reviewBtnYes');
+  const btnNo = document.getElementById('reviewBtnNo');
+  const badgeNote = document.getElementById('reviewBookingBadgeNote');
+  if (hidden) hidden.value = isYes ? 'yes' : 'no';
+
+  if (btnYes && btnNo) {
+    if (isYes) {
+      btnYes.style.background = '#D97706';
+      btnYes.style.color = '#FFFFFF';
+      btnYes.style.borderColor = '#D97706';
+      btnNo.style.background = '#FFFFFF';
+      btnNo.style.color = '#64748B';
+      btnNo.style.borderColor = '#E2E8F0';
+      if (badgeNote) badgeNote.style.display = 'block';
+    } else {
+      btnNo.style.background = '#475569';
+      btnNo.style.color = '#FFFFFF';
+      btnNo.style.borderColor = '#475569';
+      btnYes.style.background = '#FFFFFF';
+      btnYes.style.color = '#64748B';
+      btnYes.style.borderColor = '#E2E8F0';
+      if (badgeNote) badgeNote.style.display = 'none';
+    }
   }
 };
 
@@ -3213,7 +3344,7 @@ window.saveSmartBooking = async function() {
 
   try {
     // 🚨 DUPLICATE & OVERLAP CHECK (Room + Dates)
-    const isReview = document.getElementById('isReviewBooking')?.checked || false;
+    const isReview = (document.getElementById('isReviewBookingVal')?.value === 'yes') || (document.getElementById('isReviewBooking')?.checked || false);
     if (!isReview && window.sb) {
       const { data: exBookings, error: chkErr } = await sb.from('guest_register')
         .select('booking_id, guest_name, phone, room_id, check_in, check_out, booking_mode, total_amount, is_cancelled, is_review_booking')
@@ -3296,6 +3427,34 @@ window.saveSmartBooking = async function() {
 
     const payStatus = isOnline ? 'Paid' : (adv >= tot && tot > 0 ? 'Paid' : (adv > 0 ? 'Partial' : 'Unpaid'));
 
+    // Security Deposit details
+    const hasSec = document.getElementById('hasSecurityDepositVal')?.value === 'yes';
+    let secAmt = 0;
+    let secMode = 'UPI';
+    let secReceivedBy = '';
+    if (hasSec) {
+      secAmt = parseFloat(document.getElementById('secAmount')?.value) || 0;
+      secMode = document.getElementById('secMode')?.value || 'UPI';
+      secReceivedBy = document.getElementById('secReceivedBy')?.value || '';
+    }
+
+    let smartNotes = document.getElementById('bkNotes')?.value?.trim() || '';
+
+    if (isReview) {
+      smartNotes = smartNotes ? `${smartNotes} | [⭐ Review Booking]` : '[⭐ Review Booking]';
+    }
+
+    if (hasSec && secAmt > 0) {
+      const secJson = {
+        amount: secAmt,
+        status: 'collected',
+        mode: secMode,
+        receivedBy: secReceivedBy,
+        receivedDate: new Date().toISOString().slice(0, 10)
+      };
+      smartNotes = smartNotes ? `${smartNotes} | [SECURITY_DEPOSIT:${JSON.stringify(secJson)}]` : `[SECURITY_DEPOSIT:${JSON.stringify(secJson)}]`;
+    }
+
     const insertObj = {
       booking_id: bkId,
       guest_name: gn,
@@ -3322,7 +3481,10 @@ window.saveSmartBooking = async function() {
       has_vehicle: !!(document.getElementById('vehicleNumber')?.value?.trim()),
       vehicle_name: document.getElementById('vehicleName')?.value?.trim() || null,
       vehicle_number: document.getElementById('vehicleNumber')?.value?.trim() || null,
-      notes: document.getElementById('bkNotes')?.value?.trim() || null,
+      security_deposit: (hasSec && secAmt > 0) ? secAmt : 0,
+      security_deposit_received_by: (hasSec && secAmt > 0) ? (secReceivedBy || null) : null,
+      security_deposit_received_date: (hasSec && secAmt > 0) ? new Date().toISOString().slice(0, 10) : null,
+      notes: smartNotes || null,
       booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION.displayName || SESSION.role || 'Staff')
     };
 
@@ -3658,6 +3820,17 @@ window.saveMultiSmartBooking = async function() {
     // Proportionate advance split
     let remainingAdv = totalAdvance;
     const roomAdvMap = {};
+    const isReview = (document.getElementById('isReviewBookingVal')?.value === 'yes');
+    const hasSec = (document.getElementById('hasSecurityDepositVal')?.value === 'yes');
+    let secAmt = 0;
+    let secMode = 'UPI';
+    let secReceivedBy = '';
+    if (hasSec) {
+      secAmt = parseFloat(document.getElementById('secAmount')?.value) || 0;
+      secMode = document.getElementById('secMode')?.value || 'UPI';
+      secReceivedBy = document.getElementById('secReceivedBy')?.value || '';
+    }
+
     const roomInserts = roomItems.map((r, idx) => {
       let roomAdv = 0;
       if (totalAdvance > 0) {
@@ -3685,6 +3858,7 @@ window.saveMultiSmartBooking = async function() {
         checkout_confirmed: 'yes',
         guests: r.guests,
         booking_mode: 'Offline',
+        is_review_booking: isReview,
         total_amount: r.total_amount,
         payment_status: payStatus,
         stay_group_id: stayGroupId,
@@ -3693,7 +3867,10 @@ window.saveMultiSmartBooking = async function() {
         has_vehicle: !!vehicleNumber,
         vehicle_name: vehicleName,
         vehicle_number: vehicleNumber,
-        notes: `Multi-Property Booking (${roomItems.length} Homestays: ${roomItems.map(x => x.room_name).join(', ')}). ${notes}`.trim(),
+        security_deposit: (hasSec && secAmt > 0 && idx === 0) ? secAmt : 0,
+        security_deposit_received_by: (hasSec && secAmt > 0 && idx === 0) ? (secReceivedBy || null) : null,
+        security_deposit_received_date: (hasSec && secAmt > 0 && idx === 0) ? new Date().toISOString().slice(0, 10) : null,
+        notes: `Multi-Property Booking [Group: ${stayGroupId}] (${roomItems.length} Homestays: ${roomItems.map(x => x.room_name).join(', ')})${idNo ? ` | [ID: ${idType} - ${idNo}]` : ''}${isReview ? ' | [⭐ Review Booking]' : ''}${(hasSec && secAmt > 0 && idx === 0) ? ` | [SECURITY_DEPOSIT:{"amount":${secAmt},"status":"collected","mode":"${secMode}","receivedBy":"${secReceivedBy}"}]` : ''}. ${notes}`.trim(),
         booked_by: window.getCurrentUserAuditName ? window.getCurrentUserAuditName() : (SESSION?.displayName || SESSION?.role || 'Staff')
       };
     });
