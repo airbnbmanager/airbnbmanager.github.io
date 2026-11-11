@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Luxury Gradient -->
+    <radialGradient id="darkLuxury" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#2D241E"/>
+      <stop offset="60%" stop-color="#1A1512"/>
+      <stop offset="100%" stop-color="#0E0B09"/>
+    </radialGradient>
+
+    <!-- Champagne Gold Gradients -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="35%" stop-color="#F59E0B"/>
+      <stop offset="70%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+
+    <linearGradient id="goldGleam" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="50%" stop-color="#FFFBEB"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#D97706" flood-opacity="0.25"/>
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Luxury Emblem Squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="110" fill="url(#darkLuxury)" stroke="url(#goldGrad)" stroke-width="3" filter="url(#softShadow)"/>
+
+  <!-- Inner Delicate Concentric Border -->
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="none" stroke="rgba(245, 158, 11, 0.25)" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- Decorative Corner Accents -->
+  <g stroke="url(#goldGrad)" stroke-width="1.5" fill="none" opacity="0.6">
+    <path d="M 60 85 L 60 60 L 85 60"/>
+    <path d="M 452 85 L 452 60 L 427 60"/>
+    <path d="M 60 427 L 60 452 L 85 452"/>
+    <path d="M 452 427 L 452 452 L 427 452"/>
+  </g>
+
+  <!-- ─── CENTRAL EMBLEM: ARCHITECTURAL ROOF & LAUREL BRANCH ─── -->
+  <g filter="url(#goldGlow)">
+    <!-- Architectural Roof Gable -->
+    <path d="M 180 185 L 256 120 L 332 185" fill="none" stroke="url(#goldGleam)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Overhang Detail Line -->
+    <path d="M 198 185 L 256 135 L 314 185" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Chimney Silhouette -->
+    <path d="M 300 152 L 300 132 L 316 132 L 316 166" fill="none" stroke="url(#goldGleam)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Organic Roosting Laurel Branch -->
+    <g stroke="url(#goldGrad)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 308 140 Q 338 126 356 102 Q 368 82 376 64"/>
+      <!-- Delicate Leaves -->
+      <path d="M 328 128 Q 346 120 350 130 Q 338 134 328 128 Z" fill="url(#goldGrad)"/>
+      <path d="M 346 110 Q 364 102 368 112 Q 356 116 346 110 Z" fill="url(#goldGrad)"/>
+      <path d="M 360 88 Q 378 76 384 86 Q 372 92 360 88 Z" fill="url(#goldGrad)"/>
+      <path d="M 374 64 Q 380 50 388 60 Q 384 70 374 64 Z" fill="url(#goldGrad)"/>
+    </g>
+
+    <!-- Central Interlocking Monogram R & R Motif -->
+    <!-- Primary Regal 'R' -->
+    <path d="M 226 265 L 226 195 M 226 195 C 248 195 264 198 264 216 C 264 232 250 236 226 236 M 248 236 L 274 265" fill="none" stroke="url(#goldGleam)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Amperand / Nest Linkage -->
+    <circle cx="284" cy="242" r="3" fill="url(#goldGrad)"/>
+
+    <!-- Complementary 'R' Echo -->
+    <path d="M 288 265 L 288 220 M 288 220 C 304 220 316 222 316 235 C 316 247 305 250 288 250 M 304 250 L 322 265" fill="none" stroke="url(#goldGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- ─── LUXURY BRAND TYPOGRAPHY ─── -->
+  <!-- Brand Name -->
+  <text x="256" y="328" font-family="'Cinzel', 'Playfair Display', 'Times New Roman', serif" font-size="34" font-weight="700" letter-spacing="6" fill="url(#goldGleam)" text-anchor="middle">
+    ROOST &amp; REST
+  </text>
+
+  <!-- Ornamental Thin Divider -->
+  <g stroke="url(#goldGrad)" stroke-width="1.2" opacity="0.7">
+    <line x1="160" y1="346" x2="225" y2="346"/>
+    <polygon points="256,343 259,346 256,349 253,346" fill="url(#goldGrad)"/>
+    <line x1="287" y1="346" x2="352" y2="346"/>
+  </g>
+
+  <!-- Subtitle Tagline -->
+  <text x="256" y="375" font-family="'Plus Jakarta Sans', 'Montserrat', -apple-system, sans-serif" font-size="14.5" font-weight="700" letter-spacing="7" fill="#E2E8F0" text-anchor="middle">
+    BOUTIQUE HOMESTAYS
+  </text>
+
+  <!-- Heritage / Location -->
+  <text x="256" y="405" font-family="'Plus Jakarta Sans', 'Montserrat', -apple-system, sans-serif" font-size="11" font-weight="600" letter-spacing="4" fill="#F59E0B" text-anchor="middle" opacity="0.9">
+    LUCKNOW &#8226; EST. 2026
+  </text>
+</svg>
