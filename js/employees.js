@@ -1540,19 +1540,44 @@ async function renderEmployeeTasks(viewMode) {
     const allMonths = [...new Set(allTasks.map(t => (t.assigned_date||'').slice(0,7)).filter(Boolean))].sort().reverse();
     if (!allMonths.includes(currentMonth)) allMonths.unshift(currentMonth);
 
-    // Filter tasks by month first for KPI calculations
-    const monthTasks = allTasks.filter(t => (t.assigned_date||'').startsWith(selectedMonth));
+    // Date Range vs Month Mode
+    const dateMode = window._taskDateMode || 'month';
+    const dateFrom = window._taskDateFrom || '';
+    const dateTo = window._taskDateTo || '';
 
-    // KPIs for the selected month
-    const totalMonth = monthTasks.length;
-    const pendingCount = monthTasks.filter(t => t.status === 'Pending').length;
-    const inProgCount = monthTasks.filter(t => t.status === 'In Progress').length;
-    const doneCount = monthTasks.filter(t => t.status === 'Completed').length;
-    const urgentCount = monthTasks.filter(t => t.priority === 'Urgent' && t.status !== 'Completed').length;
-    const todayCount = monthTasks.filter(t => t.assigned_date === todayStr).length;
+    let periodTasks = [];
+    let periodLabel = '';
+
+    if (dateMode === 'range' && (dateFrom || dateTo)) {
+      periodTasks = allTasks.filter(t => {
+        const d = (t.assigned_date || '').slice(0, 10);
+        if (!d) return false;
+        if (dateFrom && d < dateFrom) return false;
+        if (dateTo && d > dateTo) return false;
+        return true;
+      });
+      if (dateFrom && dateTo) {
+        periodLabel = `${dateFrom} to ${dateTo}`;
+      } else if (dateFrom) {
+        periodLabel = `From ${dateFrom}`;
+      } else {
+        periodLabel = `Up to ${dateTo}`;
+      }
+    } else {
+      periodTasks = allTasks.filter(t => (t.assigned_date||'').startsWith(selectedMonth));
+      periodLabel = selectedMonth;
+    }
+
+    // KPIs for the selected period / date range
+    const totalPeriod = periodTasks.length;
+    const pendingCount = periodTasks.filter(t => t.status === 'Pending').length;
+    const inProgCount = periodTasks.filter(t => t.status === 'In Progress').length;
+    const doneCount = periodTasks.filter(t => t.status === 'Completed').length;
+    const urgentCount = periodTasks.filter(t => t.priority === 'Urgent' && t.status !== 'Completed').length;
+    const todayCount = periodTasks.filter(t => t.assigned_date === todayStr).length;
 
     // Apply sub-filters
-    let displayTasks = monthTasks;
+    let displayTasks = periodTasks;
     if (statusFilter === 'Pending') displayTasks = displayTasks.filter(t => t.status === 'Pending');
     else if (statusFilter === 'In Progress') displayTasks = displayTasks.filter(t => t.status === 'In Progress');
     else if (statusFilter === 'Completed') displayTasks = displayTasks.filter(t => t.status === 'Completed');
@@ -1562,13 +1587,17 @@ async function renderEmployeeTasks(viewMode) {
     if (staffFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.emp_id === staffFilter);
     if (propFilter !== 'ALL') displayTasks = displayTasks.filter(t => t.room_id === propFilter);
 
-    // Auto-heal: If sub-filters yield 0 tasks while month has tasks, reset sub-filters to ALL
-    if (displayTasks.length === 0 && monthTasks.length > 0 && (statusFilter !== 'ALL' || staffFilter !== 'ALL' || propFilter !== 'ALL')) {
+    // Auto-heal: If sub-filters yield 0 tasks while period has tasks, reset sub-filters to ALL
+    if (displayTasks.length === 0 && periodTasks.length > 0 && (statusFilter !== 'ALL' || staffFilter !== 'ALL' || propFilter !== 'ALL')) {
       window._taskStatusFilter = 'ALL';
       window._taskStaffFilter = 'ALL';
       window._taskPropFilter = 'ALL';
-      displayTasks = monthTasks;
+      displayTasks = periodTasks;
     }
+
+    const selectedStaffName = (staffFilter !== 'ALL' ? (empMap[staffFilter] || staffFilter) : '');
+    const selectedStaffDoneCount = displayTasks.filter(t => t.status === 'Completed').length;
+    const selectedStaffPending = displayTasks.filter(t => t.status === 'Pending').length;
 
     // Groupings for By-Employee view
     const isByEmp = viewMode === 'byEmployee';
@@ -1736,10 +1765,11 @@ async function renderEmployeeTasks(viewMode) {
       <thead>
         <tr>
           <th>Employee / Property</th>
-          <th>Total</th>
-          <th>Completed ✅</th>
+          <th>Total Assigned</th>
+          <th>Completed Flats ✅</th>
           <th>Pending ⏳</th>
           <th>In Progress 🔄</th>
+          <th style="text-align:right;">Report 📲</th>
         </tr>
       </thead>
       <tbody>
@@ -1750,11 +1780,24 @@ async function renderEmployeeTasks(viewMode) {
       const prog = d.tasks.filter(t => t.status==='In Progress').length;
       byEmpHTML += `
         <tr style="background:var(--card-bg);border-top:2px solid var(--border)">
-          <td><strong>👤 ${eName}</strong></td>
+          <td>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-right:12px;">
+              <strong>👤 ${eName}</strong>
+              <span style="font-size:12px;color:#047857;font-weight:800;background:#ECFDF5;padding:2px 8px;border-radius:6px;border:1px solid #A7F3D0;">
+                ${done} Flats Done
+              </span>
+            </div>
+          </td>
           <td><span class="badge blue">${d.tasks.length}</span></td>
-          <td><span class="badge green">${done}</span></td>
+          <td><span class="badge green" style="font-weight:800;padding:3px 9px;">${done}</span></td>
           <td><span class="badge ${pend>0?'red':'green'}">${pend}</span></td>
           <td><span class="badge ${prog>0?'yellow':'green'}">${prog}</span></td>
+          <td style="text-align:right;">
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 9px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+              onclick="window.shareStaffCleaningSummaryWhatsAppByName('${eName.replace(/'/g, "\\'")}', '${periodLabel.replace(/'/g, "\\'")}')" title="Send WhatsApp Cleaning Report">
+              <span>📲</span> WhatsApp
+            </button>
+          </td>
         </tr>
       `;
       Object.entries(d.props).forEach(([prop, cnt]) => {
@@ -1762,12 +1805,13 @@ async function renderEmployeeTasks(viewMode) {
           <tr style="background:var(--bg)">
             <td style="padding-left:24px;color:var(--muted);font-size:13px">↳ ${prop}</td>
             <td><span class="badge blue">${cnt}</span></td>
+            <td style="color:#059669;font-weight:600;font-size:12.5px;">${cnt} completed</td>
             <td>-</td><td>-</td><td>-</td>
           </tr>
         `;
       });
     });
-    if (!Object.keys(empGroups).length) byEmpHTML += '<tr><td colspan="5" class="sub">No tasks this month</td></tr>';
+    if (!Object.keys(empGroups).length) byEmpHTML += `<tr><td colspan="6" class="sub" style="text-align:center;padding:24px;">No tasks found for ${periodLabel}</td></tr>`;
     byEmpHTML += '</tbody>';
 
     // By Date View
@@ -1910,7 +1954,7 @@ async function renderEmployeeTasks(viewMode) {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
           <div>
             <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">🧰 Staff Tasks</h1>
-            <div class="sub" style="margin-top:2px;">Manage daily assignments, housekeeping, & team duties &bull; ${selectedMonth}</div>
+            <div class="sub" style="margin-top:2px;">Manage daily assignments, housekeeping, & team duties &bull; <strong>${periodLabel}</strong></div>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             ${isO ? '<button class="btn-sm" style="background:#059669;color:#fff;" onclick="renderAddTask()">➕ Add Task</button>' : ''}
@@ -1921,8 +1965,8 @@ async function renderEmployeeTasks(viewMode) {
         <!-- KPI METRIC CARDS -->
         <div class="task-kpi-grid" style="margin-top:14px;">
           <div class="task-kpi-card" style="border-left:4px solid var(--primary);${statusFilter==='ALL'?'background:#EFF6FF;box-shadow:0 0 0 2px var(--primary);':''}" onclick="window.clearTaskFilters('${viewMode}')" title="Click to show all tasks">
-            <div class="task-kpi-num" style="color:var(--primary);">${totalMonth}</div>
-            <div class="task-kpi-label">📋 Total Month</div>
+            <div class="task-kpi-num" style="color:var(--primary);">${totalPeriod}</div>
+            <div class="task-kpi-label">${dateMode==='range' ? '📋 Total Range' : '📋 Total Month'}</div>
           </div>
           <div class="task-kpi-card" style="border-left:4px solid #DC2626;${statusFilter==='Pending'?'background:#FEF2F2;box-shadow:0 0 0 2px #DC2626;':''}" onclick="window._taskStatusFilter='Pending';renderEmployeeTasks('${viewMode}');">
             <div class="task-kpi-num" style="color:#DC2626;">${pendingCount}</div>
@@ -1945,6 +1989,40 @@ async function renderEmployeeTasks(viewMode) {
             <div class="task-kpi-label">📅 Today</div>
           </div>
         </div>
+
+        <!-- HIGHLIGHTED STAFF CLEANING / RANGE SUMMARY -->
+        ${(staffFilter !== 'ALL' || dateMode === 'range') ? `
+          <div style="background:linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);border:1.5px solid #A7F3D0;border-left:6px solid #10B981;padding:12px 16px;border-radius:12px;margin-top:12px;margin-bottom:6px;box-shadow:0 2px 8px rgba(16,185,129,0.08);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-size:15px;font-weight:800;color:#065F46;display:flex;align-items:center;gap:8px;">
+                  <span>🧹</span>
+                  <span>${staffFilter !== 'ALL' ? `${selectedStaffName} — Cleaning & Task Report` : 'Date Range Staff Task Summary'}</span>
+                  <span style="background:#10B981;color:#fff;font-size:12px;padding:2px 8px;border-radius:12px;font-weight:800;">
+                    ${doneCount} Flats Completed ✅
+                  </span>
+                </div>
+                <div style="font-size:12.5px;color:#047857;margin-top:4px;font-weight:600;">
+                  🗓️ Range: <strong style="color:#065F46;">${periodLabel}</strong>
+                  ${staffFilter !== 'ALL' ? ` &bull; 👤 Staff: <strong>${selectedStaffName}</strong>` : ''}
+                  &bull; Total Tasks: <strong>${displayTasks.length}</strong>
+                  &bull; Pending: <strong style="color:${pendingCount > 0 ? '#DC2626' : '#047857'};">${pendingCount}</strong>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                ${staffFilter !== 'ALL' ? `
+                  <button type="button" class="btn-sm" onclick="window.shareStaffCleaningSummaryWhatsApp('${staffFilter}', '${selectedStaffName.replace(/'/g, "\\'")}', '${periodLabel.replace(/'/g, "\\'")}')"
+                    style="background:#25D366;color:#fff;font-weight:700;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(37,211,102,0.3);">
+                    <span>📲</span> WhatsApp Report
+                  </button>
+                ` : ''}
+                <button type="button" class="btn-sm outline" onclick="window.clearTaskFilters('${viewMode}')" style="font-size:11.5px;padding:6px 10px;">
+                  🔄 Reset Filter
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- FILTER & VIEW CONTROLS -->
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
@@ -1977,10 +2055,43 @@ async function renderEmployeeTasks(viewMode) {
               ${(rooms||[]).map(r => `<option value="${r.room_id}" ${propFilter===r.room_id?'selected':''}>${r.nickname||r.unit_no}</option>`).join('')}
             </select>
 
-            <!-- Month Selector -->
-            <select onchange="window._taskMonth=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
-              ${allMonths.map(m => `<option value="${m}" ${m===selectedMonth?'selected':''}>${m}</option>`).join('')}
-            </select>
+            <!-- Mode Switcher: Month vs Custom Range -->
+            <div style="display:inline-flex;align-items:center;gap:2px;background:#F1F5F9;border:1px solid var(--border);border-radius:8px;padding:2px 3px;">
+              <button type="button" class="btn-sm" onclick="window.setTaskDateMode('month', '${viewMode}')"
+                style="min-height:26px;padding:2px 8px;font-size:11px;font-weight:700;border-radius:6px;${dateMode==='month'?'background:#0284C7;color:#fff;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.1);':'background:transparent;color:#64748B;border:none;'}">
+                📅 Month
+              </button>
+              <button type="button" class="btn-sm" onclick="window.setTaskDateMode('range', '${viewMode}')"
+                style="min-height:26px;padding:2px 8px;font-size:11px;font-weight:700;border-radius:6px;${dateMode==='range'?'background:#0284C7;color:#fff;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.1);':'background:transparent;color:#64748B;border:none;'}">
+                📆 Range
+              </button>
+            </div>
+
+            ${dateMode === 'month' ? `
+              <!-- Month Dropdown -->
+              <select onchange="window.setTaskMonth(this.value, '${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:700;background:#fff;">
+                ${allMonths.map(m => `<option value="${m}" ${m===selectedMonth?'selected':''}>${m}</option>`).join('')}
+              </select>
+            ` : `
+              <!-- Quick Range Preset Dropdown -->
+              <select onchange="window.setTaskDatePreset(this.value, '${viewMode}')" style="padding:5px 8px;border-radius:8px;border:1.5px solid #0284C7;font-size:11.5px;font-weight:700;background:#F0F9FF;color:#0369A1;">
+                <option value="custom" ${window._taskPreset==='custom'?'selected':''}>📆 Custom Range</option>
+                <option value="oct22" ${window._taskPreset==='oct22'?'selected':''}>⭐ 22 Oct ➔ Today</option>
+                <option value="last30" ${window._taskPreset==='last30'?'selected':''}>⏳ Last 30 Days</option>
+                <option value="thisMonth" ${window._taskPreset==='thisMonth'?'selected':''}>🗓️ This Month</option>
+                <option value="lastMonth" ${window._taskPreset==='lastMonth'?'selected':''}>🗓️ Last Month</option>
+              </select>
+
+              <!-- From / To Date Pickers -->
+              <div style="display:inline-flex;align-items:center;gap:3px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:2px 6px;">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);">From:</span>
+                <input type="date" id="taskRangeFrom" value="${dateFrom || '2026-10-22'}" onchange="window.setTaskDateRange(this.value, document.getElementById('taskRangeTo').value, '${viewMode}')"
+                  style="border:none;outline:none;font-size:12px;font-weight:700;color:#0F172A;padding:0;background:transparent;" />
+                <span style="font-size:11px;font-weight:700;color:var(--muted);margin-left:3px;">To:</span>
+                <input type="date" id="taskRangeTo" value="${dateTo || todayStr}" onchange="window.setTaskDateRange(document.getElementById('taskRangeFrom').value, this.value, '${viewMode}')"
+                  style="border:none;outline:none;font-size:12px;font-weight:700;color:#0F172A;padding:0;background:transparent;" />
+              </div>
+            `}
           </div>
         </div>
       </div>
@@ -2018,10 +2129,128 @@ window.clearTaskFilters = function(keepViewMode) {
   window._taskStatusFilter = 'ALL';
   window._taskStaffFilter = 'ALL';
   window._taskPropFilter = 'ALL';
+  window._taskDateMode = 'month';
+  window._taskDateFrom = '';
+  window._taskDateTo = '';
+  window._taskPreset = 'thisMonth';
   const targetMode = keepViewMode || window._taskViewMode || 'list';
   if (typeof renderEmployeeTasks === 'function') {
     renderEmployeeTasks(targetMode);
   }
+};
+
+window.setTaskDateMode = function(mode, viewMode) {
+  window._taskDateMode = mode;
+  if (mode === 'range') {
+    if (!window._taskDateFrom) {
+      const now = new Date();
+      window._taskDateFrom = `${now.getFullYear()}-10-22`;
+      window._taskDateTo = now.toISOString().slice(0, 10);
+      window._taskPreset = 'oct22';
+    }
+  }
+  renderEmployeeTasks(viewMode || window._taskViewMode || 'list');
+};
+
+window.setTaskMonth = function(m, viewMode) {
+  window._taskDateMode = 'month';
+  window._taskMonth = m;
+  renderEmployeeTasks(viewMode || window._taskViewMode || 'list');
+};
+
+window.setTaskDateRange = function(from, to, viewMode) {
+  window._taskDateMode = 'range';
+  window._taskDateFrom = from;
+  window._taskDateTo = to;
+  window._taskPreset = 'custom';
+  renderEmployeeTasks(viewMode || window._taskViewMode || 'list');
+};
+
+window.setTaskDatePreset = function(preset, viewMode) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  window._taskPreset = preset;
+
+  if (preset === 'oct22') {
+    window._taskDateMode = 'range';
+    window._taskDateFrom = `${now.getFullYear()}-10-22`;
+    window._taskDateTo = today;
+  } else if (preset === 'last30') {
+    window._taskDateMode = 'range';
+    const d30 = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    window._taskDateFrom = d30;
+    window._taskDateTo = today;
+  } else if (preset === 'thisMonth') {
+    window._taskDateMode = 'month';
+    window._taskMonth = today.slice(0, 7);
+  } else if (preset === 'lastMonth') {
+    window._taskDateMode = 'month';
+    const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+    window._taskMonth = lastM;
+  } else if (preset === 'custom') {
+    window._taskDateMode = 'range';
+  }
+  renderEmployeeTasks(viewMode || window._taskViewMode || 'list');
+};
+
+window.shareStaffCleaningSummaryWhatsApp = function(empId, empName, periodLabel) {
+  const tasks = window._allStaffTasks || [];
+  const rooms = window._staffRooms || [];
+  const roomMap = {};
+  rooms.forEach(r => { roomMap[r.room_id] = r.nickname || r.unit_no || r.property_name || r.room_id; });
+
+  let filtered = tasks.filter(t => t.emp_id === empId);
+  if (window._taskDateMode === 'range' && (window._taskDateFrom || window._taskDateTo)) {
+    filtered = filtered.filter(t => {
+      const d = (t.assigned_date || '').slice(0, 10);
+      if (!d) return false;
+      if (window._taskDateFrom && d < window._taskDateFrom) return false;
+      if (window._taskDateTo && d > window._taskDateTo) return false;
+      return true;
+    });
+  } else {
+    const selectedM = window._taskMonth || new Date().toISOString().slice(0, 7);
+    filtered = filtered.filter(t => (t.assigned_date || '').startsWith(selectedM));
+  }
+
+  const completed = filtered.filter(t => t.status === 'Completed');
+  const propCounts = {};
+  completed.forEach(t => {
+    const p = roomMap[t.room_id] || 'General Flat';
+    propCounts[p] = (propCounts[p] || 0) + 1;
+  });
+
+  let msg = `*THE UNIQUE HAVEN HOMES*\n` +
+            `🧹 *STAFF CLEANING & TASK REPORT*\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `👤 *Employee:* ${empName}\n` +
+            `🗓️ *Period:* ${periodLabel}\n` +
+            `✅ *Total Flats Completed:* ${completed.length} flats\n` +
+            `⏳ *Pending Tasks:* ${filtered.filter(t => t.status === 'Pending').length}\n` +
+            `🔄 *In Progress:* ${filtered.filter(t => t.status === 'In Progress').length}\n` +
+            `📋 *Total Tasks in Scope:* ${filtered.length}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `*Flats Cleaned Breakdown:*\n`;
+
+  const entries = Object.entries(propCounts);
+  if (entries.length) {
+    entries.forEach(([prop, cnt]) => {
+      msg += `• ${prop}: *${cnt} flats cleaned*\n`;
+    });
+  } else {
+    msg += `• No completed flats in this date range.\n`;
+  }
+  msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+         `Generated from TUHH CRM on ${new Date().toLocaleDateString('en-IN')}`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+};
+
+window.shareStaffCleaningSummaryWhatsAppByName = function(empName, periodLabel) {
+  const emps = window._staffEmps || [];
+  const emp = emps.find(e => (e.name || '').trim().toLowerCase() === (empName || '').trim().toLowerCase());
+  window.shareStaffCleaningSummaryWhatsApp(emp ? emp.emp_id : empName, empName, periodLabel);
 };
 
 // ═══════════════════════════════════════════════════════════
