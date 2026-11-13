@@ -92,6 +92,26 @@
         localStorage.setItem('uh_latest_login_alert', JSON.stringify(alertObj));
       } catch(e) {}
 
+      // 2b. Write to dedicated user_activity_logs DB table if available
+      try {
+        if (window.sb) {
+          const today = now.toISOString().slice(0, 10);
+          await window.sb.from('user_activity_logs').upsert({
+            user_id: userId,
+            display_name: displayName || email || 'Staff User',
+            role: role || 'staff',
+            email: email || '',
+            log_date: today,
+            login_count: 1,
+            active_seconds: 60,
+            first_login_at: now.toISOString(),
+            last_active_at: now.toISOString(),
+            device_info: deviceStr,
+            updated_at: now.toISOString()
+          }, { onConflict: 'user_id,log_date' });
+        }
+      } catch(e) {}
+
       // 3. Central Supabase app_settings (syncs to Developer group across any phone/laptop/iPad)
       try {
         if (window.sb) {
@@ -344,6 +364,26 @@
       const curMonth = new Date().toISOString().slice(0, 7);
       const key = `uh_audit_visits_${curMonth}`;
 
+      // 1. Try writing directly to dedicated user_page_visits table
+      try {
+        const rowsToInsert = batch.map(b => ({
+          user_id: b.userId,
+          display_name: b.displayName,
+          role: b.role,
+          email: window.SESSION?.email || '',
+          page: b.page,
+          device: b.device,
+          visited_at: b.timestamp,
+          visit_date: b.date,
+          month_str: b.month
+        }));
+        const { error: insErr } = await window.sb.from('user_page_visits').insert(rowsToInsert);
+        if (!insErr) {
+          return; // Successfully recorded to DB table!
+        }
+      } catch(e) {}
+
+      // 2. Central app_settings fallback
       try {
         const { data: rows } = await window.sb.from('app_settings').select('value').eq('key', key).limit(1);
         let list = [];
@@ -364,34 +404,82 @@
       }
     },
 
-    async getVisitsForUser(userId, displayName, monthStr) {
+    async getVisitsForUser(userId, displayName, monthStr, userEmail) {
       let remoteVisits = [];
-      // 1. Central app_settings
+      const targetId = (userId || '').toLowerCase().trim();
+      const targetName = (displayName || '').toLowerCase().trim();
+      const targetEmail = (userEmail || '').toLowerCase().trim();
+
+      function matchesUser(rUid, rName, rEmail) {
+        rUid = (rUid || '').toLowerCase().trim();
+        rName = (rName || '').toLowerCase().trim();
+        rEmail = (rEmail || '').toLowerCase().trim();
+
+        if (targetId && rUid && rUid === targetId) return true;
+        if (targetEmail && rEmail && rEmail === targetEmail) return true;
+        if (targetName && rName) {
+          if (rName === targetName) return true;
+          if (rName.includes(targetName) || targetName.includes(rName)) return true;
+          const rFirst = rName.split(' ')[0];
+          const targetFirst = targetName.split(' ')[0];
+          if (rFirst && targetFirst && rFirst === targetFirst && rFirst.length >= 3) return true;
+        }
+        if ((targetName.includes('arman') || targetEmail.includes('arman')) && (rName.includes('arman') || rEmail.includes('arman'))) {
+          return true;
+        }
+        return false;
+      }
+
+      // 1. Try fetching from dedicated user_page_visits table
+      try {
+        if (window.sb) {
+          const { data: dbRows } = await window.sb.from('user_page_visits')
+            .select('*')
+            .eq('month_str', monthStr)
+            .order('visited_at', { ascending: true });
+          if (dbRows && dbRows.length) {
+            dbRows.forEach(v => {
+              if (matchesUser(v.user_id, v.display_name, v.email)) {
+                remoteVisits.push({
+                  userId: v.user_id,
+                  displayName: v.display_name,
+                  role: v.role,
+                  page: v.page,
+                  device: v.device,
+                  timestamp: v.visited_at,
+                  date: v.visit_date,
+                  month: v.month_str
+                });
+              }
+            });
+          }
+        }
+      } catch(e) {}
+
+      // 2. Central app_settings fallback
       try {
         if (window.sb) {
           const key = `uh_audit_visits_${monthStr}`;
           const { data: rows } = await window.sb.from('app_settings').select('value').eq('key', key).limit(1);
           if (rows?.[0]?.value) {
             const list = JSON.parse(rows[0].value);
-            const targetId = (userId || '').toLowerCase();
-            const targetName = (displayName || '').trim().toLowerCase();
-            remoteVisits = list.filter(v => {
-              const vId = (v.userId || '').toLowerCase();
-              const vName = (v.displayName || '').trim().toLowerCase();
-              return (targetId && vId === targetId) || (targetName && vName === targetName);
+            list.forEach(v => {
+              if (matchesUser(v.userId || v.user_id, v.displayName || v.display_name, v.email || v.user_email)) {
+                remoteVisits.push(v);
+              }
             });
           }
         }
       } catch(e) {}
 
-      // 2. LocalStorage visits
+      // 3. LocalStorage visits
       let localVisits = [];
       try {
         const key = `uh_audit_pages_${userId}_${monthStr}`;
         localVisits = JSON.parse(localStorage.getItem(key) || '[]');
       } catch(e) {}
 
-      // 3. Merge and deduplicate by timestamp + page
+      // 4. Merge and deduplicate by timestamp + page
       const visitMap = new Map();
       [...remoteVisits, ...localVisits].forEach(v => {
         const dedupKey = `${v.timestamp}_${v.page}`;
@@ -413,7 +501,7 @@
   // ═════════════════════════════════════════════════════════════
   // 4. MONTHLY USER AUDIT MODAL (Developer Group Only)
   // ═════════════════════════════════════════════════════════════
-  window.openUserAuditModal = async function(userId, displayName, role) {
+  window.openUserAuditModal = async function(userId, displayName, role, userEmail) {
     if (!isDeveloperRecipient()) {
       alert('🔒 Access Restricted: User Activity Audit & Intelligence is strictly reserved for the Developer group.');
       return;
@@ -476,41 +564,63 @@
     document.body.appendChild(overlay);
 
     // Initial load
-    await loadAuditData(userId, displayName, currentMonth);
+    await loadAuditData(userId, displayName, currentMonth, userEmail);
 
     // Month change handler
     document.getElementById('auditMonthSelector').onchange = async function() {
-      await loadAuditData(userId, displayName, this.value);
+      await loadAuditData(userId, displayName, this.value, userEmail);
     };
   };
 
-  async function loadAuditData(userId, displayName, monthStr) {
+  async function loadAuditData(userId, displayName, monthStr, userEmail) {
     const bodyEl = document.getElementById('userAuditModalBody');
     if (!bodyEl) return;
     bodyEl.innerHTML = `<div style="text-align:center;padding:40px;color:#64748B;">⏳ Loading data for ${monthStr}...</div>`;
 
     const dailyMap = {}; // Key: "YYYY-MM-DD" -> Record
-    const targetUid = (userId || '').toLowerCase();
-    const targetName = (displayName || '').trim().toLowerCase();
+    const targetUid = (userId || '').toLowerCase().trim();
+    const targetName = (displayName || '').toLowerCase().trim();
+    const targetEmail = (userEmail || '').toLowerCase().trim();
+
+    function matchesUser(rUid, rName, rEmail) {
+      rUid = (rUid || '').toLowerCase().trim();
+      rName = (rName || '').toLowerCase().trim();
+      rEmail = (rEmail || '').toLowerCase().trim();
+
+      if (targetUid && rUid && rUid === targetUid) return true;
+      if (targetEmail && rEmail && rEmail === targetEmail) return true;
+      if (targetName && rName) {
+        if (rName === targetName) return true;
+        if (rName.includes(targetName) || targetName.includes(rName)) return true;
+        const rFirst = rName.split(' ')[0];
+        const targetFirst = targetName.split(' ')[0];
+        if (rFirst && targetFirst && rFirst === targetFirst && rFirst.length >= 3) return true;
+      }
+      if ((targetName.includes('arman') || targetEmail.includes('arman')) && (rName.includes('arman') || rEmail.includes('arman'))) {
+        return true;
+      }
+      return false;
+    }
 
     // 1. Fetch daily activity logs from Supabase table if available
     try {
       if (window.sb) {
         const { data } = await window.sb.from('user_activity_logs')
           .select('*')
-          .eq('user_id', userId)
           .gte('log_date', `${monthStr}-01`)
           .lte('log_date', `${monthStr}-31`)
           .order('log_date', { ascending: false });
         if (data && data.length) {
           data.forEach(d => {
-            dailyMap[d.log_date] = {
-              log_date: d.log_date,
-              login_count: d.login_count || 1,
-              active_seconds: d.active_seconds || 0,
-              first_login_at: d.first_login_at,
-              last_active_at: d.last_active_at
-            };
+            if (matchesUser(d.user_id, d.display_name, d.email)) {
+              dailyMap[d.log_date] = {
+                log_date: d.log_date,
+                login_count: d.login_count || 1,
+                active_seconds: d.active_seconds || 0,
+                first_login_at: d.first_login_at,
+                last_active_at: d.last_active_at
+              };
+            }
           });
         }
       }
@@ -529,11 +639,8 @@
           Object.keys(remoteMap).forEach(date => {
             if (date.startsWith(monthStr)) {
               const dayEntries = remoteMap[date] || {};
-              // Match by userId or displayName
               Object.values(dayEntries).forEach(r => {
-                const rUid = (r.userId || '').toLowerCase();
-                const rName = (r.displayName || '').trim().toLowerCase();
-                if ((targetUid && rUid === targetUid) || (targetName && rName === targetName)) {
+                if (matchesUser(r.userId || r.user_id, r.displayName || r.display_name, r.email || r.user_email)) {
                   const prev = dailyMap[date] || {};
                   dailyMap[date] = {
                     log_date: date,
@@ -562,9 +669,7 @@
           const alertList = JSON.parse(alertRows[0].value);
           if (Array.isArray(alertList)) {
             alertList.forEach(a => {
-              const aUid = (a.user_id || '').toLowerCase();
-              const aName = (a.user_name || '').trim().toLowerCase();
-              if ((targetUid && aUid === targetUid) || (targetName && aName === targetName)) {
+              if (matchesUser(a.user_id, a.user_name, a.user_email)) {
                 const d = (a.timestamp || '').slice(0, 10);
                 if (d && d.startsWith(monthStr)) {
                   const prev = dailyMap[d] || {};
@@ -590,9 +695,7 @@
         if (date.startsWith(monthStr)) {
           const dayEntries = local[date] || {};
           Object.values(dayEntries).forEach(r => {
-            const rUid = (r.userId || '').toLowerCase();
-            const rName = (r.displayName || '').trim().toLowerCase();
-            if ((targetUid && rUid === targetUid) || (targetName && rName === targetName)) {
+            if (matchesUser(r.userId, r.displayName, r.email)) {
               const prev = dailyMap[date] || {};
               dailyMap[date] = {
                 log_date: date,
@@ -608,7 +711,7 @@
     } catch(e) {}
 
     // 5. Fetch page visits from central app_settings + localStorage (Matching ID or Name)
-    const visits = await window.UserPageAudit.getVisitsForUser(userId, displayName, monthStr);
+    const visits = await window.UserPageAudit.getVisitsForUser(userId, displayName, monthStr, userEmail);
 
     // 5b. Fetch operational actions performed by this user (Bookings, Payments, Advances, Expenses)
     let userActions = [];

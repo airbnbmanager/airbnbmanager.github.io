@@ -593,11 +593,12 @@ window.UserActivityTracker = {
     if (!rec || !rec.userId) return;
 
     try {
-      if (window.sb && this._tableAvailable !== false) {
+      if (window.sb) {
         const { error } = await sb.from('user_activity_logs').upsert({
           user_id: rec.userId,
           display_name: rec.displayName,
           role: rec.role,
+          email: window.SESSION?.email || '',
           log_date: rec.logDate,
           login_count: rec.loginCount,
           active_seconds: rec.activeSeconds,
@@ -606,79 +607,45 @@ window.UserActivityTracker = {
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,log_date' });
 
-        if (error) {
-          // If table does not exist or unauthorized (404 / 401 / 42P01), remember in localStorage and stop querying it
-          if (error.code === '42P01' || error.status === 404 || error.status === 401 || error.code === '404' || error.message?.includes('does not exist')) {
-            this._tableAvailable = false;
-            try { localStorage.setItem('uh_user_act_tbl_avail', 'false'); } catch(e) {}
-          }
-          if (this._appSettingsAvailable !== false) {
-            this._syncToAppSettings(rec);
-          }
-        } else {
+        if (!error) {
           this._tableAvailable = true;
           return;
         }
-      } else if (this._appSettingsAvailable !== false) {
-        this._syncToAppSettings(rec);
       }
-    } catch(e) {
-      this._tableAvailable = false;
-      try { localStorage.setItem('uh_user_act_tbl_avail', 'false'); } catch(err) {}
-      if (this._appSettingsAvailable !== false) {
-        this._syncToAppSettings(rec);
-      }
-    }
+    } catch(e) {}
+
+    // Fallback sync to central app_settings
+    this._syncToAppSettings(rec);
   },
 
   async _syncToAppSettings(rec) {
-    if (this._appSettingsAvailable === false) return;
     try {
       if (!window.sb) return;
-      // Use standard select without .single() to prevent 406 (Not Acceptable) when empty
-      const { data: setRows, error: selErr } = await sb.from('app_settings')
+      const { data: setRows } = await sb.from('app_settings')
         .select('value')
         .eq('key', 'user_daily_activity_logs')
         .limit(1);
-
-      if (selErr) {
-        if (selErr.status === 403 || selErr.status === 401 || selErr.code === '42501' || selErr.status === 404) {
-          this._appSettingsAvailable = false;
-          try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(e) {}
-          return;
-        }
-      }
 
       const setRow = setRows && setRows[0];
       let remoteMap = {};
       try { remoteMap = JSON.parse(setRow?.value || '{}'); } catch(e) {}
       if (!remoteMap[rec.logDate]) remoteMap[rec.logDate] = {};
-      remoteMap[rec.logDate][rec.userId] = rec;
+      remoteMap[rec.logDate][rec.userId] = {
+        ...rec,
+        email: window.SESSION?.email || remoteMap[rec.logDate][rec.userId]?.email || ''
+      };
 
       const dates = Object.keys(remoteMap).sort().reverse();
       if (dates.length > 30) {
         dates.slice(30).forEach(d => delete remoteMap[d]);
       }
 
-      const { error: upErr } = await sb.from('app_settings').upsert({
+      await sb.from('app_settings').upsert({
         key: 'user_daily_activity_logs',
         value: JSON.stringify(remoteMap),
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
-
-      if (upErr) {
-        // If app_settings upsert forbidden or unauthorized (401 / 403), stop querying it
-        if (upErr.status === 403 || upErr.status === 401 || upErr.code === '42501' || upErr.status === 404) {
-          this._appSettingsAvailable = false;
-          try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(e) {}
-        }
-      } else {
-        this._appSettingsAvailable = true;
-      }
-    } catch(e) {
-      this._appSettingsAvailable = false;
-      try { localStorage.setItem('uh_app_set_avail', 'false'); } catch(err) {}
-    }
+    } catch(e) {}
   },
 
   async fetchLogsForDate(dateStr) {
@@ -3342,7 +3309,7 @@ async function renderUserManagement() {
                     🔧 Role
                   </button>
                   ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
+                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
                       📊 Audit
                     </button>
                   ` : ''}
@@ -3429,7 +3396,7 @@ async function renderUserManagement() {
                       <td class="table-actions" style="text-align:right;">
                         <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
                         ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-                          <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
+                          <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
                         ` : ''}
                         ${!isCurrentUser ? `
                           ${u.isFiredStaff && u.is_approved ? `
