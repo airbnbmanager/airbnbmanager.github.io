@@ -661,7 +661,7 @@ async function renderReports() {
         </div>
       </div>
 
-      <!-- Row 2: View Switcher & Property Filter (Duplicate New Booking button removed) -->
+      <!-- Row 2: View Switcher & Property Filter -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="hh-cal-toggle-group" style="margin:0;">
           <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="TUHH Multi-Property Gantt Timeline">
@@ -672,28 +672,12 @@ async function renderReports() {
           </button>
         </div>
 
-        <div>
-          <select onchange="window._calRoom = this.value; renderReports();" style="padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;background:#F8FAFC;font-size:12px;font-weight:700;color:#0F172A;cursor:pointer;">
+        <div style="flex:1 1 200px;min-width:180px;max-width:100%;">
+          <select onchange="window._calRoom = this.value; renderReports();" style="width:100%;padding:7px 12px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;font-size:12px;font-weight:800;color:#0F172A;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);height:36px;">
             ${allRooms.length > 0 ? `<option value="all" ${selRoom==='all'?'selected':''}>🏘️ All Properties (${allRooms.length})</option>` : ''}
             ${allRooms.map(r => `<option value="${r.room_id}" ${selRoom===r.room_id?'selected':''}>${escapeHtml((r.unit_no ? r.unit_no + ' — ' : '') + (r.nickname || r.property_name || r.unit_no))}</option>`).join('')}
           </select>
         </div>
-      </div>
-
-      <!-- 1-Tap Quick Property Carousel on Mobile & Desktop -->
-      <div class="cal-prop-carousel" style="display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 0 2px;margin-top:8px;scrollbar-width:none;-ms-overflow-style:none;">
-        <button type="button" class="cal-prop-chip ${selRoom==='all' ? 'active' : ''}" onclick="window._calRoom='all';renderReports();" style="border:none;border-radius:999px;padding:5px 13px;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer;flex-shrink:0;${selRoom==='all' ? 'background:#0284C7;color:#fff;box-shadow:0 2px 6px rgba(2,132,199,0.35);' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">
-          🏘️ All (${allRooms.length})
-        </button>
-        ${allRooms.map(r => {
-          const isChipActive = (selRoom === r.room_id);
-          const shortUnit = r.unit_no ? r.unit_no : (r.nickname || r.room_id);
-          return `
-            <button type="button" class="cal-prop-chip ${isChipActive ? 'active' : ''}" onclick="window._calRoom='${r.room_id}';renderReports();" style="border:none;border-radius:999px;padding:5px 13px;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer;flex-shrink:0;${isChipActive ? 'background:#0284C7;color:#fff;box-shadow:0 2px 6px rgba(2,132,199,0.35);' : 'background:#F8FAFC;color:#334155;border:1px solid #CBD5E1;'}">
-              ${escapeHtml(shortUnit)}
-            </button>
-          `;
-        }).join('')}
       </div>
 
       <!-- PLATFORMS / CHANNELS COLOR LEGEND -->
@@ -755,6 +739,8 @@ async function renderReports() {
 
   displayRooms.forEach(r => {
     let cellsHtml = '';
+    let prevGuestName = '';
+    let prevBookingId = '';
 
     // Day headers
     days.forEach(d => {
@@ -778,14 +764,8 @@ async function renderReports() {
       const isPast = ds < todayStr;
 
       if (bk) {
-        const isSameDay = bk.check_in === bk.check_out;
-        const isCheckIn = bk.check_in === ds;
-        const isCheckOut = isSameDay ? true : (dateAdd(ds, 1) === bk.check_out);
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(bk) : null;
         const isBlocked = bSrc ? (bSrc.type === 'blocked') : isBkBlocked(bk);
-
-        // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
-        const bg = bSrc ? bSrc.pillGradient : (isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#FF385C');
 
         const rawName = bk.guest_name || (isBlocked ? 'Blocked' : 'Guest');
         let cleanGuestName = rawName
@@ -801,6 +781,27 @@ async function renderReports() {
           cleanGuestName = codeMatch ? codeMatch[1].slice(-4) : 'Airbnb';
         }
 
+        // Check if this is the same guest continuing from yesterday (extension stay or multi-night stay)
+        const isContinuingSameGuest = !isBlocked && (prevGuestName && cleanGuestName.toLowerCase() === prevGuestName.toLowerCase());
+
+        // Check if tomorrow continues with the same guest
+        const nextDs = dateAdd(ds, 1);
+        const nextBkArr = bMap[`${r.room_id}_${nextDs}`] || [];
+        const nextRealBks = nextBkArr.filter(x => !isBkBlocked(x));
+        const nextBk = nextRealBks.length > 0 ? nextRealBks[0] : nextBkArr[0];
+        let nextGuestName = '';
+        if (nextBk && !isBlocked) {
+          nextGuestName = (nextBk.guest_name || '').replace(/^🚫\s*/, '').replace(/^(Send|Message|Contact)\s+/i, '').trim().toLowerCase();
+        }
+        const isNextSameGuest = !isBlocked && nextBk && (nextGuestName === cleanGuestName.toLowerCase());
+
+        const isSameDay = bk.check_in === bk.check_out;
+        const isCheckIn = (bk.check_in === ds) && !isContinuingSameGuest;
+        const isCheckOut = isSameDay ? true : (!isNextSameGuest && (dateAdd(ds, 1) === bk.check_out || !nextBk));
+
+        // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
+        const bg = bSrc ? bSrc.pillGradient : (isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#FF385C');
+
         const guestInitial = isBlocked ? '🔒' : (isPlaceholder ? '🏨' : cleanGuestName.charAt(0).toUpperCase());
         const nameParts = cleanGuestName.split(/\s+/);
         let firstName = isBlocked ? 'Blocked' : (nameParts[0] || 'Guest');
@@ -811,8 +812,6 @@ async function renderReports() {
 
         const hasReview = isReviewedBooking(bk);
         const currentNight = calcNights(bk.check_in, ds);
-        // Show guest name on ALL screen sizes (including mobile), especially on Check-in or recurring days
-        const showName = true;
         const showAvatar = (isCheckIn || isBlocked || isSameDay) && !isMobile;
 
         // Payment status check for non-blocked bookings
@@ -822,20 +821,25 @@ async function renderReports() {
         const isPaidFull = !isBlocked && (totalAmt > 0 && dueAmt <= 0);
         const isDue = !isBlocked && (dueAmt > 0);
 
+        // Payment status badge: ONLY on Check-In day or single-day stays (never repeated on continuing stay days!)
         let payTagHtml = '';
-        if (!isBlocked) {
+        if (!isBlocked && (isCheckIn || isSameDay || !isMobile)) {
           if (isDue) {
             const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : dueAmt;
             payTagHtml = `<span class="cal-pay-tag due is-micro" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">₹${dueShort}</span><span class="cal-pay-micro">!</span></span>`;
-          } else if (isPaidFull && (isCheckIn || !isMobile)) {
+          } else if (isPaidFull) {
             payTagHtml = `<span class="cal-pay-tag paid is-micro" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">✓ Paid</span><span class="cal-pay-micro">✓</span></span>`;
           }
         }
 
+        const dDay = new Date(yr, mo, d).getDay(); // 0 = Sun, 6 = Sat
+        const hasLeftRound = isCheckIn || isSameDay || dDay === 0;
+        const hasRightRound = isCheckOut || isSameDay || dDay === 6;
+
         let borderRadius = '0';
-        if (isCheckIn && isCheckOut) borderRadius = '6px';
-        else if (isCheckIn) borderRadius = '6px 0 0 6px';
-        else if (isCheckOut) borderRadius = '0 6px 6px 0';
+        if (hasLeftRound && hasRightRound) borderRadius = '6px';
+        else if (hasLeftRound) borderRadius = '6px 0 0 6px';
+        else if (hasRightRound) borderRadius = '0 6px 6px 0';
 
         const overlapTitle = overlapCount > 1
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
@@ -844,7 +848,7 @@ async function renderReports() {
         const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
 
         // Check if day is beginning of week (Sunday) to repeat name on row wrap
-        const isRowStart = (new Date(yr, mo, d).getDay() === 0);
+        const isRowStart = (dDay === 0);
         const shouldShowName = isCheckIn || isSameDay || isRowStart || !isMobile;
 
         let pillInnerHtml = '';
@@ -873,7 +877,12 @@ async function renderReports() {
               ${pillInnerHtml}
             </div>
           </div>`;
+
+        prevGuestName = cleanGuestName;
+        prevBookingId = bk.booking_id;
       } else {
+        prevGuestName = '';
+        prevBookingId = '';
         const rate = r.rent_per_night || 0;
         cellsHtml += `
           <div class="cal-day empty ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" onclick="calCreateBooking('${r.room_id}','${ds}')" title="Free — Click to book">
@@ -1122,11 +1131,21 @@ async function renderReports() {
 
     @media (max-width: 640px) {
       .cal-kpi-strip {
-        grid-template-columns: repeat(2, 1fr) !important;
+        display: flex !important;
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
         gap: 8px !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
         margin-bottom: 12px !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .cal-kpi-strip::-webkit-scrollbar {
+        display: none !important;
       }
       .cal-kpi-strip .stat-card {
+        flex: 0 0 115px !important;
+        min-width: 115px !important;
         padding: 8px 10px !important;
         border-radius: 10px !important;
       }
