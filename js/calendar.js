@@ -821,14 +821,14 @@ async function renderReports() {
         const isPaidFull = !isBlocked && (totalAmt > 0 && dueAmt <= 0);
         const isDue = !isBlocked && (dueAmt > 0);
 
-        // Payment status badge: ONLY on Check-In day or single-day stays (never repeated on continuing stay days!)
+        // Payment status badge: Show on EVERY booked date so pending balance and paid status are 100% transparent!
         let payTagHtml = '';
-        if (!isBlocked && (isCheckIn || isSameDay || !isMobile)) {
+        if (!isBlocked) {
           if (isDue) {
-            const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : dueAmt;
-            payTagHtml = `<span class="cal-pay-tag due is-micro" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">₹${dueShort}</span><span class="cal-pay-micro">!</span></span>`;
+            const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : Math.round(dueAmt);
+            payTagHtml = `<span class="cal-pay-tag due" title="⚠️ Pending Balance: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})">₹${dueShort}</span>`;
           } else if (isPaidFull) {
-            payTagHtml = `<span class="cal-pay-tag paid is-micro" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">✓ Paid</span><span class="cal-pay-micro">✓</span></span>`;
+            payTagHtml = `<span class="cal-pay-tag paid" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})">✓ Paid</span>`;
           }
         }
 
@@ -836,10 +836,11 @@ async function renderReports() {
         const hasLeftRound = isCheckIn || isSameDay || dDay === 0;
         const hasRightRound = isCheckOut || isSameDay || dDay === 6;
 
-        let borderRadius = '0';
-        if (hasLeftRound && hasRightRound) borderRadius = '6px';
-        else if (hasLeftRound) borderRadius = '6px 0 0 6px';
-        else if (hasRightRound) borderRadius = '0 6px 6px 0';
+        let borderRadius = '5px';
+        if (hasLeftRound && hasRightRound) borderRadius = '5px';
+        else if (hasLeftRound) borderRadius = '5px 2px 2px 5px';
+        else if (hasRightRound) borderRadius = '2px 5px 5px 2px';
+        else borderRadius = '2px';
 
         const overlapTitle = overlapCount > 1
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
@@ -847,20 +848,14 @@ async function renderReports() {
 
         const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
 
-        // Check if day is beginning of week (Sunday) to repeat name on row wrap
-        const isRowStart = (dDay === 0);
-        const shouldShowName = isCheckIn || isSameDay || isRowStart || !isMobile;
-
+        // Always show guest name on every booked day so the manager immediately knows who is in the flat
         let pillInnerHtml = '';
         if (isBlocked) {
           pillInnerHtml = `<span class="cal-name">🔒 Block</span>`;
         } else if (isSameDay) {
           pillInnerHtml = `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">⚡ ${escapeHtml(firstName)}</span>`;
-        } else if (shouldShowName) {
-          pillInnerHtml = `<span class="cal-name ${isCheckIn ? 'is-checkin' : ''}" title="${escapeHtml(cleanGuestName)}${hasReview ? ' • ⭐ 5-Star' : ''}">${escapeHtml(firstName)}${hasReview ? ' ⭐' : ''}</span>`;
         } else {
-          // Continuous multi-day stay ribbon
-          pillInnerHtml = `<span class="cal-stay-connector" title="Stay continues: ${escapeHtml(cleanGuestName)}"><span class="cal-stay-arrow">➔</span><span class="cal-stay-desk-name">${escapeHtml(firstName)}</span></span>`;
+          pillInnerHtml = `<span class="cal-name ${isCheckIn ? 'is-checkin' : ''}" title="${escapeHtml(cleanGuestName)}${hasReview ? ' • ⭐ 5-Star' : ''}">${escapeHtml(firstName)}${hasReview ? ' ⭐' : ''}</span>`;
         }
 
         cellsHtml += `
@@ -1100,7 +1095,7 @@ async function renderReports() {
       box-sizing: border-box;
     }
     .cal-pay-tag {
-      font-size: 8.5px;
+      font-size: 8px;
       font-weight: 800;
       border-radius: 4px;
       padding: 1px 3.5px;
@@ -1110,23 +1105,19 @@ async function renderReports() {
       justify-content: center;
       white-space: nowrap;
       flex-shrink: 0;
-      letter-spacing: 0.2px;
+      letter-spacing: -0.2px;
+      box-sizing: border-box;
     }
     .cal-pay-tag.paid {
       background: #DCFCE7;
-      color: #166534;
+      color: #15803D;
       border: 1px solid #86EFAC;
     }
     .cal-pay-tag.due {
       background: #FEE2E2;
-      color: #991B1B;
+      color: #B91C1C;
       border: 1px solid #FECACA;
-    }
-    .cal-pay-micro {
-      display: none;
-    }
-    .cal-pay-full {
-      display: inline;
+      font-weight: 900;
     }
 
     @media (max-width: 640px) {
@@ -1181,9 +1172,17 @@ async function renderReports() {
         padding: 0 1px 0 !important;
         line-height: 1 !important;
       }
+      .cal-pay-tag {
+        font-size: 7.5px !important;
+        font-weight: 800 !important;
+        padding: 0.5px 2.5px !important;
+        border-radius: 3px !important;
+        letter-spacing: -0.2px !important;
+        line-height: 1.1 !important;
+      }
       .cal-pill {
         font-size: 8.5px !important;
-        padding: 2px 1.5px !important;
+        padding: 1.5px 2px !important;
         margin: 1px 0 0 !important;
         min-height: 20px !important;
         height: 20px !important;
@@ -1192,35 +1191,13 @@ async function renderReports() {
         font-size: 8.5px !important;
         font-weight: 800 !important;
         line-height: 1.1 !important;
-        letter-spacing: -0.3px !important;
+        letter-spacing: -0.2px !important;
         max-width: 100% !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
         padding: 0 !important;
-      }
-      .cal-stay-desk-name {
-        display: none !important;
-      }
-      .cal-stay-arrow {
-        font-size: 9px !important;
-        opacity: 0.9 !important;
-      }
-      .cal-pay-full {
-        display: none !important;
-      }
-      .cal-pay-micro {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 8px !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-      }
-      .cal-pay-tag.is-micro {
-        width: 13px !important;
-        height: 13px !important;
-        min-width: 13px !important;
-        border-radius: 50% !important;
-        padding: 0 !important;
-        border-width: 1px !important;
       }
       .cal-hdr {
         font-size: 9.5px !important;
