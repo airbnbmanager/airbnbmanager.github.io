@@ -523,6 +523,38 @@ body {
   color: var(--crm-text-primary) !important;
 }
 
+/* --- 5. Notifications Bell & Floating Pill Badge --- */
+#topbarNotifBtn,
+.topbar-icon-btn {
+  position: relative !important;
+  overflow: visible !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.notif-bell-badge {
+  position: absolute !important;
+  top: -4px !important;
+  right: -4px !important;
+  min-width: 17px !important;
+  height: 17px !important;
+  padding: 0 4px !important;
+  border-radius: 999px !important;
+  background: #EF4444 !important;
+  color: #FFFFFF !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid #FFFFFF !important;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.45) !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
 /* --- 6. Hub Sub-navigation Strip --- */
 .hub-subnav-strip {
   background: #FFFFFF !important;
@@ -1207,24 +1239,25 @@ html, body {
   .topbar-right {
     display: flex !important;
     align-items: center !important;
-    gap: 5px !important;
+    gap: 8px !important;
     margin-left: auto !important;
     flex-shrink: 0 !important;
     height: 56px !important;
   }
 
-  /* CRITICAL: HIDE OVERFLOWING PROPERTY SELECTOR FROM TOPBAR ON MOBILE! */
-  .topbar-property-selector {
+  /* CRITICAL: HIDE OVERFLOWING PROPERTY SELECTOR & WA STATUS FROM TOPBAR ON MOBILE! */
+  .topbar-property-selector,
+  .topbar-wa-status-btn {
     display: none !important;
   }
 
   /* Icon-Only Search Button */
   .topbar-search-menu-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
     padding: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1233,7 +1266,7 @@ html, body {
   }
   .topbar-search-menu-btn .search-btn-icon {
     margin: 0 !important;
-    font-size: 1rem !important;
+    font-size: 1.1rem !important;
     color: #475569 !important;
   }
   .topbar-search-menu-btn .search-btn-text,
@@ -1241,42 +1274,22 @@ html, body {
     display: none !important;
   }
 
-  /* Compact 32px WhatsApp Status Button on Mobile Header */
-  .topbar-wa-status-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    padding: 0 !important;
-    border-radius: 8px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: #25D366 !important;
-  }
-  .topbar-wa-status-btn .topbar-wa-status-text {
-    display: none !important;
-  }
-  .topbar-wa-status-btn i {
-    font-size: 1.15rem !important;
-    color: #FFFFFF !important;
-  }
-
-  /* Compact 32px Vibrant New Booking Button */
+  /* Vibrant New Booking Plus Button */
   .topbar-new-booking-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
     padding: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     background: var(--crm-primary, #0284C7) !important;
-    box-shadow: 0 1px 4px rgba(2, 132, 199, 0.25) !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28) !important;
   }
   .topbar-new-booking-btn .topbar-new-booking-icon {
     margin: 0 !important;
-    font-size: 1.15rem !important;
+    font-size: 1.2rem !important;
     color: #FFFFFF !important;
   }
   .topbar-new-booking-btn .topbar-new-booking-text {
@@ -1288,18 +1301,40 @@ html, body {
     display: none !important;
   }
 
-  /* Compact 32px Notification Bell */
+  /* Compact 36px Notification Bell with Absolute Floating Pill Badge */
   #topbarNotifBtn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
     padding: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     background: #F8FAFC !important;
     border: 1px solid #E2E8F0 !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+  #topbarNotifBtn .notif-bell-badge {
+    position: absolute !important;
+    top: -4px !important;
+    right: -4px !important;
+    min-width: 17px !important;
+    height: 17px !important;
+    padding: 0 4px !important;
+    border-radius: 999px !important;
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid #FFFFFF !important;
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.5) !important;
+    z-index: 10 !important;
+    box-sizing: border-box !important;
   }
 
   /* User Avatar Pill: Circular only, hide text to eliminate overflow */
@@ -1310,10 +1345,10 @@ html, body {
     cursor: pointer !important;
   }
   .topbar-avatar-pill .user-avatar-mini {
-    width: 30px !important;
-    height: 30px !important;
-    font-size: 11px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 12px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12) !important;
   }
   .topbar-avatar-pill div:not(.user-avatar-mini),
   .topbar-avatar-pill .avatar-caret {
@@ -1325,18 +1360,42 @@ html, body {
     padding: 10px 10px calc(88px + env(safe-area-inset-bottom, 12px)) !important;
   }
 
-  /* Hub Sub-navigation Strip on Mobile - sticks cleanly below safe topbar */
+  /* Hub Sub-navigation Strip on Mobile - Segmented control fitting 100% width cleanly */
   .hub-subnav-strip {
     position: -webkit-sticky !important;
     position: sticky !important;
     top: calc(56px + env(safe-area-inset-top, 0px)) !important;
     z-index: 990 !important;
     margin: 0 0 12px 0 !important;
-    padding: 5px 8px !important;
+    padding: 4px !important;
     background: #FFFFFF !important;
     border: 1px solid var(--crm-border, #E2E8F0) !important;
     border-radius: 12px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    box-sizing: border-box !important;
+  }
+  .hub-subnav-scroll {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .hub-subnav-tab {
+    flex: 1 1 0 !important;
+    justify-content: center !important;
+    padding: 8px 4px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    min-width: 0 !important;
+  }
+  .hub-subnav-tab.active {
+    background: var(--crm-primary, #0284C7) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3) !important;
   }
 
   .dash-hero {
