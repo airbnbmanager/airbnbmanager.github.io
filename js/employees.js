@@ -4131,11 +4131,13 @@ async function renderEmployeePayReport() {
     ] = await Promise.all([
       sb.from('employees').select('emp_id,name,role,per_flat_rate,employee_type,monthly_salary,status,is_active,phone').order('name'),
       sb.from('employee_tasks').select('emp_id,status,assigned_date,task_type').gte('assigned_date', dateFrom).lte('assigned_date', dateTo),
-      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month,created_at'),
-      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason,created_at')
+      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month'),
+      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason')
     ]);
 
     if (empErr) console.error('Error fetching employees:', empErr);
+    if (advErr) console.error('Error fetching advance_tracker:', advErr);
+    if (salErr) console.error('Error fetching salary_tracker:', salErr);
 
     // 1. Filter out fired/disabled/inactive staff unless explicitly requested
     const allEmps = emps || [];
@@ -4153,20 +4155,20 @@ async function renderEmployeePayReport() {
     // 3. Filter salaries within date range
     const salByEmp = {};
     (salaries || []).forEach(s => {
-      const pDate = s.payment_date || (s.created_at || '').slice(0, 10);
+      const pDate = (s.payment_date || '').slice(0, 10);
       const isDateInRange = pDate && (pDate >= dateFrom && pDate <= dateTo);
       const isMonthInRange = s.month && (s.month >= dateFrom.slice(0,7) && s.month <= dateTo.slice(0,7));
       if (isDateInRange || (!pDate && isMonthInRange)) {
-        salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + (s.salary_paid || 0);
+        salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + Number(s.salary_paid || 0);
       }
     });
 
     // 4. Filter advances within date range
     const advByEmp = {};
     (advances || []).forEach(a => {
-      const aDate = a.date_given || (a.created_at || '').slice(0, 10);
+      const aDate = (a.date_given || '').slice(0, 10);
       if (aDate && aDate >= dateFrom && aDate <= dateTo) {
-        advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + (a.advance_amount || 0);
+        advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + Number(a.advance_amount || 0);
       }
     });
 
