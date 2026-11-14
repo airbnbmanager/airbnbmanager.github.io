@@ -4290,10 +4290,14 @@ async function renderEmployeePayReport() {
           <td style="text-align:right;padding:10px 8px;color:#059669;font-weight:700;font-size:13px;">₹${item.paid.toLocaleString('en-IN')}</td>
           <td style="text-align:right;padding:10px 8px;color:#B45309;font-weight:700;font-size:13px;">₹${item.advance.toLocaleString('en-IN')}</td>
           <td style="text-align:right;padding:10px 8px;font-weight:800;color:${balColor};font-size:13px;">${balLabel}</td>
-          <td style="text-align:center;padding:10px 8px;">
-            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 9px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"
+          <td style="text-align:center;padding:10px 8px;white-space:nowrap;">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;padding:4px 9px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"
+              onclick="printEmployeePaySlip('${item.emp_id}')" title="Print or Save PDF Salary Slip">
+              <span>📄</span> PDF Slip
+            </button>
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;margin-left:4px;"
               onclick="shareEmployeePaySlip('${item.emp_id}')" title="Send WhatsApp Salary Slip">
-              <span>📲</span> Slip
+              <span>📲</span>
             </button>
           </td>
         </tr>
@@ -4311,6 +4315,10 @@ async function renderEmployeePayReport() {
             </div>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;font-weight:700;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;"
+              onclick="printEmployeePayReportConsolidated()" title="Print / PDF Consolidated Report">
+              🖨️ Print / PDF Report
+            </button>
             <button class="btn-sm" style="background:#059669;color:#fff;font-weight:700;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;"
               onclick="exportEmployeePayReportCSV()">
               📥 Export CSV (Excel)
@@ -4540,6 +4548,390 @@ window.exportEmployeePayReportCSV = function() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+// ============================================================
+// 📄 PRINT / PDF INDIVIDUAL SALARY PAY SLIP
+// ============================================================
+window.printEmployeePaySlip = function(empId) {
+  const data = window._currentPayReportData;
+  if (!data || !data.items) {
+    if (window.fsn) fsn.error('Error', 'Report data not loaded');
+    return;
+  }
+  const item = data.items.find(i => i.emp_id === empId);
+  if (!item) {
+    if (window.fsn) fsn.error('Error', 'Employee record not found');
+    return;
+  }
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const slipNo = `TUHH/PAY/${(data.dateFrom || '').replace(/-/g, '')}/${String(item.emp_id || '000').slice(-6).toUpperCase()}`;
+  const pdfTitle = `Salary_Slip_${String(item.name || 'Staff').replace(/\s+/g, '_')}_${data.dateFrom}_to_${data.dateTo}`;
+
+  const balColor = item.balance > 0 ? '#B91C1C' : item.balance < 0 ? '#B45309' : '#059669';
+  const balStatusLabel = item.balance > 0 ? 'NET DUE PAYABLE TO STAFF' :
+                         item.balance < 0 ? 'ADVANCE / EXCESS DUE TO COMPANY' :
+                         'ALL ACCOUNTS SETTLED';
+  const balAmountDisplay = item.balance > 0 ? `₹${item.balance.toLocaleString('en-IN')} (बाकी है)` :
+                           item.balance < 0 ? `₹${Math.abs(item.balance).toLocaleString('en-IN')} (ज़्यादा दिया)` :
+                           '₹0 (Clear)';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${pdfTitle}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 24px; color: #0F172A; background: #fff; line-height: 1.45; }
+        .voucher-wrap { max-width: 760px; margin: 0 auto; border: 2px solid #0F172A; border-radius: 12px; padding: 24px; background: #fff; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 18px; }
+        .company-title { font-size: 20px; font-weight: 800; color: #0F172A; letter-spacing: -0.3px; margin: 0; }
+        .company-sub { font-size: 11px; color: #64748B; margin-top: 3px; font-weight: 600; }
+        .doc-badge { background: #0F172A; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 800; text-align: right; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; }
+        .meta-lbl { color: #64748B; font-weight: 600; }
+        .meta-val { color: #0F172A; font-weight: 700; text-align: right; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; }
+        th { background: #F1F5F9; color: #334155; padding: 9px 12px; text-align: left; font-weight: 700; border-top: 1px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+        td { padding: 10px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: middle; }
+        .amt-col { text-align: right; font-weight: 700; }
+
+        .summary-card { background: #F8FAFC; border: 2px solid ${item.balance > 0 ? '#FECACA' : item.balance < 0 ? '#FED7AA' : '#A7F3D0'}; border-radius: 10px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .summary-lbl { font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; }
+        .summary-amt { font-size: 22px; font-weight: 900; color: ${balColor}; margin-top: 2px; }
+
+        .sig-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; text-align: center; }
+        .sig-line { border-top: 1.5px solid #0F172A; padding-top: 6px; font-size: 11.5px; font-weight: 700; color: #334155; }
+        .sig-sub { font-size: 10px; color: #64748B; margin-top: 2px; }
+
+        .footer-note { margin-top: 24px; text-align: center; font-size: 10.5px; color: #94A3B8; border-top: 1px dashed #E2E8F0; padding-top: 10px; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 10px 14px; background: #0F172A; color: #fff; border-radius: 8px; }
+        .toolbar button { border: none; cursor: pointer; padding: 7px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+
+        @media print {
+          .toolbar { display: none !important; }
+          body { padding: 0 !important; background: #fff !important; }
+          .voucher-wrap { border: 1.5px solid #000 !important; max-width: 100% !important; margin: 0 !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="toolbar no-print">
+        <span style="font-weight:700;">📄 Employee Salary Pay Slip — ${escapeHtml(item.name)}</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.print()" style="background:#10B981;color:#fff;">🖨️ Print / Save as PDF</button>
+          <button onclick="window.close()" style="background:#EF4444;color:#fff;">✕ Close</button>
+        </div>
+      </div>
+
+      <div class="voucher-wrap">
+        <div class="header">
+          <div>
+            <h1 class="company-title">THE UNIQUE HAVEN HOMES PVT. LTD.</h1>
+            <div class="company-sub">Luxury Serviced Stays &bull; Hospitality &bull; Property Operations</div>
+            <div class="company-sub">Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow, UP - 226010</div>
+          </div>
+          <div>
+            <div class="doc-badge">OFFICIAL SALARY SLIP</div>
+            <div style="font-size:11px;color:#64748B;font-weight:700;margin-top:6px;text-align:right;">Ref: ${slipNo}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-row"><span class="meta-lbl">Employee Name:</span> <span class="meta-val">${escapeHtml(item.name)}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Role / Designation:</span> <span class="meta-val">${escapeHtml(item.role || 'Staff')}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Contact Phone:</span> <span class="meta-val">${item.phone || '-'}</span></div>
+          </div>
+          <div>
+            <div class="meta-row"><span class="meta-lbl">Pay Period:</span> <span class="meta-val">${data.dateFrom} to ${data.dateTo}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Salary Structure:</span> <span class="meta-val">${item.isPerFlat ? '🧹 Per-Flat Piece Rate' : '💼 Fixed Monthly Salary'}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Generated On:</span> <span class="meta-val">${todayStr}</span></div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description / Particulars</th>
+              <th style="text-align:center;">Work / Basis</th>
+              <th style="text-align:center;">Rate</th>
+              <th class="amt-col">Amount Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>${item.isPerFlat ? 'Apartment Housekeeping & Deep Cleaning' : 'Operational Property & Staff Duties'}</strong>
+                <div style="font-size:11px;color:#64748B;margin-top:2px;">
+                  ${item.isPerFlat ? `Verified housekeeping tasks completed in period` : `Staff salary for period (${item.workDetails})`}
+                </div>
+              </td>
+              <td style="text-align:center;font-weight:700;">
+                ${item.isPerFlat ? `${item.doneFlats} flats` : item.workDetails}
+              </td>
+              <td style="text-align:center;font-weight:700;color:#64748B;">
+                ${item.rateDisplay}
+              </td>
+              <td class="amt-col" style="color:#1D4ED8;font-size:14px;">
+                ₹${item.earned.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Disbursal &amp; Advance Ledger Summary</th>
+              <th class="amt-col">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gross Salary Earned</strong></td>
+              <td class="amt-col" style="color:#1D4ED8;">+ ₹${item.earned.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td>Direct Salary Disbursed / Paid</td>
+              <td class="amt-col" style="color:#059669;">- ₹${item.paid.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td>Salary Advance / Imprest Given</td>
+              <td class="amt-col" style="color:#B45309;">- ₹${item.advance.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr style="background:#F8FAFC;font-weight:800;">
+              <td><strong>Total Disbursed to Staff</strong></td>
+              <td class="amt-col">₹${item.totalRcvd.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary-card">
+          <div>
+            <div class="summary-lbl">${balStatusLabel}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:3px;">
+              ${item.balance > 0 ? 'Company is due to pay this balance to the employee' : item.balance < 0 ? 'Employee has received excess / advance recoverable' : 'All accounts for this period are settled'}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="summary-lbl">Net Balance</div>
+            <div class="summary-amt">${balAmountDisplay}</div>
+          </div>
+        </div>
+
+        <div class="sig-row">
+          <div>
+            <div class="sig-line">Prepared By</div>
+            <div class="sig-sub">HR &amp; Operations Dept.</div>
+          </div>
+          <div>
+            <div class="sig-line">Verified &amp; Approved By</div>
+            <div class="sig-sub">Praveen Singh (Manager)</div>
+          </div>
+          <div>
+            <div class="sig-line">Employee Signature</div>
+            <div class="sig-sub">${escapeHtml(item.name)}</div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          This is a computer-generated employee salary pay voucher issued by The Unique Haven Homes Private Limited. Valid without physical seal when verified in CRM.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, pdfTitle);
+  } else {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { w.print(); }, 400);
+    }
+  }
+};
+
+// ============================================================
+// 🖨️ PRINT CONSOLIDATED EMPLOYEE PAY REPORT (ALL STAFF)
+// ============================================================
+window.printEmployeePayReportConsolidated = function() {
+  const data = window._currentPayReportData;
+  if (!data || !data.items || !data.items.length) {
+    if (window.fsn) fsn.error('Error', 'Report data not loaded');
+    return;
+  }
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const pdfTitle = `TUHH_Employee_Pay_Report_${data.dateFrom}_to_${data.dateTo}`;
+
+  let totalFlats = 0;
+  let totalEarned = 0;
+  let totalPaid = 0;
+  let totalAdv = 0;
+
+  data.items.forEach(i => {
+    totalFlats += (i.doneFlats || 0);
+    totalEarned += (i.earned || 0);
+    totalPaid += (i.paid || 0);
+    totalAdv += (i.advance || 0);
+  });
+
+  const totalBal = totalEarned - totalPaid - totalAdv;
+  const balColor = totalBal > 0 ? '#B91C1C' : totalBal < 0 ? '#B45309' : '#059669';
+
+  const rowsHtml = data.items.map((i, idx) => {
+    const bColor = i.balance > 0 ? '#B91C1C' : i.balance < 0 ? '#B45309' : '#059669';
+    const bLabel = i.balance > 0 ? `₹${i.balance.toLocaleString('en-IN')} बाकी` :
+                   i.balance < 0 ? `₹${Math.abs(i.balance).toLocaleString('en-IN')} ज़्यादा` : 'Clear';
+
+    return `
+      <tr style="border-bottom:1px solid #E2E8F0;">
+        <td style="padding:8px 6px;text-align:center;">${idx + 1}</td>
+        <td style="padding:8px 6px;">
+          <strong>${escapeHtml(i.name)}</strong>
+          <div style="font-size:10px;color:#64748B;">${escapeHtml(i.role || 'Staff')} &bull; ${i.isPerFlat ? '🧹 Per-Flat' : '💼 Fixed'}</div>
+        </td>
+        <td style="padding:8px 6px;text-align:center;">${i.isPerFlat ? `${i.doneFlats} flats` : i.workDetails}</td>
+        <td style="padding:8px 6px;text-align:center;color:#64748B;">${i.rateDisplay}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:700;color:#1D4ED8;">₹${i.earned.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;color:#059669;">₹${i.paid.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;color:#B45309;">₹${i.advance.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:800;color:${bColor};">${bLabel}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${pdfTitle}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 20px; color: #0F172A; background: #fff; line-height: 1.4; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 14px; margin-bottom: 16px; }
+        .company-title { font-size: 20px; font-weight: 800; color: #0F172A; margin: 0; }
+        .company-sub { font-size: 11px; color: #64748B; margin-top: 2px; }
+        .doc-badge { background: #0F172A; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+
+        .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+        .kpi-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; text-align: center; }
+        .kpi-lbl { font-size: 9.5px; font-weight: 700; color: #64748B; text-transform: uppercase; }
+        .kpi-val { font-size: 16px; font-weight: 800; margin-top: 3px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 20px; }
+        th { background: #F1F5F9; color: #334155; padding: 8px 6px; text-align: left; font-weight: 700; border-top: 1px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+        td { vertical-align: middle; }
+
+        .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; text-align: center; }
+        .sig-line { border-top: 1.5px solid #0F172A; padding-top: 6px; font-size: 11.5px; font-weight: 700; color: #334155; }
+        .sig-sub { font-size: 10px; color: #64748B; margin-top: 2px; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 10px 14px; background: #0F172A; color: #fff; border-radius: 8px; }
+        .toolbar button { border: none; cursor: pointer; padding: 7px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+
+        @media print {
+          .toolbar { display: none !important; }
+          body { padding: 0 !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="toolbar no-print">
+        <span style="font-weight:700;">🖨️ Consolidated Employee Pay Report (${data.dateFrom} to ${data.dateTo})</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="window.print()" style="background:#10B981;color:#fff;">🖨️ Print / Save as PDF</button>
+          <button onclick="window.close()" style="background:#EF4444;color:#fff;">✕ Close</button>
+        </div>
+      </div>
+
+      <div class="header">
+        <div>
+          <h1 class="company-title">THE UNIQUE HAVEN HOMES PVT. LTD.</h1>
+          <div class="company-sub">Consolidated Staff Pay, Attendance &amp; Advance Settlement Statement</div>
+          <div class="company-sub">Report Period: <strong>${data.dateFrom}</strong> to <strong>${data.dateTo}</strong> &bull; Printed: ${todayStr}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="doc-badge">PAY STATEMENT</div>
+          <div style="font-size:11px;color:#64748B;margin-top:4px;">${data.items.length} Active Staff Members</div>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-lbl">Total Flats</div><div class="kpi-val" style="color:#7E22CE;">${totalFlats}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Gross Earned</div><div class="kpi-val" style="color:#1D4ED8;">₹${totalEarned.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Salary Paid</div><div class="kpi-val" style="color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Advance Given</div><div class="kpi-val" style="color:#B45309;">₹${totalAdv.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Net Balance</div><div class="kpi-val" style="color:${balColor};">${totalBal > 0 ? `₹${totalBal.toLocaleString('en-IN')} बाकी` : totalBal < 0 ? `₹${Math.abs(totalBal).toLocaleString('en-IN')} ज़्यादा` : 'Clear'}</div></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30px;text-align:center;">#</th>
+            <th>Employee &amp; Role</th>
+            <th style="text-align:center;">Work / Basis</th>
+            <th style="text-align:center;">Rate</th>
+            <th style="text-align:right;">Earned</th>
+            <th style="text-align:right;">Salary Paid</th>
+            <th style="text-align:right;">Advance</th>
+            <th style="text-align:right;">Net Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+        <tfoot>
+          <tr style="background:#F8FAFC;border-top:2px solid #0F172A;font-weight:800;font-size:12px;">
+            <td colspan="2" style="padding:10px 6px;">TOTAL (${data.items.length} Staff)</td>
+            <td style="text-align:center;padding:10px 6px;color:#7E22CE;">${totalFlats} flats</td>
+            <td></td>
+            <td style="text-align:right;padding:10px 6px;color:#1D4ED8;">₹${totalEarned.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:#B45309;">₹${totalAdv.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:${balColor};">
+              ${totalBal > 0 ? `₹${totalBal.toLocaleString('en-IN')} बाकी` : totalBal < 0 ? `₹${Math.abs(totalBal).toLocaleString('en-IN')} ज़्यादा` : 'Clear'}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="sig-row">
+        <div>
+          <div class="sig-line">Prepared &amp; Audited By</div>
+          <div class="sig-sub">HR &amp; Operations Team</div>
+        </div>
+        <div>
+          <div class="sig-line">Authorized Signatory / Manager</div>
+          <div class="sig-sub">Praveen Singh (The Unique Haven Homes Pvt. Ltd.)</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, pdfTitle);
+  } else {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { w.print(); }, 400);
+    }
+  }
 };
 
 
