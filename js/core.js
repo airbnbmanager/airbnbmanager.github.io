@@ -1488,12 +1488,12 @@ function renderShell(content, activePage = 'dashboard') {
       id: 'employees',
       label: '👥 HRMS & Tasks',
       page: 'employees',
-      pages: ['employees', 'attendance', 'att-summary', 'tasks', 'cleaner-report', 'employee-ledger', 'advance', 'sop', 'company-advances', 'my-ledger', 'task-and-housekeeping', 'housekeeping'],
+      pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-pay-report', 'cleaner-report', 'employee-ledger', 'advance', 'sop', 'company-advances', 'my-ledger', 'task-and-housekeeping', 'housekeeping'],
       tabs: [
         { id: 'employees', label: '👥 Staff Roster' },
         { id: 'attendance', label: '📋 Attendance' },
         { id: 'tasks', label: '🧰 Tasks' },
-        { id: 'cleaner-report', label: '🧹 Cleaner Pay Report' },
+        { id: 'employee-pay-report', label: '💰 Employee Pay Report' },
         { id: 'employee-ledger', label: '📒 Ledgers & Advance' }
       ]
     },
@@ -2523,7 +2523,8 @@ function navigate(page) {
     cashbook: () => navigate('claims'),
     'my-ledger': () => (window.renderMyLedger || renderMyLedger)(),
     'employee-ledger': () => (window.renderEmployeeLedger || renderEmployeeLedger)(),
-    'cleaner-report': () => (window.renderCleanerPayReport || renderCleanerPayReport)(),
+    'employee-pay-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
+    'cleaner-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
     analytics: () => (window.renderFullDashboardAnalytics || window.renderAnalytics || renderAnalytics)(),
     'whatsapp-hub': () => (window.renderWhatsAppHub || renderWhatsAppHub)(),
     settings: () => (window.renderSettings || renderSettings)(),

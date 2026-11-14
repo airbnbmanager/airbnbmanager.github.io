@@ -1501,7 +1501,7 @@ async function renderEmployeeTasks(viewMode) {
   try {
     const [{ data: tasks, error: tasksErr }, { data: emps, error: empsErr }, { data: rooms, error: roomsErr }] = await Promise.all([
       sb.from('employee_tasks').select('*').order('assigned_date', { ascending: false }),
-      sb.from('employees').select('emp_id, name, phone, status'),
+      sb.from('employees').select('emp_id, name, phone, status, is_active, role'),
       sb.from('rooms').select('room_id, nickname, unit_no, property_name')
     ]);
 
@@ -1510,6 +1510,7 @@ async function renderEmployeeTasks(viewMode) {
     }
 
     const allTasks = tasks || [];
+    const activeStaffEmps = (emps || []).filter(isEmployeeActive);
     const empMap = {};
     const empPhoneMap = {};
     (emps || []).forEach(e => {
@@ -2045,8 +2046,8 @@ async function renderEmployeeTasks(viewMode) {
 
             <!-- Staff Dropdown Filter -->
             <select onchange="window._taskStaffFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
-              <option value="ALL" ${staffFilter==='ALL'?'selected':''}>All Staff</option>
-              ${(emps||[]).map(e => `<option value="${e.emp_id}" ${staffFilter===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+              <option value="ALL" ${staffFilter==='ALL'?'selected':''}>All Staff (${activeStaffEmps.length})</option>
+              ${activeStaffEmps.map(e => `<option value="${e.emp_id}" ${staffFilter===e.emp_id?'selected':''}>${escapeHtml(e.name)}</option>`).join('')}
             </select>
 
             <!-- Property Filter -->
@@ -4101,146 +4102,275 @@ async function showEmpDetailModal(empId) {
 console.log("✅ Employees Module v8 loaded");
 
 // ============================================================
-// 🧹 CLEANER PAY REPORT
-// Date-range based: Flats cleaned vs Amount Paid vs Balance
+// 💰 EMPLOYEE PAY REPORT (Per-Flat Cleaners + Fixed Monthly Staff)
+// Compares: Earned (Flats or Salary) vs Paid vs Advance vs Balance
+// Filters: Excludes fired/disabled staff by default, supports Custom Date Range
 // ============================================================
-async function renderCleanerPayReport() {
+async function renderEmployeePayReport() {
   const today = new Date().toISOString().slice(0, 10);
   const firstOfMonth = today.slice(0, 7) + '-01';
 
-  const fromKey = 'tuhh_cpr_from';
-  const toKey   = 'tuhh_cpr_to';
+  const fromKey = 'tuhh_epr_from';
+  const toKey   = 'tuhh_epr_to';
+  const typeKey = 'tuhh_epr_type';
+  const inactKey = 'tuhh_epr_show_inact';
+
   let dateFrom  = sessionStorage.getItem(fromKey) || firstOfMonth;
   let dateTo    = sessionStorage.getItem(toKey)   || today;
+  let typeFilter = sessionStorage.getItem(typeKey) || 'ALL';
+  let showInactive = sessionStorage.getItem(inactKey) === 'true';
 
-  renderShell('<div class="loading">Loading Cleaner Pay Report...</div>', 'cleaner-report');
+  renderShell('<div class="loading">Loading Employee Pay Report...</div>', 'employee-pay-report');
 
   try {
     const [
-      { data: emps },
-      { data: tasks },
-      { data: salaries },
-      { data: advances }
+      { data: emps, error: empErr },
+      { data: tasks, error: taskErr },
+      { data: salaries, error: salErr },
+      { data: advances, error: advErr }
     ] = await Promise.all([
-      sb.from('employees').select('emp_id,name,role,per_flat_rate,employee_type,status,is_active').order('name'),
+      sb.from('employees').select('emp_id,name,role,per_flat_rate,employee_type,monthly_salary,status,is_active,phone').order('name'),
       sb.from('employee_tasks').select('emp_id,status,assigned_date,task_type').gte('assigned_date', dateFrom).lte('assigned_date', dateTo),
-      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month').gte('payment_date', dateFrom).lte('payment_date', dateTo),
-      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason').gte('date_given', dateFrom).lte('date_given', dateTo)
+      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month,created_at'),
+      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason,created_at')
     ]);
 
-    // Only per_flat employees
-    const cleaners = (emps || []).filter(e => {
-      const savedType = localStorage.getItem('tuhh_emp_type_' + e.emp_id);
-      const isPerFlat = (savedType === 'per_flat') || (e.employee_type === 'per_flat') || isEmpCleanerPieceRate(e);
-      return isPerFlat;
-    });
+    if (empErr) console.error('Error fetching employees:', empErr);
 
-    // Build maps
+    // 1. Filter out fired/disabled/inactive staff unless explicitly requested
+    const allEmps = emps || [];
+    const activeStaff = allEmps.filter(isEmployeeActive);
+    const inactiveStaff = allEmps.filter(e => !isEmployeeActive(e));
+    const targetEmps = showInactive ? allEmps : activeStaff;
+
+    // 2. Build tasks map for date range
     const tasksByEmp = {};
     (tasks || []).forEach(t => {
       if (!tasksByEmp[t.emp_id]) tasksByEmp[t.emp_id] = [];
       tasksByEmp[t.emp_id].push(t);
     });
 
+    // 3. Filter salaries within date range
     const salByEmp = {};
     (salaries || []).forEach(s => {
-      salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + (s.salary_paid || 0);
+      const pDate = s.payment_date || (s.created_at || '').slice(0, 10);
+      const isDateInRange = pDate && (pDate >= dateFrom && pDate <= dateTo);
+      const isMonthInRange = s.month && (s.month >= dateFrom.slice(0,7) && s.month <= dateTo.slice(0,7));
+      if (isDateInRange || (!pDate && isMonthInRange)) {
+        salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + (s.salary_paid || 0);
+      }
     });
 
+    // 4. Filter advances within date range
     const advByEmp = {};
     (advances || []).forEach(a => {
-      advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + (a.advance_amount || 0);
+      const aDate = a.date_given || (a.created_at || '').slice(0, 10);
+      if (aDate && aDate >= dateFrom && aDate <= dateTo) {
+        advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + (a.advance_amount || 0);
+      }
     });
 
-    // Summary totals
-    let grandFlats = 0, grandEarned = 0, grandPaid = 0, grandAdv = 0;
+    // Calculate days in period for pro-rata fixed salary
+    const dFrom = new Date(dateFrom);
+    const dTo = new Date(dateTo);
+    const diffDays = Math.max(1, Math.round((dTo - dFrom) / (1000 * 60 * 60 * 24)) + 1);
 
-    const rows = cleaners.map(e => {
-      const empTasks   = tasksByEmp[e.emp_id] || [];
-      const doneFlats  = empTasks.filter(t => t.status === 'Completed').length;
-      const pendFlats  = empTasks.filter(t => t.status === 'Pending').length;
-      const rate       = Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133;
-      const earned     = doneFlats * rate;
-      const paid       = salByEmp[e.emp_id] || 0;
-      const advance    = advByEmp[e.emp_id] || 0;
-      const totalRcvd  = paid + advance;
-      const balance    = earned - totalRcvd;
+    // Grand totals
+    let grandFlats = 0;
+    let grandEarned = 0;
+    let grandPaid = 0;
+    let grandAdv = 0;
+    let countedEmployees = 0;
 
-      grandFlats  += doneFlats;
-      grandEarned += earned;
-      grandPaid   += paid;
-      grandAdv    += advance;
+    // Prepare processed list
+    const processed = [];
+
+    targetEmps.forEach(e => {
+      const savedType = localStorage.getItem('tuhh_emp_type_' + e.emp_id);
+      const isPerFlat = (savedType === 'per_flat') || (e.employee_type === 'per_flat') || isEmpCleanerPieceRate(e);
+
+      // Apply type filter
+      if (typeFilter === 'per_flat' && !isPerFlat) return;
+      if (typeFilter === 'monthly' && isPerFlat) return;
 
       const isActive = isEmployeeActive(e);
-      const balColor = balance > 0 ? '#B91C1C' : balance < 0 ? '#B45309' : '#059669';
-      const balLabel = balance > 0 ? `₹${balance.toLocaleString('en-IN')} बाकी ⬆️` :
-                       balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} ज़्यादा दिया ⬇️` :
-                                     '✅ Clear';
+      const empTasks = tasksByEmp[e.emp_id] || [];
+      const doneFlats = empTasks.filter(t => t.status === 'Completed').length;
+      const pendFlats = empTasks.filter(t => t.status === 'Pending').length;
+
+      let earned = 0;
+      let rateDisplay = '';
+      let workDetails = '';
+
+      if (isPerFlat) {
+        const rate = Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133;
+        earned = doneFlats * rate;
+        rateDisplay = `₹${rate}/flat`;
+        workDetails = `${doneFlats} flats cleaned`;
+        grandFlats += doneFlats;
+      } else {
+        const mSal = Number(e.monthly_salary) || 0;
+        rateDisplay = `₹${mSal.toLocaleString('en-IN')}/mo`;
+        if (diffDays >= 27 && diffDays <= 31) {
+          earned = mSal;
+          workDetails = '1 Full Month';
+        } else {
+          earned = Math.round((mSal / 30) * diffDays);
+          workDetails = `${diffDays} Days (@ ₹${Math.round(mSal / 30)}/day)`;
+        }
+      }
+
+      const paid = salByEmp[e.emp_id] || 0;
+      const advance = advByEmp[e.emp_id] || 0;
+      const totalRcvd = paid + advance;
+      const balance = earned - totalRcvd;
+
+      grandEarned += earned;
+      grandPaid += paid;
+      grandAdv += advance;
+      countedEmployees++;
+
+      processed.push({
+        ...e,
+        isPerFlat,
+        isActive,
+        doneFlats,
+        pendFlats,
+        rateDisplay,
+        workDetails,
+        earned,
+        paid,
+        advance,
+        totalRcvd,
+        balance
+      });
+    });
+
+    const grandBalance = grandEarned - grandPaid - grandAdv;
+    const grandBalColor = grandBalance > 0 ? '#B91C1C' : grandBalance < 0 ? '#B45309' : '#059669';
+
+    // Store in window for CSV export
+    window._currentPayReportData = {
+      dateFrom,
+      dateTo,
+      items: processed
+    };
+
+    const rows = processed.map(item => {
+      const balColor = item.balance > 0 ? '#B91C1C' : item.balance < 0 ? '#B45309' : '#059669';
+      const balLabel = item.balance > 0 ? `₹${item.balance.toLocaleString('en-IN')} बाकी ⬆️` :
+                       item.balance < 0 ? `₹${Math.abs(item.balance).toLocaleString('en-IN')} ज़्यादा दिया ⬇️` :
+                                          '✅ Clear';
+
+      const typeBadge = item.isPerFlat ?
+        `<span style="font-size:10px;font-weight:700;color:#7E22CE;background:#FAF5FF;border:1px solid #E9D5FF;padding:2px 6px;border-radius:12px;">🧹 Per-Flat</span>` :
+        `<span style="font-size:10px;font-weight:700;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 6px;border-radius:12px;">💼 Fixed Monthly</span>`;
 
       return `
-        <tr style="border-bottom:1px solid var(--border);">
+        <tr style="border-bottom:1px solid var(--border);background:${item.isActive ? 'transparent' : '#FFF1F2'};">
           <td style="padding:10px 8px;">
-            <div style="font-weight:700;font-size:13.5px;">${escapeHtml(e.name)}</div>
-            <div style="font-size:11px;color:var(--muted);">${getEmpRoleBadge(e.role)}</div>
-            ${!isActive ? '<span style="font-size:10px;color:#DC2626;font-weight:700;">INACTIVE</span>' : ''}
+            <div style="font-weight:700;font-size:13.5px;color:var(--dark);">${escapeHtml(item.name)}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap;">
+              ${getEmpRoleBadge(item.role)}
+              ${typeBadge}
+              ${!item.isActive ? '<span style="font-size:9.5px;color:#DC2626;background:#FEE2E2;padding:1px 5px;border-radius:4px;font-weight:800;">DISABLED / FIRED</span>' : ''}
+            </div>
           </td>
           <td style="text-align:center;padding:10px 8px;">
-            <span style="font-size:18px;font-weight:800;color:#4F46E5;">${doneFlats}</span>
-            ${pendFlats > 0 ? `<div style="font-size:10px;color:#B45309;font-weight:600;">${pendFlats} pending</div>` : ''}
+            ${item.isPerFlat ? `
+              <span style="font-size:18px;font-weight:800;color:#4F46E5;">${item.doneFlats}</span>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;">flats</div>
+              ${item.pendFlats > 0 ? `<div style="font-size:10px;color:#B45309;font-weight:600;">${item.pendFlats} pend</div>` : ''}
+            ` : `
+              <span style="font-size:13px;font-weight:700;color:#334155;">${item.workDetails}</span>
+            `}
           </td>
-          <td style="text-align:center;padding:10px 8px;color:#64748B;font-weight:600;">₹${rate}/flat</td>
-          <td style="text-align:right;padding:10px 8px;font-weight:800;color:#1D4ED8;">₹${earned.toLocaleString('en-IN')}</td>
-          <td style="text-align:right;padding:10px 8px;color:#059669;font-weight:700;">₹${paid.toLocaleString('en-IN')}</td>
-          <td style="text-align:right;padding:10px 8px;color:#B45309;font-weight:700;">₹${advance.toLocaleString('en-IN')}</td>
-          <td style="text-align:right;padding:10px 8px;font-weight:800;color:${balColor};">${balLabel}</td>
+          <td style="text-align:center;padding:10px 8px;color:#64748B;font-weight:700;font-size:12.5px;">${item.rateDisplay}</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:#1D4ED8;font-size:14px;">₹${item.earned.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#059669;font-weight:700;font-size:13px;">₹${item.paid.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#B45309;font-weight:700;font-size:13px;">₹${item.advance.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:${balColor};font-size:13px;">${balLabel}</td>
           <td style="text-align:center;padding:10px 8px;">
-            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:700;"
-              onclick="shareCleanerPaySlip('${e.emp_id}','${escapeHtml(e.name)}',${doneFlats},${rate},${earned},${paid},${advance})">
-              📲 Slip
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 9px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"
+              onclick="shareEmployeePaySlip('${item.emp_id}')" title="Send WhatsApp Salary Slip">
+              <span>📲</span> Slip
             </button>
           </td>
         </tr>
       `;
     }).join('');
 
-    const grandBalance = grandEarned - grandPaid - grandAdv;
-    const grandBalColor = grandBalance > 0 ? '#B91C1C' : grandBalance < 0 ? '#B45309' : '#059669';
-
     renderShell(`
+      <!-- Header -->
       <div class="card" style="padding:14px;border-radius:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
           <div>
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">🧹 Cleaner Pay Report</h1>
-            <div class="sub" style="margin-top:2px;">Per-flat staff: काम vs पेमेंट comparison • <strong>${dateFrom} to ${dateTo}</strong></div>
+            <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">💰 Employee Pay Report</h1>
+            <div class="sub" style="margin-top:2px;">
+              Per-Flat Cleaners + Fixed Monthly Staff Salary &amp; Advance Comparison &bull; <strong>${dateFrom} to ${dateTo}</strong>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-sm" style="background:#059669;color:#fff;font-weight:700;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;"
+              onclick="exportEmployeePayReportCSV()">
+              📥 Export CSV (Excel)
+            </button>
+            <button class="btn-sm outline" onclick="renderEmployeePayReport()">🔄 Refresh</button>
           </div>
         </div>
 
-        <!-- Date Range Selector -->
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px;background:#F8FAFC;border-radius:10px;border:1px solid var(--border);">
-          <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 DATE RANGE</span>
-          <input type="date" id="cprFrom" value="${dateFrom}" max="${today}"
-            style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-weight:600;"
-            onchange="sessionStorage.setItem('tuhh_cpr_from',this.value);renderCleanerPayReport();" />
-          <span style="color:var(--muted);font-weight:700;">to</span>
-          <input type="date" id="cprTo" value="${dateTo}" max="${today}"
-            style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-weight:600;"
-            onchange="sessionStorage.setItem('tuhh_cpr_to',this.value);renderCleanerPayReport();" />
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="btn-sm" style="font-size:11px;background:#0284C7;color:#fff;padding:4px 10px;"
-              onclick="sessionStorage.setItem('tuhh_cpr_from','${today.slice(0,7)}-01');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">This Month</button>
-            <button class="btn-sm" style="font-size:11px;background:#7C3AED;color:#fff;padding:4px 10px;"
-              onclick="sessionStorage.setItem('tuhh_cpr_from','${new Date(new Date().setDate(new Date().getDate()-29)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">Last 30 Days</button>
-            <button class="btn-sm" style="font-size:11px;background:#059669;color:#fff;padding:4px 10px;"
-              onclick="sessionStorage.setItem('tuhh_cpr_from','${new Date(new Date().setDate(new Date().getDate()-89)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">Last 90 Days</button>
+        <!-- Filter Controls -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid var(--border);">
+          <!-- Date Range Controls -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">📅 Date Range:</span>
+            <input type="date" id="eprFrom" value="${dateFrom}" max="${today}"
+              style="padding:5px 9px;border-radius:7px;border:1px solid var(--border);font-size:12.5px;font-weight:600;"
+              onchange="sessionStorage.setItem('tuhh_epr_from',this.value);renderEmployeePayReport();" />
+            <span style="color:var(--muted);font-weight:700;font-size:12px;">to</span>
+            <input type="date" id="eprTo" value="${dateTo}" max="${today}"
+              style="padding:5px 9px;border-radius:7px;border:1px solid var(--border);font-size:12.5px;font-weight:600;"
+              onchange="sessionStorage.setItem('tuhh_epr_to',this.value);renderEmployeePayReport();" />
+
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="btn-sm" style="font-size:11px;background:#0284C7;color:#fff;padding:4px 9px;border-radius:6px;border:none;"
+                onclick="sessionStorage.setItem('tuhh_epr_from','${today.slice(0,7)}-01');sessionStorage.setItem('tuhh_epr_to','${today}');renderEmployeePayReport();">This Month</button>
+              <button class="btn-sm" style="font-size:11px;background:#7C3AED;color:#fff;padding:4px 9px;border-radius:6px;border:none;"
+                onclick="sessionStorage.setItem('tuhh_epr_from','${new Date(new Date().setDate(new Date().getDate()-29)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_epr_to','${today}');renderEmployeePayReport();">Last 30 Days</button>
+              <button class="btn-sm" style="font-size:11px;background:#059669;color:#fff;padding:4px 9px;border-radius:6px;border:none;"
+                onclick="sessionStorage.setItem('tuhh_epr_from','${new Date(new Date().setDate(new Date().getDate()-89)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_epr_to','${today}');renderEmployeePayReport();">Last 90 Days</button>
+            </div>
+          </div>
+
+          <!-- Type & Status Filters -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <!-- Pay Type Filter -->
+            <select onchange="sessionStorage.setItem('tuhh_epr_type',this.value);renderEmployeePayReport();"
+              style="padding:5px 9px;border-radius:7px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+              <option value="ALL" ${typeFilter==='ALL'?'selected':''}>All Staff Types</option>
+              <option value="per_flat" ${typeFilter==='per_flat'?'selected':''}>🧹 Per-Flat Staff Only</option>
+              <option value="monthly" ${typeFilter==='monthly'?'selected':''}>💼 Fixed Monthly Staff Only</option>
+            </select>
+
+            <!-- Active / Inactive Checkbox -->
+            <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;user-select:none;">
+              <input type="checkbox" id="eprShowInactive" ${showInactive ? 'checked' : ''}
+                onchange="sessionStorage.setItem('tuhh_epr_show_inact', this.checked);renderEmployeePayReport();" />
+              <span>Include Fired / Disabled (${inactiveStaff.length})</span>
+            </label>
           </div>
         </div>
       </div>
 
-      <!-- KPI Summary Cards -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px;">
+      <!-- KPI Ribbon -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px;">
         <div class="card" style="padding:10px;text-align:center;border-left:4px solid #4F46E5;">
-          <div style="font-size:22px;font-weight:800;color:#4F46E5;">${grandFlats}</div>
-          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Total Flats Cleaned</div>
+          <div style="font-size:22px;font-weight:800;color:#4F46E5;">${countedEmployees}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Active Staff</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #7E22CE;">
+          <div style="font-size:22px;font-weight:800;color:#7E22CE;">${grandFlats}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Flats Cleaned</div>
         </div>
         <div class="card" style="padding:10px;text-align:center;border-left:4px solid #1D4ED8;">
           <div style="font-size:18px;font-weight:800;color:#1D4ED8;">₹${grandEarned.toLocaleString('en-IN')}</div>
@@ -4260,34 +4390,34 @@ async function renderCleanerPayReport() {
         </div>
       </div>
 
-      <!-- Main Table -->
+      <!-- Main Pay Table -->
       <div class="card" style="padding:0;overflow:hidden;border-radius:14px;">
         <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;min-width:600px;">
+          <table style="width:100%;border-collapse:collapse;min-width:680px;">
             <thead>
               <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
                 <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Flats Done</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Rate</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Earned</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Paid</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Work / Flats</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Salary Rate</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Total Earned</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Salary Paid</th>
                 <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">🔸 Advance</th>
                 <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">⚖️ Balance</th>
                 <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">📲</th>
               </tr>
             </thead>
             <tbody>
-              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No per-flat cleaning staff found. Add employees with Type: Per-Flat.</td></tr>'}
+              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No active staff found matching current filters.</td></tr>'}
             </tbody>
             <tfoot>
               <tr style="background:#F8FAFC;border-top:2px solid var(--border);font-weight:800;">
-                <td style="padding:10px 8px;font-size:13px;">📊 TOTAL</td>
-                <td style="text-align:center;padding:10px 8px;color:#4F46E5;font-size:16px;">${grandFlats}</td>
+                <td style="padding:10px 8px;font-size:13px;">📊 GRAND TOTAL (${countedEmployees} Staff)</td>
+                <td style="text-align:center;padding:10px 8px;color:#7E22CE;font-size:16px;">${grandFlats > 0 ? `${grandFlats} flats` : '-'}</td>
                 <td></td>
-                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;">₹${grandEarned.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:#059669;">₹${grandPaid.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:#B45309;">₹${grandAdv.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};">
+                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;font-size:14px;">₹${grandEarned.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#059669;font-size:13px;">₹${grandPaid.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#B45309;font-size:13px;">₹${grandAdv.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};font-size:14px;">
                   ${grandBalance > 0 ? `₹${grandBalance.toLocaleString('en-IN')} बाकी` : grandBalance < 0 ? `₹${Math.abs(grandBalance).toLocaleString('en-IN')} ज़्यादा` : '✅ Clear'}
                 </td>
                 <td></td>
@@ -4297,42 +4427,119 @@ async function renderCleanerPayReport() {
         </div>
       </div>
 
+      <!-- Explanatory note -->
       <div style="margin-top:12px;padding:10px;background:#FFFBEB;border-radius:10px;border:1px solid #FDE68A;font-size:12px;color:#92400E;">
-        <strong>📌 Note:</strong>
+        <strong>📌 Calculation Rules:</strong>
         <ul style="margin:4px 0 0 16px;padding:0;">
-          <li><strong>Earned</strong> = Completed Flats × Rate per Flat</li>
-          <li><strong>Paid</strong> = Salary payments recorded in this date range</li>
-          <li><strong>Advance</strong> = Advance amounts given in this date range</li>
-          <li><strong style="color:#B91C1C;">बाकी ⬆️</strong> = Staff को अभी और देना है &nbsp;|&nbsp; <strong style="color:#B45309;">ज़्यादा दिया ⬇️</strong> = Overpaid, deduct next time</li>
+          <li><strong>🧹 Per-Flat Staff:</strong> Earned = Completed Flats × Rate per flat.</li>
+          <li><strong>💼 Fixed Monthly Staff:</strong> Earned = Monthly salary (pro-rated if custom date range selected).</li>
+          <li><strong>✅ Paid:</strong> Total salary payments recorded in this period.</li>
+          <li><strong>🔸 Advance:</strong> Total advances given in this period.</li>
+          <li><strong style="color:#B91C1C;">बाकी ⬆️:</strong> Amount payable to employee (Company due).</li>
+          <li><strong style="color:#B45309;">ज़्यादा दिया ⬇️:</strong> Employee overpaid or advance balance recoverable.</li>
         </ul>
       </div>
-    `, 'cleaner-report');
+    `, 'employee-pay-report');
 
   } catch(err) {
+    console.error('Error rendering Employee Pay Report:', err);
     renderShell(`<div class="card" style="padding:20px;text-align:center;color:#DC2626;">
       <div style="font-size:18px;">❌ Error loading report</div>
       <div style="font-size:13px;margin-top:8px;">${err.message || err}</div>
-      <button class="btn-sm" style="margin-top:12px;" onclick="renderCleanerPayReport()">🔄 Retry</button>
-    </div>`, 'cleaner-report');
+      <button class="btn-sm" style="margin-top:12px;" onclick="renderEmployeePayReport()">🔄 Retry</button>
+    </div>`, 'employee-pay-report');
   }
 }
-window.renderCleanerPayReport = renderCleanerPayReport;
+window.renderEmployeePayReport = renderEmployeePayReport;
+window.renderCleanerPayReport = renderEmployeePayReport; // Backward compatibility alias
 
-// WhatsApp pay slip for individual cleaner
-window.shareCleanerPaySlip = function(empId, name, flats, rate, earned, paid, advance) {
-  const balance = earned - paid - advance;
-  const today = new Date().toLocaleDateString('en-IN');
-  let msg = `🧹 *Cleaning Pay Slip — TUHH*\n`;
-  msg += `📅 Date: ${today}\n`;
-  msg += `👤 Staff: *${name}*\n\n`;
-  msg += `🏠 Flats Cleaned: *${flats}*\n`;
-  msg += `💰 Rate: ₹${rate}/flat\n`;
-  msg += `📊 Amount Earned: *₹${earned.toLocaleString('en-IN')}*\n\n`;
-  msg += `✅ Salary Paid: ₹${paid.toLocaleString('en-IN')}\n`;
-  msg += `🔸 Advance: ₹${advance.toLocaleString('en-IN')}\n`;
-  msg += `⚖️ Balance: *${balance > 0 ? `₹${balance.toLocaleString('en-IN')} बाकी` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} ज़्यादा दिया` : 'Clear ✅'}*\n\n`;
-  msg += `_The Unique Haven Homes_`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+// ============================================================
+// 📲 SHARE WHATSAPP PAY SLIP
+// ============================================================
+window.shareEmployeePaySlip = function(empId) {
+  const data = window._currentPayReportData;
+  if (!data || !data.items) return;
+  const item = data.items.find(i => i.emp_id === empId);
+  if (!item) return;
+
+  const todayStr = new Date().toLocaleDateString('en-IN');
+  let msg = `📄 *Employee Pay Slip — TUHH*\n`;
+  msg += `📅 Date: ${todayStr}\n`;
+  msg += `🗓️ Period: *${data.dateFrom} to ${data.dateTo}*\n`;
+  msg += `👤 Staff: *${item.name}*\n`;
+  msg += `💼 Role / Type: *${item.role || 'Staff'}* (${item.isPerFlat ? 'Per-Flat Piece Rate' : 'Fixed Monthly'})\n\n`;
+
+  if (item.isPerFlat) {
+    msg += `🏠 Flats Cleaned: *${item.doneFlats}*\n`;
+    msg += `💰 Rate: *${item.rateDisplay}*\n`;
+  } else {
+    msg += `💼 Salary Basis: *${item.rateDisplay}* (${item.workDetails})\n`;
+  }
+
+  msg += `📊 *Total Earned: ₹${item.earned.toLocaleString('en-IN')}*\n\n`;
+  msg += `✅ Salary Paid: ₹${item.paid.toLocaleString('en-IN')}\n`;
+  msg += `🔸 Advance Given: ₹${item.advance.toLocaleString('en-IN')}\n`;
+  msg += `💵 Total Received: ₹${item.totalRcvd.toLocaleString('en-IN')}\n\n`;
+
+  if (item.balance > 0) {
+    msg += `⚖️ *Net Payable: ₹${item.balance.toLocaleString('en-IN')} (बाकी है)*\n\n`;
+  } else if (item.balance < 0) {
+    msg += `⚖️ *Net Balance: ₹${Math.abs(item.balance).toLocaleString('en-IN')} (ज़्यादा दिया / Advance due)*\n\n`;
+  } else {
+    msg += `⚖️ *Net Balance: All Clear (₹0)*\n\n`;
+  }
+
+  msg += `_The Unique Haven Homes Pvt. Ltd._`;
+
+  const phone = (item.phone || '').replace(/\D/g, '');
+  const url = phone.length === 10 ?
+    `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}` :
+    `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+  window.open(url, '_blank');
+};
+
+// ============================================================
+// 📥 EXPORT CSV (Excel & LibreOffice Compatible)
+// ============================================================
+window.exportEmployeePayReportCSV = function() {
+  const data = window._currentPayReportData;
+  if (!data || !data.items || !data.items.length) {
+    if (window.fsn) fsn.info('No Data', 'Export karne ke liye koi data nahi hai.');
+    else alert('No data to export.');
+    return;
+  }
+
+  let csv = `Employee Pay Report (${data.dateFrom} to ${data.dateTo})\n`;
+  csv += `Employee,Role,Type,Status,Work Done,Rate Basis,Earned (Rs),Salary Paid (Rs),Advance Given (Rs),Net Balance (Rs),Balance Status\n`;
+
+  data.items.forEach(i => {
+    const balStatus = i.balance > 0 ? 'Due to Staff (Baki)' : i.balance < 0 ? 'Overpaid / Advance' : 'Settled';
+    const row = [
+      `"${(i.name || '').replace(/"/g, '""')}"`,
+      `"${(i.role || '').replace(/"/g, '""')}"`,
+      i.isPerFlat ? 'Per-Flat' : 'Fixed Monthly',
+      i.isActive ? 'Active' : 'Disabled/Fired',
+      `"${(i.isPerFlat ? `${i.doneFlats} flats` : i.workDetails).replace(/"/g, '""')}"`,
+      `"${(i.rateDisplay || '').replace(/"/g, '""')}"`,
+      i.earned,
+      i.paid,
+      i.advance,
+      i.balance,
+      `"${balStatus}"`
+    ];
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TUHH_Employee_Pay_Report_${data.dateFrom}_to_${data.dateTo}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 
