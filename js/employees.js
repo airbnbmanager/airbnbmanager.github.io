@@ -4098,7 +4098,242 @@ async function showEmpDetailModal(empId) {
   document.body.appendChild(modal);
 }
 
-console.log("✅ Employees Module v7 loaded");
+console.log("✅ Employees Module v8 loaded");
+
+// ============================================================
+// 🧹 CLEANER PAY REPORT
+// Date-range based: Flats cleaned vs Amount Paid vs Balance
+// ============================================================
+async function renderCleanerPayReport() {
+  const today = new Date().toISOString().slice(0, 10);
+  const firstOfMonth = today.slice(0, 7) + '-01';
+
+  const fromKey = 'tuhh_cpr_from';
+  const toKey   = 'tuhh_cpr_to';
+  let dateFrom  = sessionStorage.getItem(fromKey) || firstOfMonth;
+  let dateTo    = sessionStorage.getItem(toKey)   || today;
+
+  renderShell('<div class="loading">Loading Cleaner Pay Report...</div>', 'cleaner-report');
+
+  try {
+    const [
+      { data: emps },
+      { data: tasks },
+      { data: salaries },
+      { data: advances }
+    ] = await Promise.all([
+      sb.from('employees').select('emp_id,name,role,per_flat_rate,employee_type,status,is_active').order('name'),
+      sb.from('employee_tasks').select('emp_id,status,assigned_date,task_type').gte('assigned_date', dateFrom).lte('assigned_date', dateTo),
+      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month').gte('payment_date', dateFrom).lte('payment_date', dateTo),
+      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason').gte('date_given', dateFrom).lte('date_given', dateTo)
+    ]);
+
+    // Only per_flat employees
+    const cleaners = (emps || []).filter(e => {
+      const savedType = localStorage.getItem('tuhh_emp_type_' + e.emp_id);
+      const isPerFlat = (savedType === 'per_flat') || (e.employee_type === 'per_flat') || isEmpCleanerPieceRate(e);
+      return isPerFlat;
+    });
+
+    // Build maps
+    const tasksByEmp = {};
+    (tasks || []).forEach(t => {
+      if (!tasksByEmp[t.emp_id]) tasksByEmp[t.emp_id] = [];
+      tasksByEmp[t.emp_id].push(t);
+    });
+
+    const salByEmp = {};
+    (salaries || []).forEach(s => {
+      salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + (s.salary_paid || 0);
+    });
+
+    const advByEmp = {};
+    (advances || []).forEach(a => {
+      advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + (a.advance_amount || 0);
+    });
+
+    // Summary totals
+    let grandFlats = 0, grandEarned = 0, grandPaid = 0, grandAdv = 0;
+
+    const rows = cleaners.map(e => {
+      const empTasks   = tasksByEmp[e.emp_id] || [];
+      const doneFlats  = empTasks.filter(t => t.status === 'Completed').length;
+      const pendFlats  = empTasks.filter(t => t.status === 'Pending').length;
+      const rate       = Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133;
+      const earned     = doneFlats * rate;
+      const paid       = salByEmp[e.emp_id] || 0;
+      const advance    = advByEmp[e.emp_id] || 0;
+      const totalRcvd  = paid + advance;
+      const balance    = earned - totalRcvd;
+
+      grandFlats  += doneFlats;
+      grandEarned += earned;
+      grandPaid   += paid;
+      grandAdv    += advance;
+
+      const isActive = isEmployeeActive(e);
+      const balColor = balance > 0 ? '#B91C1C' : balance < 0 ? '#B45309' : '#059669';
+      const balLabel = balance > 0 ? `₹${balance.toLocaleString('en-IN')} बाकी ⬆️` :
+                       balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} ज़्यादा दिया ⬇️` :
+                                     '✅ Clear';
+
+      return `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 8px;">
+            <div style="font-weight:700;font-size:13.5px;">${escapeHtml(e.name)}</div>
+            <div style="font-size:11px;color:var(--muted);">${getEmpRoleBadge(e.role)}</div>
+            ${!isActive ? '<span style="font-size:10px;color:#DC2626;font-weight:700;">INACTIVE</span>' : ''}
+          </td>
+          <td style="text-align:center;padding:10px 8px;">
+            <span style="font-size:18px;font-weight:800;color:#4F46E5;">${doneFlats}</span>
+            ${pendFlats > 0 ? `<div style="font-size:10px;color:#B45309;font-weight:600;">${pendFlats} pending</div>` : ''}
+          </td>
+          <td style="text-align:center;padding:10px 8px;color:#64748B;font-weight:600;">₹${rate}/flat</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:#1D4ED8;">₹${earned.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#059669;font-weight:700;">₹${paid.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#B45309;font-weight:700;">₹${advance.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:${balColor};">${balLabel}</td>
+          <td style="text-align:center;padding:10px 8px;">
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 8px;font-size:10.5px;font-weight:700;"
+              onclick="shareCleanerPaySlip('${e.emp_id}','${escapeHtml(e.name)}',${doneFlats},${rate},${earned},${paid},${advance})">
+              📲 Slip
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const grandBalance = grandEarned - grandPaid - grandAdv;
+    const grandBalColor = grandBalance > 0 ? '#B91C1C' : grandBalance < 0 ? '#B45309' : '#059669';
+
+    renderShell(`
+      <div class="card" style="padding:14px;border-radius:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--dark);">🧹 Cleaner Pay Report</h1>
+            <div class="sub" style="margin-top:2px;">Per-flat staff: काम vs पेमेंट comparison • <strong>${dateFrom} to ${dateTo}</strong></div>
+          </div>
+        </div>
+
+        <!-- Date Range Selector -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px;background:#F8FAFC;border-radius:10px;border:1px solid var(--border);">
+          <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 DATE RANGE</span>
+          <input type="date" id="cprFrom" value="${dateFrom}" max="${today}"
+            style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-weight:600;"
+            onchange="sessionStorage.setItem('tuhh_cpr_from',this.value);renderCleanerPayReport();" />
+          <span style="color:var(--muted);font-weight:700;">to</span>
+          <input type="date" id="cprTo" value="${dateTo}" max="${today}"
+            style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-weight:600;"
+            onchange="sessionStorage.setItem('tuhh_cpr_to',this.value);renderCleanerPayReport();" />
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn-sm" style="font-size:11px;background:#0284C7;color:#fff;padding:4px 10px;"
+              onclick="sessionStorage.setItem('tuhh_cpr_from','${today.slice(0,7)}-01');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">This Month</button>
+            <button class="btn-sm" style="font-size:11px;background:#7C3AED;color:#fff;padding:4px 10px;"
+              onclick="sessionStorage.setItem('tuhh_cpr_from','${new Date(new Date().setDate(new Date().getDate()-29)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">Last 30 Days</button>
+            <button class="btn-sm" style="font-size:11px;background:#059669;color:#fff;padding:4px 10px;"
+              onclick="sessionStorage.setItem('tuhh_cpr_from','${new Date(new Date().setDate(new Date().getDate()-89)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_cpr_to','${today}');renderCleanerPayReport();">Last 90 Days</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px;">
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #4F46E5;">
+          <div style="font-size:22px;font-weight:800;color:#4F46E5;">${grandFlats}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Total Flats Cleaned</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #1D4ED8;">
+          <div style="font-size:18px;font-weight:800;color:#1D4ED8;">₹${grandEarned.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Total Earned</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #059669;">
+          <div style="font-size:18px;font-weight:800;color:#059669;">₹${grandPaid.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Salary Paid</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #B45309;">
+          <div style="font-size:18px;font-weight:800;color:#B45309;">₹${grandAdv.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Advance Given</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid ${grandBalColor};">
+          <div style="font-size:18px;font-weight:800;color:${grandBalColor};">₹${Math.abs(grandBalance).toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">${grandBalance > 0 ? 'Total Baki ⬆️' : grandBalance < 0 ? 'ज़्यादा दिया ⬇️' : 'All Clear ✅'}</div>
+        </div>
+      </div>
+
+      <!-- Main Table -->
+      <div class="card" style="padding:0;overflow:hidden;border-radius:14px;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:600px;">
+            <thead>
+              <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
+                <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Flats Done</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Rate</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Earned</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Paid</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">🔸 Advance</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">⚖️ Balance</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">📲</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No per-flat cleaning staff found. Add employees with Type: Per-Flat.</td></tr>'}
+            </tbody>
+            <tfoot>
+              <tr style="background:#F8FAFC;border-top:2px solid var(--border);font-weight:800;">
+                <td style="padding:10px 8px;font-size:13px;">📊 TOTAL</td>
+                <td style="text-align:center;padding:10px 8px;color:#4F46E5;font-size:16px;">${grandFlats}</td>
+                <td></td>
+                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;">₹${grandEarned.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#059669;">₹${grandPaid.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#B45309;">₹${grandAdv.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};">
+                  ${grandBalance > 0 ? `₹${grandBalance.toLocaleString('en-IN')} बाकी` : grandBalance < 0 ? `₹${Math.abs(grandBalance).toLocaleString('en-IN')} ज़्यादा` : '✅ Clear'}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding:10px;background:#FFFBEB;border-radius:10px;border:1px solid #FDE68A;font-size:12px;color:#92400E;">
+        <strong>📌 Note:</strong>
+        <ul style="margin:4px 0 0 16px;padding:0;">
+          <li><strong>Earned</strong> = Completed Flats × Rate per Flat</li>
+          <li><strong>Paid</strong> = Salary payments recorded in this date range</li>
+          <li><strong>Advance</strong> = Advance amounts given in this date range</li>
+          <li><strong style="color:#B91C1C;">बाकी ⬆️</strong> = Staff को अभी और देना है &nbsp;|&nbsp; <strong style="color:#B45309;">ज़्यादा दिया ⬇️</strong> = Overpaid, deduct next time</li>
+        </ul>
+      </div>
+    `, 'cleaner-report');
+
+  } catch(err) {
+    renderShell(`<div class="card" style="padding:20px;text-align:center;color:#DC2626;">
+      <div style="font-size:18px;">❌ Error loading report</div>
+      <div style="font-size:13px;margin-top:8px;">${err.message || err}</div>
+      <button class="btn-sm" style="margin-top:12px;" onclick="renderCleanerPayReport()">🔄 Retry</button>
+    </div>`, 'cleaner-report');
+  }
+}
+window.renderCleanerPayReport = renderCleanerPayReport;
+
+// WhatsApp pay slip for individual cleaner
+window.shareCleanerPaySlip = function(empId, name, flats, rate, earned, paid, advance) {
+  const balance = earned - paid - advance;
+  const today = new Date().toLocaleDateString('en-IN');
+  let msg = `🧹 *Cleaning Pay Slip — TUHH*\n`;
+  msg += `📅 Date: ${today}\n`;
+  msg += `👤 Staff: *${name}*\n\n`;
+  msg += `🏠 Flats Cleaned: *${flats}*\n`;
+  msg += `💰 Rate: ₹${rate}/flat\n`;
+  msg += `📊 Amount Earned: *₹${earned.toLocaleString('en-IN')}*\n\n`;
+  msg += `✅ Salary Paid: ₹${paid.toLocaleString('en-IN')}\n`;
+  msg += `🔸 Advance: ₹${advance.toLocaleString('en-IN')}\n`;
+  msg += `⚖️ Balance: *${balance > 0 ? `₹${balance.toLocaleString('en-IN')} बाकी` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} ज़्यादा दिया` : 'Clear ✅'}*\n\n`;
+  msg += `_The Unique Haven Homes_`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+};
 
 
 window.toggleEmpSalaryTypeInputs = function() {
