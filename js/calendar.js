@@ -680,21 +680,37 @@ async function renderReports() {
         </div>
       </div>
 
+      <!-- 1-Tap Quick Property Carousel on Mobile & Desktop -->
+      <div class="cal-prop-carousel" style="display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 0 2px;margin-top:8px;scrollbar-width:none;-ms-overflow-style:none;">
+        <button type="button" class="cal-prop-chip ${selRoom==='all' ? 'active' : ''}" onclick="window._calRoom='all';renderReports();" style="border:none;border-radius:999px;padding:5px 13px;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer;flex-shrink:0;${selRoom==='all' ? 'background:#0284C7;color:#fff;box-shadow:0 2px 6px rgba(2,132,199,0.35);' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">
+          🏘️ All (${allRooms.length})
+        </button>
+        ${allRooms.map(r => {
+          const isChipActive = (selRoom === r.room_id);
+          const shortUnit = r.unit_no ? r.unit_no : (r.nickname || r.room_id);
+          return `
+            <button type="button" class="cal-prop-chip ${isChipActive ? 'active' : ''}" onclick="window._calRoom='${r.room_id}';renderReports();" style="border:none;border-radius:999px;padding:5px 13px;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer;flex-shrink:0;${isChipActive ? 'background:#0284C7;color:#fff;box-shadow:0 2px 6px rgba(2,132,199,0.35);' : 'background:#F8FAFC;color:#334155;border:1px solid #CBD5E1;'}">
+              ${escapeHtml(shortUnit)}
+            </button>
+          `;
+        }).join('')}
+      </div>
+
       <!-- PLATFORMS / CHANNELS COLOR LEGEND -->
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#475569;">
-        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:11px;">Platforms:</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:#475569;">
+        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:10.5px;">Platforms:</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct</strong></span>
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
         ${bcomCount > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>` : ''}
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
         <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 2px;"></span>
-        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓ Paid</span> Full Settled</span>
-        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">⚠️ Due</span> Outstanding</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓</span> Paid Full</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">!</span> Due</span>
       </div>
     </div>
 
     <!-- KPI STAT CARDS (Clean Single-Row Strip — Unwanted & 0 Items Removed) -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
+    <div class="cal-kpi-strip" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
       <div class="stat-card" style="border-left:4px solid #0F172A;border-radius:12px;padding:12px 14px;">
         <div class="stat-num" style="font-size:20px;font-weight:900;color:#0F172A;">${realMb.length}</div>
         <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Bookings</div>
@@ -810,16 +826,16 @@ async function renderReports() {
         if (!isBlocked) {
           if (isDue) {
             const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : dueAmt;
-            payTagHtml = `<span class="cal-pay-tag due" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})">₹${dueShort}</span>`;
-          } else if (isPaidFull) {
-            payTagHtml = `<span class="cal-pay-tag paid" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})">✓ Paid</span>`;
+            payTagHtml = `<span class="cal-pay-tag due is-micro" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">₹${dueShort}</span><span class="cal-pay-micro">!</span></span>`;
+          } else if (isPaidFull && (isCheckIn || !isMobile)) {
+            payTagHtml = `<span class="cal-pay-tag paid is-micro" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})"><span class="cal-pay-full">✓ Paid</span><span class="cal-pay-micro">✓</span></span>`;
           }
         }
 
         let borderRadius = '0';
-        if (isCheckIn && isCheckOut) borderRadius = '14px';
-        else if (isCheckIn) borderRadius = '14px 0 0 14px';
-        else if (isCheckOut) borderRadius = '0 14px 14px 0';
+        if (isCheckIn && isCheckOut) borderRadius = '6px';
+        else if (isCheckIn) borderRadius = '6px 0 0 6px';
+        else if (isCheckOut) borderRadius = '0 6px 6px 0';
 
         const overlapTitle = overlapCount > 1
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
@@ -827,28 +843,44 @@ async function renderReports() {
 
         const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
 
+        // Check if day is beginning of week (Sunday) to repeat name on row wrap
+        const isRowStart = (new Date(yr, mo, d).getDay() === 0);
+        const shouldShowName = isCheckIn || isSameDay || isRowStart || !isMobile;
+
+        let pillInnerHtml = '';
+        if (isBlocked) {
+          pillInnerHtml = `<span class="cal-name">🔒 Block</span>`;
+        } else if (isSameDay) {
+          pillInnerHtml = `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">⚡ ${escapeHtml(firstName)}</span>`;
+        } else if (shouldShowName) {
+          pillInnerHtml = `<span class="cal-name ${isCheckIn ? 'is-checkin' : ''}" title="${escapeHtml(cleanGuestName)}${hasReview ? ' • ⭐ 5-Star' : ''}">${escapeHtml(firstName)}${hasReview ? ' ⭐' : ''}</span>`;
+        } else {
+          // Continuous multi-day stay ribbon
+          pillInnerHtml = `<span class="cal-stay-connector" title="Stay continues: ${escapeHtml(cleanGuestName)}"><span class="cal-stay-arrow">➔</span><span class="cal-stay-desk-name">${escapeHtml(firstName)}</span></span>`;
+        }
+
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}'${overlapCount <= 1 && bk && bk.booking_id ? `,'${bk.booking_id}'` : ''})" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
-            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:1px 3px 0;box-sizing:border-box;">
-              <div class="cal-date-num">${d}</div>
-              <div style="display:flex;align-items:center;gap:2px;margin-left:auto;">
-                ${overlapCount > 1 ? `<span style="background:#DC2626;color:#fff;border-radius:50%;min-width:14px;height:14px;padding:0 2px;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;" title="${overlapCount} bookings on this date">${overlapCount}</span>` : ''}
-                ${hasReview && overlapCount <= 1 ? `<span style="font-size:9.5px;line-height:1;" title="⭐ 5-Star Review Verified!">⭐</span>` : ''}
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}'${overlapCount <= 1 && bk && bk.booking_id ? `,'${bk.booking_id}'` : ''})" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}">
+            <div class="cal-day-top-bar">
+              <span class="cal-date-num">${d}</span>
+              <div class="cal-day-badges">
+                ${overlapCount > 1 ? `<span style="background:#DC2626;color:#fff;border-radius:50%;min-width:13px;height:13px;padding:0 2px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</span>` : ''}
+                ${hasReview && overlapCount <= 1 ? `<span style="font-size:9px;line-height:1;" title="⭐ 5-Star Review Verified!">⭐</span>` : ''}
                 ${payTagHtml}
               </div>
             </div>
             <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
-              ${isSameDay ? `<span class="cal-avatar" style="background:rgba(255,255,255,0.25);color:#fff;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
-              ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (!isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
-              ${isBlocked ? `<span class="cal-name">🔒 Blocked</span>` : ''}
+              ${pillInnerHtml}
             </div>
           </div>`;
       } else {
         const rate = r.rent_per_night || 0;
         cellsHtml += `
           <div class="cal-day empty ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" onclick="calCreateBooking('${r.room_id}','${ds}')" title="Free — Click to book">
-            <div class="cal-date-num">${d}</div>
-            ${rate > 0 && !isPast ? `<div class="cal-rate">₹${(rate/1000).toFixed(1)}K</div>` : ''}
+            <div class="cal-day-top-bar">
+              <span class="cal-date-num">${d}</span>
+            </div>
+            ${rate > 0 && !isPast ? `<div class="cal-rate">₹${(rate/1000).toFixed(1)}k</div>` : '<div class="cal-rate-spacer"></div>'}
           </div>`;
       }
     }
@@ -907,17 +939,18 @@ async function renderReports() {
     }
     .cal-hdr {
       font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
+      font-weight: 800;
+      color: #64748B;
       text-align: center;
       padding: 6px 0;
       text-transform: uppercase;
       background: #F8FAFC;
-      border-radius: 4px;
+      border-radius: 6px;
       box-sizing: border-box;
     }
-    .cal-empty { min-height: 62px; }
-    .cal-day { min-height: 62px;
+    .cal-empty { min-height: 56px; }
+    .cal-day {
+      min-height: 56px;
       border: 1px solid #E2E8F0;
       border-radius: 8px;
       padding: 3px;
@@ -927,7 +960,7 @@ async function renderReports() {
       flex-direction: column;
       justify-content: space-between;
       transition: transform 0.1s, box-shadow 0.1s;
-      background: #fff;
+      background: #FFFFFF;
       box-sizing: border-box;
       min-width: 0;
       overflow: hidden;
@@ -938,12 +971,13 @@ async function renderReports() {
       z-index: 2;
     }
     .cal-day.today {
-      background: #FEE2E2 !important;
-      border-color: #FF385C;
+      background: #FFF1F2 !important;
+      border-color: #FF385C !important;
+      box-shadow: inset 0 0 0 1px #FF385C !important;
     }
     .cal-day.today .cal-date-num {
-      color: #FF385C;
-      font-weight: 800;
+      color: #E11D48 !important;
+      font-weight: 900 !important;
     }
     .cal-day.past {
       opacity: 0.55;
@@ -952,121 +986,236 @@ async function renderReports() {
       display: none;
     }
     .cal-day.empty {
-      background: #fff;
+      background: #FFFFFF;
     }
     .cal-day.booked {
       border: 1px solid rgba(0,0,0,0.06);
       background: transparent;
-      padding: 0;
+      padding: 2px 2px 3px;
     }
     .cal-day.booked.is-blocked-day {
       border: 1px dashed rgba(71, 85, 105, 0.35);
       background: #F8FAFC;
     }
-    .cal-date-num { font-size: 11.5px; font-weight: 700; color: #334155; padding: 3px 4px 0; line-height: 1.25;
+    .cal-day-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1px 2px 0;
+      box-sizing: border-box;
+      min-height: 15px;
+      line-height: 1;
     }
-    .cal-rate { font-size: 9.5px; color: #059669; font-weight: 700; text-align: center; padding-bottom: 4px; line-height: 1.25;
+    .cal-date-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: #334155;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .cal-day-badges {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .cal-rate {
+      font-size: 9px;
+      color: #059669;
+      font-weight: 800;
+      text-align: right;
+      padding: 0 2px 1px;
+      line-height: 1;
+    }
+    .cal-rate-spacer {
+      height: 10px;
     }
     .cal-pill {
-      flex: 1;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 3px;
-      color: #fff;
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 3px 4px;
-      margin: 2px 0;
+      gap: 2px;
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2.5px 3px;
+      margin: 2px 0 0;
       overflow: hidden;
-      min-width: 0;
       box-sizing: border-box;
+      min-height: 20px;
     }
     .cal-pill.blocked {
       background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
     }
-    .cal-avatar {
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      display: inline-flex;
+    .cal-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 9.5px;
+      color: #FFFFFF;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+      max-width: 100%;
+      font-weight: 800;
+      display: block;
+      min-width: 0;
+      line-height: 1.2;
+      text-align: center;
+      letter-spacing: -0.2px;
+    }
+    .cal-stay-connector {
+      display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      gap: 3px;
+      width: 100%;
+      color: rgba(255,255,255,0.9);
+      font-size: 8.5px;
       font-weight: 800;
-      flex-shrink: 0;
       line-height: 1;
     }
-    .cal-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); max-width: 100%; font-weight: 700; display: inline-block; min-width: 0; line-height: 1.35; padding: 1px 0;
+    .cal-stay-arrow {
+      font-size: 8px;
+      opacity: 0.85;
+    }
+    .cal-stay-desk-name {
+      display: inline;
     }
     .cal-room-card {
       overflow: hidden;
       box-sizing: border-box;
     }
+    .cal-pay-tag {
+      font-size: 8.5px;
+      font-weight: 800;
+      border-radius: 4px;
+      padding: 1px 3.5px;
+      line-height: 1.1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.2px;
+    }
+    .cal-pay-tag.paid {
+      background: #DCFCE7;
+      color: #166534;
+      border: 1px solid #86EFAC;
+    }
+    .cal-pay-tag.due {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+    }
+    .cal-pay-micro {
+      display: none;
+    }
+    .cal-pay-full {
+      display: inline;
+    }
 
     @media (max-width: 640px) {
-      .cal-stat-grid {
-        display: none !important;
+      .cal-kpi-strip {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+      }
+      .cal-kpi-strip .stat-card {
+        padding: 8px 10px !important;
+        border-radius: 10px !important;
+      }
+      .cal-kpi-strip .stat-num {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+      }
+      .cal-kpi-strip .stat-label {
+        font-size: 9px !important;
+        letter-spacing: 0.3px !important;
       }
       .cal-grid {
-        gap: 3px;
+        gap: 2px !important;
+      }
+      .cal-empty {
+        min-height: 48px !important;
+        height: 48px !important;
       }
       .cal-day {
-        min-height: 56px;
-        border-radius: 8px;
-        padding: 2px 1px;
+        min-height: 48px !important;
+        height: 48px !important;
+        border-radius: 6px !important;
+        padding: 2px 1.5px 2px !important;
       }
       .cal-date-num {
-        font-size: 10.5px;
-        font-weight: 800;
-        padding: 2px 2px 0;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        line-height: 1 !important;
       }
       .cal-rate {
-        font-size: 8px;
-        font-weight: 800;
-        padding-bottom: 2px;
+        font-size: 8px !important;
+        font-weight: 800 !important;
+        padding: 0 1px 0 !important;
+        line-height: 1 !important;
       }
       .cal-pill {
-        font-size: 9.5px;
-        padding: 3px 2px;
-        margin: 1px 0;
-        gap: 2px;
-        min-height: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        box-sizing: border-box;
-      }
-      .cal-avatar {
-        display: none !important;
+        font-size: 8.5px !important;
+        padding: 2px 1.5px !important;
+        margin: 1px 0 0 !important;
+        min-height: 20px !important;
+        height: 20px !important;
       }
       .cal-name {
-        font-size: 9px !important;
+        font-size: 8.5px !important;
         font-weight: 800 !important;
+        line-height: 1.1 !important;
+        letter-spacing: -0.3px !important;
         max-width: 100% !important;
-        line-height: 1.2 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        text-align: center !important;
-        display: block !important;
-        letter-spacing: -0.2px;
+        padding: 0 !important;
+      }
+      .cal-stay-desk-name {
+        display: none !important;
+      }
+      .cal-stay-arrow {
+        font-size: 9px !important;
+        opacity: 0.9 !important;
+      }
+      .cal-pay-full {
+        display: none !important;
+      }
+      .cal-pay-micro {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 8px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+      }
+      .cal-pay-tag.is-micro {
+        width: 13px !important;
+        height: 13px !important;
+        min-width: 13px !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        border-width: 1px !important;
       }
       .cal-hdr {
-        font-size: 10px;
-        font-weight: 800;
-        padding: 5px 0;
+        font-size: 9.5px !important;
+        font-weight: 800 !important;
+        padding: 4px 0 !important;
+        border-radius: 4px !important;
       }
       .cal-room-card {
         padding: 10px 6px !important;
-        border-radius: 14px;
+        border-radius: 12px !important;
         margin-bottom: 12px !important;
       }
       .cal-room-header {
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
       }
     }
   `;
