@@ -706,6 +706,37 @@ table tr:hover td,
   display: none !important;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   🔒 ZERO-DATA-LEAKAGE AUTH GUARD (LOGIN / PENDING / LOGGED-OUT)
+   ═══════════════════════════════════════════════════════════ */
+body.auth-logged-out #pwa-bottom-nav,
+body.auth-logged-out .pwa-bottom-nav,
+body.auth-logged-out #pwa-install-bar,
+body.auth-logged-out .bottom-nav,
+body.auth-logged-out .app-topbar,
+body.auth-logged-out .sidebar,
+body.auth-logged-out .hub-subnav-strip,
+.auth-nav-hidden,
+#pwa-bottom-nav.auth-nav-hidden,
+.pwa-bottom-nav.auth-nav-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  z-index: -9999 !important;
+}
+
+body.auth-logged-out,
+body.auth-logged-out #app,
+body.auth-logged-out .main-content {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  overflow-x: hidden !important;
+}
+
 @media (min-width: 769px) {
   .pwa-bottom-nav,
   #pwa-bottom-nav,
@@ -1445,9 +1476,9 @@ html, body {
     -webkit-overflow-scrolling: touch !important;
   }
 
-  /* Fixed PWA Bottom Nav Bar (Mobile Only: Bookings, Properties, Employees, Expenses, Menu) */
-  .pwa-bottom-nav,
-  #pwa-bottom-nav {
+  /* Fixed PWA Bottom Nav Bar (Mobile Only: Bookings, Properties, Employees, Expenses, Menu) - Strictly Authenticated */
+  body:not(.auth-logged-out) .pwa-bottom-nav:not(.auth-nav-hidden),
+  body:not(.auth-logged-out) #pwa-bottom-nav:not(.auth-nav-hidden) {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -4569,8 +4600,8 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  .pwa-bottom-nav,
-  #pwa-bottom-nav {
+  body:not(.auth-logged-out) .pwa-bottom-nav:not(.auth-nav-hidden),
+  body:not(.auth-logged-out) #pwa-bottom-nav:not(.auth-nav-hidden) {
     display: flex !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -4617,13 +4648,17 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  #app, .main-content, .content, .dashboard-container, body {
+  body:not(.auth-logged-out) #app,
+  body:not(.auth-logged-out) .main-content,
+  body:not(.auth-logged-out) .content,
+  body:not(.auth-logged-out) .dashboard-container,
+  body:not(.auth-logged-out) {
     padding-bottom: calc(76px + env(safe-area-inset-bottom, 16px)) !important;
   }
 
   /* 📱 Enhanced PWA Bottom Nav Bar with iPhone & Android Notch/Gesture Bar support */
-  .pwa-bottom-nav,
-  #pwa-bottom-nav {
+  body:not(.auth-logged-out) .pwa-bottom-nav:not(.auth-nav-hidden),
+  body:not(.auth-logged-out) #pwa-bottom-nav:not(.auth-nav-hidden) {
     display: flex !important;
     visibility: visible !important;
     pointer-events: auto !important;

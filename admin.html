@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="style.css?v=423" />
   <!-- HomeyIndia CRM Design System Overhaul -->
-  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=37" />
+  <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=38" />
   <script>
     (function() {
       try {
@@ -42,7 +42,7 @@
   <script src="js/hybrid-sync.js?v=2"></script>
   <script src="js/uhhs-od-manager.js?v=202"></script>
 </head>
-<body>
+<body class="auth-logged-out">
   <!-- 🎯 Splash Screen -->
   <div id="splashScreen">
     <div class="splash-logo">
@@ -63,7 +63,7 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=449"></script>
+  <script src="js/core.js?v=450"></script>
   <script src="js/user-audit.js?v=448"></script>
   <script src="js/notifications.js?v=362"></script>
   <script src="js/dashboard.js?v=443"></script>
@@ -132,8 +132,8 @@
     });
   </script>
 
-  <!-- 📱 Executive SaaS Mobile Bottom Navigation Bar (Bookings, Properties, Employees, Expenses, Menu) - Strictly Mobile Only -->
-  <nav id="pwa-bottom-nav" class="pwa-bottom-nav" style="display:none;">
+  <!-- 📱 Executive SaaS Mobile Bottom Navigation Bar (Bookings, Properties, Employees, Expenses, Menu) - Strictly Authenticated Mobile Only -->
+  <nav id="pwa-bottom-nav" class="pwa-bottom-nav auth-nav-hidden" style="display:none !important;visibility:hidden !important;">
     <button type="button" class="pwa-nav-item active" data-page="bookings" onclick="navigate('bookings')">
       <span class="pwa-nav-icon"><i class="ti ti-calendar-check"></i></span>
       <span class="pwa-nav-label">Bookings</span>
@@ -158,7 +158,7 @@
   </nav>
 
   <!-- PWA Install Banner (Dismissible & Non-blocking) -->
-  <div id="pwa-install-bar" style="display:none;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:14px;z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:85vw;">
+  <div id="pwa-install-bar" class="auth-nav-hidden" style="display:none !important;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:14px;z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:85vw;">
     <span id="pwa-install-trigger" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
       <span>📲</span> <span>Install App</span>
     </span>

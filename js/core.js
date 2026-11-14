@@ -852,6 +852,16 @@ async function loadProfile(userId) {
     try { sessionStorage.setItem('uh_session_start_ts', String(SESSION.loginTimestamp)); } catch(e) {}
   }
 
+  // 🔓 Unlock Navigation & UI on successful verified session
+  document.body.classList.remove('auth-logged-out');
+  const botNav = document.getElementById('pwa-bottom-nav');
+  if (botNav) {
+    botNav.classList.remove('auth-nav-hidden');
+    botNav.style.removeProperty('display');
+    botNav.style.removeProperty('visibility');
+    botNav.style.removeProperty('pointer-events');
+  }
+
   try {
     const { data: { user } } = await sb.auth.getUser();
     if (user) {
@@ -918,6 +928,19 @@ async function loadProfile(userId) {
 }
 
 function renderPendingApprovalScreen(name, email, avatar = '') {
+  document.body.classList.add('auth-logged-out');
+  const botNav = document.getElementById('pwa-bottom-nav');
+  if (botNav) {
+    botNav.classList.add('auth-nav-hidden');
+    botNav.style.setProperty('display', 'none', 'important');
+    botNav.style.setProperty('visibility', 'hidden', 'important');
+    botNav.style.setProperty('pointer-events', 'none', 'important');
+  }
+  const installBar = document.getElementById('pwa-install-bar');
+  if (installBar) {
+    installBar.classList.add('auth-nav-hidden');
+    installBar.style.setProperty('display', 'none', 'important');
+  }
   appEl.innerHTML = `
     <div class="wrap">
       <div class="card" style="text-align:center;max-width:460px;margin:40px auto;padding:32px 24px;box-shadow:0 10px 25px rgba(0,0,0,0.08);border-radius:16px;">
@@ -949,6 +972,19 @@ function renderPendingApprovalScreen(name, email, avatar = '') {
 }
 
 function renderAccessSuspendedScreen(name, email) {
+  document.body.classList.add('auth-logged-out');
+  const botNav = document.getElementById('pwa-bottom-nav');
+  if (botNav) {
+    botNav.classList.add('auth-nav-hidden');
+    botNav.style.setProperty('display', 'none', 'important');
+    botNav.style.setProperty('visibility', 'hidden', 'important');
+    botNav.style.setProperty('pointer-events', 'none', 'important');
+  }
+  const installBar = document.getElementById('pwa-install-bar');
+  if (installBar) {
+    installBar.classList.add('auth-nav-hidden');
+    installBar.style.setProperty('display', 'none', 'important');
+  }
   appEl.innerHTML = `
     <div class="wrap">
       <div class="card" style="text-align:center;max-width:460px;margin:40px auto;padding:32px 24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
@@ -1007,6 +1043,12 @@ async function handleNewGoogleUser(user) {
 }
 
 function showError(msg, err = null) {
+  document.body.classList.add('auth-logged-out');
+  const botNav = document.getElementById('pwa-bottom-nav');
+  if (botNav) {
+    botNav.classList.add('auth-nav-hidden');
+    botNav.style.setProperty('display', 'none', 'important');
+  }
   appEl.innerHTML = `<div class="wrap"><div class="card">
     <h1>⚠️ Error</h1>
     <div class="error">${msg}${err ? '<br>' + err.message : ''}</div>
@@ -1015,6 +1057,19 @@ function showError(msg, err = null) {
 }
 
 async function logout() {
+  document.body.classList.add('auth-logged-out');
+  const botNav = document.getElementById('pwa-bottom-nav');
+  if (botNav) {
+    botNav.classList.add('auth-nav-hidden');
+    botNav.style.setProperty('display', 'none', 'important');
+    botNav.style.setProperty('visibility', 'hidden', 'important');
+    botNav.style.setProperty('pointer-events', 'none', 'important');
+  }
+  const installBar = document.getElementById('pwa-install-bar');
+  if (installBar) {
+    installBar.classList.add('auth-nav-hidden');
+    installBar.style.setProperty('display', 'none', 'important');
+  }
   await sb.auth.signOut();
   SESSION = {
     userId: null, role: null, empId: null, investorId: null,
@@ -1027,11 +1082,20 @@ async function logout() {
 
 // ============ LOGIN ============
 function renderLogin() {
-  // Hide mobile bottom nav and install bar on login screen
+  // 🔒 STRICT SECURITY: Hide mobile bottom nav, topbar, and install bar on login screen
+  document.body.classList.add('auth-logged-out');
   const botNav = document.getElementById('pwa-bottom-nav');
-  if (botNav) botNav.style.display = 'none';
+  if (botNav) {
+    botNav.classList.add('auth-nav-hidden');
+    botNav.style.setProperty('display', 'none', 'important');
+    botNav.style.setProperty('visibility', 'hidden', 'important');
+    botNav.style.setProperty('pointer-events', 'none', 'important');
+  }
   const installBar = document.getElementById('pwa-install-bar');
-  if (installBar) installBar.style.display = 'none';
+  if (installBar) {
+    installBar.classList.add('auth-nav-hidden');
+    installBar.style.setProperty('display', 'none', 'important');
+  }
 
   appEl.innerHTML = `
     <style>
@@ -1410,6 +1474,11 @@ window.getTablerIcon = getTablerIcon;
 
 function renderShell(content, activePage = 'dashboard') {
   window.renderShell = renderShell;
+  // 🔒 STRICT SECURITY: If session is missing or expired, redirect to Login
+  if (!SESSION || !SESSION.userId || !SESSION.role) {
+    if (typeof renderLogin === 'function') renderLogin();
+    return;
+  }
   if (SESSION.investorId) { appEl.innerHTML = content; return; }
   const show = ['developer', 'admin', 'owner', 'moderator', 'subowner', 'viewer', 'booking_staff', 'manager', 'checkin_manager', 'caretaker'].includes(SESSION.role);
   const isCheckinMgr = SESSION.role === 'checkin_manager' || SESSION.role === 'caretaker';
@@ -2403,6 +2472,13 @@ function renderShell(content, activePage = 'dashboard') {
 }
 
 function navigate(page) {
+  // 🔒 STRICT SECURITY AUTH GUARD: Block unauthenticated users from accessing any internal page
+  if (!window.SESSION || !window.SESSION.userId || !window.SESSION.role) {
+    console.warn('[Security Guard] Blocked unauthenticated attempt to navigate to:', page);
+    if (typeof renderLogin === 'function') renderLogin();
+    return;
+  }
+
   // 🔒 OWNER ROLE PAGE GUARD — block restricted pages for 'owner' role
   if (SESSION.role === 'owner') {
     const OWNER_BLOCKED = ['user-mgmt', 'employees', 'attendance', 'att-summary', 'tasks', 'employee-ledger', 'advance', 'sop', 'whatsapp-hub', 'whatsapp', 'help', 'laundry'];
