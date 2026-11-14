@@ -5828,13 +5828,181 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     const existing = document.getElementById('uhhPrintOverlay');
     if (existing) existing.remove();
 
+    // Clean html: strip any redundant inner toolbars or duplicate print/close buttons
+    let sanitizedContent = String(html || '')
+      .replace(/<div[^>]*class=["'][^"']*toolbar[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<button[^>]*onclick=["'][^"']*(?:window\.print|window\.close)[^"']*["'][^>]*>[\s\S]*?<\/button>/gi, '');
+
     const overlay = document.createElement('div');
     overlay.id = 'uhhPrintOverlay';
     overlay.className = 'uhh-print-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:9999999;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9999999;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;';
 
     overlay.innerHTML = `
       <style>
+        /* Base overlay styles */
+        .uhh-print-topbar {
+          position: sticky;
+          top: 0;
+          background: #0F172A;
+          color: #FFFFFF;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          z-index: 999999;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+          box-sizing: border-box;
+        }
+        .uhh-desktop-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .uhh-mobile-title {
+          display: none;
+        }
+        .uhh-mobile-bottom-bar {
+          display: none;
+        }
+        .uhh-print-body {
+          padding: 16px 14px calc(30px + env(safe-area-inset-bottom, 16px));
+          background: #F1F5F9;
+          flex: 1;
+          overflow-y: auto;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        #uhhPrintCardInner {
+          max-width: 960px;
+          margin: 0 auto;
+          background: #FFFFFF;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          box-sizing: border-box;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* 📱 Mobile & PWA App Viewport (< 768px) */
+        @media (max-width: 768px) {
+          .uhh-print-topbar {
+            padding: max(8px, env(safe-area-inset-top, 8px)) 12px 8px 12px !important;
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            min-height: 52px !important;
+            background: rgba(15, 23, 42, 0.98) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+          }
+          .uhh-desktop-actions {
+            display: none !important;
+          }
+          .uhh-mobile-title {
+            display: block !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            color: #F8FAFC !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 170px !important;
+            text-align: center !important;
+            flex: 1 !important;
+          }
+          .uhh-print-body {
+            padding: 12px 10px calc(86px + env(safe-area-inset-bottom, 16px)) 10px !important;
+          }
+          #uhhPrintCardInner {
+            padding: 16px 12px !important;
+            border-radius: 12px !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+
+          /* Responsive KPI Grid on Mobile */
+          .kpi-row, [class*="kpi-row"] {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
+          }
+          .kpi-box:last-child {
+            grid-column: span 2 !important;
+          }
+          .kpi-box {
+            padding: 8px !important;
+          }
+          .kpi-val {
+            font-size: 15px !important;
+          }
+
+          /* Responsive Header on Mobile */
+          .header, [class*="voucher-header"] {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .company-title {
+            font-size: 17px !important;
+          }
+          .doc-badge {
+            align-self: flex-start !important;
+            font-size: 10px !important;
+            padding: 4px 8px !important;
+          }
+
+          /* Table horizontal scroll & sticky employee */
+          table {
+            min-width: 620px !important;
+            font-size: 11px !important;
+          }
+          th, td {
+            padding: 8px 6px !important;
+          }
+
+          /* Native Mobile Floating Action Bar */
+          .uhh-mobile-bottom-bar {
+            display: flex !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999999 !important;
+            background: rgba(15, 23, 42, 0.96) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+            padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 12px)) 12px !important;
+            gap: 8px !important;
+            align-items: center !important;
+            justify-content: space-around !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35) !important;
+          }
+          .uhh-mobile-bottom-bar button {
+            flex: 1 !important;
+            padding: 10px 8px !important;
+            border-radius: 10px !important;
+            border: none !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
+            color: #FFFFFF !important;
+          }
+        }
+
+        /* Print media styles */
         @media print {
           body > *:not(#uhhPrintOverlay) {
             display: none !important;
@@ -5846,7 +6014,7 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
             height: auto !important;
             display: block !important;
           }
-          .no-print, .uhh-print-toolbar, .modal-overlay:not(#uhhPrintOverlay) {
+          .no-print, .uhh-print-topbar, .uhh-mobile-bottom-bar, .modal-overlay:not(#uhhPrintOverlay) {
             display: none !important;
           }
           .uhh-print-body {
@@ -5864,8 +6032,19 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
           }
         }
       </style>
-      <div class="uhh-print-toolbar no-print" style="position:sticky;top:0;background:#0F172A;color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;z-index:999999;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">
+
+      <!-- Top Action Bar -->
+      <div class="uhh-print-topbar no-print">
+        <!-- Close Button (Left) -->
+        <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
+          ✕ Close
+        </button>
+
+        <!-- Mobile Center Title -->
+        <div class="uhh-mobile-title">${escapeHtml(docTitle)}</div>
+
+        <!-- Desktop Action Buttons -->
+        <div class="uhh-desktop-actions">
           <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             🖨️ Print / AirPrint
           </button>
@@ -5881,21 +6060,36 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
           <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#475569;color:#fff;border:none;padding:7px 10px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Copy report text to clipboard">
             📋 Copy
           </button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:0;">
-          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:6px;">
             ${escapeHtml(docTitle)}
           </span>
-          <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-            ✕ Close
-          </button>
+        </div>
+
+        <!-- Mobile Print/PDF Button (Right) -->
+        <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+          🖨️ PDF / Print
+        </button>
+      </div>
+
+      <!-- Document Content Canvas -->
+      <div class="uhh-print-body">
+        <div id="uhhPrintCardInner" class="uhh-report-card">
+          ${extractedStyles}
+          ${sanitizedContent}
         </div>
       </div>
-      <div class="uhh-print-body" style="padding:16px 12px calc(40px + env(safe-area-inset-bottom, 16px));background:#F1F5F9;flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <div id="uhhPrintCardInner" class="uhh-report-card" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.06);box-sizing:border-box;overflow-x:auto;-webkit-overflow-scrolling:touch;">
-          ${extractedStyles}
-          ${html}
-        </div>
+
+      <!-- 📱 Native Mobile Floating Bottom Sheet Toolbar -->
+      <div class="uhh-mobile-bottom-bar no-print">
+        <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;">
+          💬 WhatsApp
+        </button>
+        <button type="button" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;">
+          📸 Save PNG
+        </button>
+        <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#334155;">
+          📋 Copy
+        </button>
       </div>
     `;
 

@@ -4478,18 +4478,70 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  #app, .main-content, .content, .dashboard-container, body {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 16px)) !important;
+  }
+
+  /* 📱 Enhanced PWA Bottom Nav Bar with iPhone & Android Notch/Gesture Bar support */
+  .pwa-bottom-nav,
+  #pwa-bottom-nav {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(226, 232, 240, 0.9) !important;
+    z-index: 99999 !important;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .pwa-nav-item {
+    transition: transform 0.15s ease, color 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pwa-nav-item:active {
+    transform: scale(0.92);
+  }
+
   #uhhPrintCardInner {
-    padding: 10px !important;
+    padding: 14px 12px !important;
     max-width: 100% !important;
     width: 100% !important;
     box-sizing: border-box !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    border-radius: 12px !important;
   }
   .uhh-invoice-document,
   .invoice-doc {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Universal Touch Tables & Modals */
+  .table-responsive,
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 10px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal-box {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 
@@ -4504,7 +4556,7 @@ html, body {
     height: auto !important;
     display: block !important;
   }
-  .no-print, .uhh-print-toolbar, .modal-overlay:not(#uhhPrintOverlay) {
+  .no-print, .uhh-print-toolbar, .uhh-print-topbar, .uhh-mobile-bottom-bar, .modal-overlay:not(#uhhPrintOverlay) {
     display: none !important;
   }
   .uhh-print-body {
