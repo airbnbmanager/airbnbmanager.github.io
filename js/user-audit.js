@@ -1320,6 +1320,176 @@
     _buffer: [],
     _timer: null,
 
+    resolveAuditActor(record, type) {
+      if (!record) return { userName: 'Staff', userRole: 'staff', device: '💻 System Record' };
+
+      const notes = (record.notes || '').toLowerCase();
+      const pMode = (record.payment_mode || '').toLowerCase();
+      const bMode = (record.booking_mode || record.guest_register?.booking_mode || '').toLowerCase();
+      const bookedBy = (record.booked_by || record.guest_register?.booked_by || '').trim();
+      const createdBy = (record.created_by || record.guest_register?.created_by || '').trim();
+      const grNotes = (record.guest_register?.notes || '').toLowerCase();
+
+      // 1. Check Automated Syncs & Imports
+      // A) Airbnb CSV Import / Payout Sync
+      if (
+        pMode.includes('airbnb') ||
+        bMode.includes('airbnb') ||
+        notes.includes('airbnb csv') ||
+        notes.includes('auto-synced from airbnb') ||
+        notes.includes('auto-updated to net payout') ||
+        notes.includes('airbnb auto sync') ||
+        notes.includes('imported from csv') ||
+        notes.includes('csv auto-enriched') ||
+        grNotes.includes('imported from csv') ||
+        grNotes.includes('airbnb csv') ||
+        grNotes.includes('csv auto-enriched') ||
+        bookedBy === 'Airbnb Import' ||
+        bookedBy === 'Airbnb CSV'
+      ) {
+        return {
+          userName: 'Airbnb CSV Sync',
+          userRole: 'system',
+          device: '🤖 CSV Import'
+        };
+      }
+
+      // B) Gmail Sync
+      if (
+        bookedBy === 'Gmail Sync' ||
+        notes.includes('gmail sync') ||
+        notes.includes('gmail auto-sync') ||
+        grNotes.includes('gmail sync') ||
+        grNotes.includes('gmail auto-sync')
+      ) {
+        return {
+          userName: 'Gmail Sync',
+          userRole: 'system',
+          device: '📧 Gmail Sync'
+        };
+      }
+
+      // C) iCal Sync
+      if (
+        record.synced_from_ical ||
+        record.guest_register?.synced_from_ical ||
+        bookedBy === 'iCal Sync' ||
+        notes.includes('ical') ||
+        notes.includes('reservation auto-synced') ||
+        grNotes.includes('ical') ||
+        grNotes.includes('reservation auto-synced')
+      ) {
+        return {
+          userName: 'iCal Sync',
+          userRole: 'system',
+          device: '📅 iCal Sync'
+        };
+      }
+
+      // D) Direct Guest (Website)
+      if (
+        bMode.includes('website') ||
+        bMode.includes('direct-website') ||
+        bookedBy === 'Direct Guest' ||
+        bookedBy === 'Website'
+      ) {
+        return {
+          userName: 'Direct Guest (Website)',
+          userRole: 'guest',
+          device: '🌐 Website'
+        };
+      }
+
+      // 2. Identify Authenticated Staff / User from created_by, booked_by, or paid_by
+      let resolvedName = '';
+      let resolvedRole = '';
+
+      // Priority: created_by UUID
+      if (createdBy) {
+        if (window._userNameCache && window._userNameCache[createdBy]) {
+          resolvedName = window._userNameCache[createdBy];
+        } else if (window.SESSION && window.SESSION.userId === createdBy) {
+          resolvedName = window.SESSION.displayName || window.SESSION.email || 'Praveen Singh';
+        } else if (createdBy === 'c6343844-a307-4668-9b16-1947a0c0f8fa') {
+          resolvedName = 'Praveen Singh';
+          resolvedRole = 'manager';
+        } else if (createdBy === 'e3717cbd-da9a-495e-a940-2995021e8ca2') {
+          resolvedName = 'Developer Admin';
+          resolvedRole = 'developer';
+        }
+      }
+
+      // Fallback: booked_by or paid_by
+      if (!resolvedName && bookedBy) {
+        resolvedName = bookedBy;
+      }
+      if (!resolvedName && (type === 'expense' || type === 'advance') && record.paid_by) {
+        resolvedName = record.paid_by;
+      }
+
+      // If still not resolved for a payment, check parent booking
+      if (!resolvedName && type === 'payment') {
+        const pGr = record.guest_register;
+        if (pGr?.booked_by && !['Gmail Sync', 'iCal Sync', 'Airbnb Import'].includes(pGr.booked_by)) {
+          resolvedName = pGr.booked_by;
+        }
+      }
+
+      // Normalize common names and roles
+      const lower = (resolvedName || '').toLowerCase().trim();
+
+      if (lower.includes('praveen')) {
+        return {
+          userName: 'Praveen Singh',
+          userRole: 'manager',
+          device: '💻 System Record'
+        };
+      }
+      if (lower.includes('firoz')) {
+        return {
+          userName: 'Firoz Khan',
+          userRole: 'staff',
+          device: '💻 System Record'
+        };
+      }
+      if (lower.includes('arman')) {
+        return {
+          userName: 'Arman Commander',
+          userRole: 'staff',
+          device: '💻 System Record'
+        };
+      }
+      if (lower.includes('shahenshah')) {
+        return {
+          userName: 'Shahenshah',
+          userRole: 'staff',
+          device: '💻 System Record'
+        };
+      }
+      if (lower === 'admin' || lower.includes('backup admin')) {
+        return {
+          userName: 'Admin',
+          userRole: 'manager',
+          device: '💻 System Record'
+        };
+      }
+
+      if (resolvedName) {
+        return {
+          userName: resolvedName,
+          userRole: resolvedRole || 'staff',
+          device: '💻 System Record'
+        };
+      }
+
+      // CRITICAL: For payments, NEVER attribute to received_by!
+      return {
+        userName: 'Staff',
+        userRole: 'staff',
+        device: '💻 System Record'
+      };
+    },
+
     async recordAction(actionType, details = {}) {
       try {
         const user = window.SESSION || {};
@@ -1460,14 +1630,19 @@
       try {
         if (window.sb) {
           const { data: bks } = await window.sb.from('guest_register')
-            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, airbnb_booking_date, rooms(nickname, unit_no)')
+            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, airbnb_booking_date, booking_mode, notes, synced_from_ical, rooms(nickname, unit_no)')
             .or(`check_in.eq.${targetDate},airbnb_booking_date.eq.${targetDate}`)
             .neq('is_cancelled', true);
 
           (bks || []).forEach(b => {
             const bId = `db_bk_${b.booking_id}`;
-            const bUser = (b.booked_by || '').trim() || 'Staff';
-            const matchUser = !targetUserId || b.created_by === targetUserId || bUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            const actor = this.resolveAuditActor(b, 'booking');
+            const bUser = actor.userName;
+            const matchUser = !targetUserId ||
+                              b.created_by === targetUserId ||
+                              bUser.toLowerCase() === (targetUserId || '').toLowerCase() ||
+                              bUser.toLowerCase().includes((targetUserId || '').toLowerCase()) ||
+                              (targetUserId || '').toLowerCase().includes(bUser.toLowerCase());
             if (matchUser && !seenActionIds.has(bId)) {
               seenActionIds.add(bId);
               actions.push({
@@ -1476,11 +1651,11 @@
                 date: targetDate,
                 month: monthStr,
                 userId: b.created_by || 'staff',
-                userName: bUser,
-                userRole: (bUser.toLowerCase().includes('praveen') || bUser.toLowerCase().includes('admin')) ? 'manager' : (bUser === 'Gmail Sync' ? 'system' : 'staff'),
+                userName: actor.userName,
+                userRole: actor.userRole,
                 actionType: 'booking_add',
                 actionTitle: '➕ Added Booking',
-                device: '💻 System Record',
+                device: actor.device || '💻 System Record',
                 details: {
                   bookingId: b.booking_id,
                   guestName: b.guest_name,
@@ -1489,7 +1664,7 @@
                   checkOut: b.check_out,
                   totalAmount: b.total_amount,
                   paymentStatus: b.payment_status,
-                  bookingMode: b.booked_by === 'Gmail Sync' ? 'Airbnb Sync' : 'Direct'
+                  bookingMode: b.booking_mode || (actor.userName.includes('Sync') ? 'Airbnb Sync' : 'Direct')
                 }
               });
             }
@@ -1501,14 +1676,21 @@
       try {
         if (window.sb) {
           const { data: pays } = await window.sb.from('payment_history')
-            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id)')
+            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id, booked_by, created_by, booking_mode, notes, synced_from_ical)')
             .eq('payment_date', targetDate)
             .order('paid_at', { ascending: false });
 
           (pays || []).forEach(p => {
             const pId = `db_pay_${p.id}`;
-            const pUser = (p.received_by || '').trim() || 'Staff';
-            const matchUser = !targetUserId || p.created_by === targetUserId || pUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            const gr = Array.isArray(p.guest_register) ? p.guest_register[0] : (p.guest_register || {});
+            p.guest_register = gr;
+            const actor = this.resolveAuditActor(p, 'payment');
+            const pUser = actor.userName;
+            const matchUser = !targetUserId ||
+                              p.created_by === targetUserId ||
+                              pUser.toLowerCase() === (targetUserId || '').toLowerCase() ||
+                              pUser.toLowerCase().includes((targetUserId || '').toLowerCase()) ||
+                              (targetUserId || '').toLowerCase().includes(pUser.toLowerCase());
             if (matchUser && !seenActionIds.has(pId)) {
               seenActionIds.add(pId);
               actions.push({
@@ -1517,15 +1699,15 @@
                 date: targetDate,
                 month: monthStr,
                 userId: p.created_by || 'staff',
-                userName: pUser,
-                userRole: 'staff',
+                userName: actor.userName,
+                userRole: actor.userRole,
                 actionType: 'payment_add',
                 actionTitle: '💰 Added Payment',
-                device: '💻 System',
+                device: actor.device || '💻 System Record',
                 details: {
                   bookingId: p.booking_id,
-                  guestName: p.guest_register?.guest_name || 'Guest',
-                  roomId: p.guest_register?.room_id,
+                  guestName: gr.guest_name || 'Guest',
+                  roomId: gr.room_id,
                   amount: p.amount,
                   mode: p.payment_mode,
                   receivedBy: p.received_by,
@@ -1548,8 +1730,12 @@
 
           (advs || []).forEach(adv => {
             const aId = `db_adv_${adv.id}`;
-            const advGiver = adv.paid_by || 'Management';
-            const matchUser = !targetUserId || advGiver.toLowerCase() === (targetUserId || '').toLowerCase();
+            const actor = this.resolveAuditActor(adv, 'advance');
+            const advGiver = actor.userName || adv.paid_by || 'Management';
+            const matchUser = !targetUserId ||
+                              advGiver.toLowerCase() === (targetUserId || '').toLowerCase() ||
+                              advGiver.toLowerCase().includes((targetUserId || '').toLowerCase()) ||
+                              (targetUserId || '').toLowerCase().includes(advGiver.toLowerCase());
             if (matchUser && !seenActionIds.has(aId)) {
               seenActionIds.add(aId);
               actions.push({
@@ -1559,10 +1745,10 @@
                 month: monthStr,
                 userId: 'mgmt',
                 userName: advGiver,
-                userRole: 'manager',
+                userRole: actor.userRole || 'manager',
                 actionType: 'advance_give',
                 actionTitle: '💵 Disbursed Advance',
-                device: '💻 System',
+                device: actor.device || '💻 System Record',
                 details: {
                   empId: adv.emp_id,
                   empName: adv.employees?.name || adv.emp_id,
@@ -1588,8 +1774,13 @@
 
           (exps || []).forEach(exp => {
             const eId = `db_exp_${exp.id}`;
-            const expUser = exp.paid_by || 'Staff';
-            const matchUser = !targetUserId || exp.created_by === targetUserId || expUser.toLowerCase() === (targetUserId || '').toLowerCase();
+            const actor = this.resolveAuditActor(exp, 'expense');
+            const expUser = actor.userName;
+            const matchUser = !targetUserId ||
+                              exp.created_by === targetUserId ||
+                              expUser.toLowerCase() === (targetUserId || '').toLowerCase() ||
+                              expUser.toLowerCase().includes((targetUserId || '').toLowerCase()) ||
+                              (targetUserId || '').toLowerCase().includes(expUser.toLowerCase());
             if (matchUser && !seenActionIds.has(eId)) {
               seenActionIds.add(eId);
               actions.push({
@@ -1598,11 +1789,11 @@
                 date: targetDate,
                 month: monthStr,
                 userId: exp.created_by || 'staff',
-                userName: expUser,
-                userRole: 'staff',
+                userName: actor.userName,
+                userRole: actor.userRole,
                 actionType: 'expense_add',
                 actionTitle: '🧾 Recorded Expense',
-                device: '💻 System',
+                device: actor.device || '💻 System Record',
                 details: {
                   amount: exp.amount,
                   categoryName: exp.expense_categories?.category_name || 'Expense',
@@ -1670,17 +1861,17 @@
       try {
         if (window.sb) {
           const { data: bks } = await window.sb.from('guest_register')
-            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, rooms(nickname, unit_no)')
+            .select('booking_id, guest_name, room_id, check_in, check_out, total_amount, payment_status, booked_by, created_by, booking_mode, notes, synced_from_ical, rooms(nickname, unit_no)')
             .gte('check_in', `${monthStr}-01`)
             .lte('check_in', `${monthStr}-31`)
             .neq('is_cancelled', true)
             .order('check_in', { ascending: false });
 
           (bks || []).forEach(b => {
-            const bUser = (b.booked_by || '').trim();
+            const actor = this.resolveAuditActor(b, 'booking');
+            const bUser = (actor.userName || '').trim();
             const bUid = (b.created_by || '').trim().toLowerCase();
-            const matchUser = (targetName && bUser.toLowerCase().includes(targetName)) ||
-                              (targetName && targetName.includes(bUser.toLowerCase())) ||
+            const matchUser = (targetName && (bUser.toLowerCase().includes(targetName) || targetName.includes(bUser.toLowerCase()))) ||
                               (targetUid && bUid === targetUid);
             if (matchUser) {
               const actionId = `db_bk_${b.booking_id}`;
@@ -1693,11 +1884,11 @@
                   date: b.check_in,
                   month: monthStr,
                   userId: b.created_by || userId || 'staff',
-                  userName: b.booked_by || displayName,
-                  userRole: 'staff',
+                  userName: actor.userName,
+                  userRole: actor.userRole,
                   actionType: 'booking_add',
                   actionTitle: '➕ Added Booking',
-                  device: '💻 System Record',
+                  device: actor.device || '💻 System Record',
                   details: {
                     bookingId: b.booking_id,
                     guestName: b.guest_name,
@@ -1720,16 +1911,18 @@
       try {
         if (window.sb) {
           const { data: pays } = await window.sb.from('payment_history')
-            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id)')
+            .select('id, booking_id, amount, payment_mode, received_by, created_by, payment_date, paid_at, notes, guest_register(guest_name, room_id, booked_by, created_by, booking_mode, notes, synced_from_ical)')
             .gte('payment_date', `${monthStr}-01`)
             .lte('payment_date', `${monthStr}-31`)
             .order('payment_date', { ascending: false });
 
           (pays || []).forEach(p => {
-            const pUser = (p.received_by || '').trim();
-            const pUid = (p.created_by || '').trim().toLowerCase();
-            const matchUser = (targetName && pUser.toLowerCase().includes(targetName)) ||
-                              (targetName && targetName.includes(pUser.toLowerCase())) ||
+            const gr = Array.isArray(p.guest_register) ? p.guest_register[0] : (p.guest_register || {});
+            p.guest_register = gr;
+            const actor = this.resolveAuditActor(p, 'payment');
+            const pUser = (actor.userName || '').trim();
+            const pUid = (p.created_by || gr.created_by || '').trim().toLowerCase();
+            const matchUser = (targetName && (pUser.toLowerCase().includes(targetName) || targetName.includes(pUser.toLowerCase()))) ||
                               (targetUid && pUid === targetUid);
             if (matchUser) {
               const pId = `db_pay_${p.id}`;
@@ -1741,15 +1934,15 @@
                   date: p.payment_date,
                   month: monthStr,
                   userId: p.created_by || userId || 'staff',
-                  userName: p.received_by || displayName,
-                  userRole: 'staff',
+                  userName: actor.userName,
+                  userRole: actor.userRole,
                   actionType: 'payment_add',
                   actionTitle: '💰 Added Payment',
-                  device: '💻 System Record',
+                  device: actor.device || '💻 System Record',
                   details: {
                     bookingId: p.booking_id,
-                    guestName: p.guest_register?.guest_name || 'Guest',
-                    roomId: p.guest_register?.room_id,
+                    guestName: gr.guest_name || 'Guest',
+                    roomId: gr.room_id,
                     amount: p.amount,
                     mode: p.payment_mode,
                     receivedBy: p.received_by,
@@ -1773,10 +1966,10 @@
             .order('entry_date', { ascending: false });
 
           (exps || []).forEach(exp => {
-            const expUser = (exp.paid_by || '').trim();
+            const actor = this.resolveAuditActor(exp, 'expense');
+            const expUser = (actor.userName || '').trim();
             const expUid = (exp.created_by || '').trim().toLowerCase();
-            const matchUser = (targetName && expUser.toLowerCase().includes(targetName)) ||
-                              (targetName && targetName.includes(expUser.toLowerCase())) ||
+            const matchUser = (targetName && (expUser.toLowerCase().includes(targetName) || targetName.includes(expUser.toLowerCase()))) ||
                               (targetUid && expUid === targetUid);
             if (matchUser) {
               const eId = `db_exp_${exp.id}`;
@@ -1788,11 +1981,11 @@
                   date: exp.entry_date,
                   month: monthStr,
                   userId: exp.created_by || userId || 'staff',
-                  userName: exp.paid_by || displayName,
-                  userRole: 'staff',
+                  userName: actor.userName,
+                  userRole: actor.userRole,
                   actionType: 'expense_add',
                   actionTitle: '🧾 Recorded Expense',
-                  device: '💻 System Record',
+                  device: actor.device || '💻 System Record',
                   details: {
                     expenseId: exp.id,
                     category: exp.expense_categories?.category_name || 'Expense',
@@ -1820,9 +2013,9 @@
             .order('date_given', { ascending: false });
 
           (advs || []).forEach(adv => {
-            const advUser = (adv.paid_by || '').trim();
-            const matchUser = (targetName && advUser.toLowerCase().includes(targetName)) ||
-                              (targetName && targetName.includes(advUser.toLowerCase()));
+            const actor = this.resolveAuditActor(adv, 'advance');
+            const advUser = (actor.userName || adv.paid_by || '').trim();
+            const matchUser = (targetName && (advUser.toLowerCase().includes(targetName) || targetName.includes(advUser.toLowerCase())));
             if (matchUser) {
               const aId = `db_adv_${adv.id}`;
               if (!seen.has(aId)) {
@@ -1833,11 +2026,11 @@
                   date: adv.date_given,
                   month: monthStr,
                   userId: userId || 'mgmt',
-                  userName: adv.paid_by || displayName,
-                  userRole: 'manager',
+                  userName: actor.userName,
+                  userRole: actor.userRole || 'manager',
                   actionType: 'advance_give',
                   actionTitle: '💵 Disbursed Advance',
-                  device: '💻 System Record',
+                  device: actor.device || '💻 System Record',
                   details: {
                     empId: adv.emp_id,
                     empName: adv.employees?.name || adv.emp_id,
@@ -1886,6 +2079,10 @@
     // Flush any pending actions buffer
     if (window.UserActionAudit && typeof window.UserActionAudit._flush === 'function') {
       try { await window.UserActionAudit._flush(); } catch(e) {}
+    }
+
+    if (typeof window.preloadUserNames === 'function' && (!window._userNameCache || Object.keys(window._userNameCache).length === 0)) {
+      try { await window.preloadUserNames(); } catch(e) {}
     }
 
     const allActions = await window.UserActionAudit.fetchActionsForDate(curDate, window._workAuditUserFilter);

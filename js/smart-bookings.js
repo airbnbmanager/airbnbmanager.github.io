@@ -3491,6 +3491,20 @@ window.saveSmartBooking = async function() {
     const { error: insErr } = window.safeDbInsert ? await window.safeDbInsert('guest_register', insertObj) : await sb.from('guest_register').insert(insertObj);
     if (insErr) throw insErr;
 
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('booking_add', {
+        bookingId: bkId,
+        guestName: insertObj.guest_name,
+        roomId: insertObj.room_id,
+        checkIn: insertObj.check_in,
+        checkOut: insertObj.check_out,
+        totalAmount: insertObj.total_amount,
+        paymentStatus: insertObj.payment_status,
+        bookingMode: insertObj.booking_mode || 'Direct'
+      });
+    }
+
     // Record payment if advance > 0
     if (adv > 0) {
       const payObj = {
@@ -3508,6 +3522,19 @@ window.saveSmartBooking = async function() {
         await window.safeDbInsert('payment_history', payObj);
       } else {
         await sb.from('payment_history').insert(payObj);
+      }
+
+      if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+        window.UserActionAudit.recordAction('payment_add', {
+          bookingId: bkId,
+          guestName: insertObj.guest_name,
+          roomId: insertObj.room_id,
+          amount: adv,
+          mode: advMode,
+          receivedBy: receivedBy,
+          paymentDate: ci,
+          notes: 'Advance booking deposit'
+        });
       }
     }
 
@@ -3889,6 +3916,22 @@ window.saveMultiSmartBooking = async function() {
     }
     if (insErr) throw insErr;
 
+    // 📋 Audit log for Developer (Multi-Booking)
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      roomInserts.forEach(r => {
+        window.UserActionAudit.recordAction('booking_add', {
+          bookingId: r.booking_id,
+          guestName: r.guest_name,
+          roomId: r.room_id,
+          checkIn: r.check_in,
+          checkOut: r.check_out,
+          totalAmount: r.total_amount,
+          paymentStatus: r.payment_status,
+          bookingMode: r.booking_mode || 'Direct'
+        });
+      });
+    }
+
     // Update flats status
     for (const r of roomItems) {
       try {
@@ -3940,6 +3983,19 @@ window.saveMultiSmartBooking = async function() {
 
           if (typeof recalcPaymentStatus === 'function') {
             await recalcPaymentStatus(cbk.booking_id);
+          }
+
+          if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+            window.UserActionAudit.recordAction('payment_add', {
+              bookingId: cbk.booking_id,
+              guestName: guestName,
+              roomId: cbk.room_id,
+              amount: roomAdv,
+              mode: advMode,
+              receivedBy: advReceivedBy,
+              paymentDate: payDate,
+              notes: payPayload.notes
+            });
           }
         }
       }
