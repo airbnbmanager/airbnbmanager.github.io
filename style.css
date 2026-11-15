@@ -8599,8 +8599,12 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
-  .pwa-bottom-nav {
-    display: flex;
+  .pwa-bottom-nav,
+  #pwa-bottom-nav,
+  .bottom-nav {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
   #app {
     padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;

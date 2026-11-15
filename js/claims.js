@@ -58,7 +58,7 @@ window.addEventListener('uhhs:dataChanged', () => {
   }
 });
 
-window.renderClaims = async function() {
+window.renderClaims = async function () {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
   const nowD = new Date();
@@ -314,30 +314,30 @@ window.renderClaims = async function() {
         <div>
           <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">👤 Paid By (Payer)</label>
           <select id="cfPaidBy" onchange="updateClaimsFilter()">
-            <option value="all" ${window._claimsState.paidByFilter==='all'?'selected':''}>All Payers</option>
-            <option value="UHHS-OD" ${window._claimsState.paidByFilter==='UHHS-OD'?'selected':''}>🏦 TUHH-OD</option>
-            <option value="COMPANY" ${window._claimsState.paidByFilter==='COMPANY'?'selected':''}>🏢 COMPANY</option>
-            <option value="FIROZ" ${window._claimsState.paidByFilter==='FIROZ'?'selected':''}>👤 FIROZ</option>
-            <option value="OTHER" ${window._claimsState.paidByFilter==='OTHER'?'selected':''}>⚠️ OTHER</option>
+            <option value="all" ${window._claimsState.paidByFilter === 'all' ? 'selected' : ''}>All Payers</option>
+            <option value="UHHS-OD" ${window._claimsState.paidByFilter === 'UHHS-OD' ? 'selected' : ''}>🏦 TUHH-OD</option>
+            <option value="COMPANY" ${window._claimsState.paidByFilter === 'COMPANY' ? 'selected' : ''}>🏢 COMPANY</option>
+            <option value="FIROZ" ${window._claimsState.paidByFilter === 'FIROZ' ? 'selected' : ''}>👤 FIROZ</option>
+            <option value="OTHER" ${window._claimsState.paidByFilter === 'OTHER' ? 'selected' : ''}>⚠️ OTHER</option>
           </select>
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">📁 Module</label>
           <select id="cfModule" onchange="updateClaimsFilter()">
-            <option value="all" ${window._claimsState.moduleFilter==='all'?'selected':''}>All Modules</option>
-            <option value="reimbursements" ${window._claimsState.moduleFilter==='reimbursements'?'selected':''}>💸 Daily Expenses</option>
-            <option value="maintenance" ${window._claimsState.moduleFilter==='maintenance'?'selected':''}>🔧 Maintenance</option>
-            <option value="laundry" ${window._claimsState.moduleFilter==='laundry'?'selected':''}>🧺 Laundry</option>
-            <option value="advances" ${window._claimsState.moduleFilter==='advances'?'selected':''}>💰 Staff Advances</option>
+            <option value="all" ${window._claimsState.moduleFilter === 'all' ? 'selected' : ''}>All Modules</option>
+            <option value="reimbursements" ${window._claimsState.moduleFilter === 'reimbursements' ? 'selected' : ''}>💸 Daily Expenses</option>
+            <option value="maintenance" ${window._claimsState.moduleFilter === 'maintenance' ? 'selected' : ''}>🔧 Maintenance</option>
+            <option value="laundry" ${window._claimsState.moduleFilter === 'laundry' ? 'selected' : ''}>🧺 Laundry</option>
+            <option value="advances" ${window._claimsState.moduleFilter === 'advances' ? 'selected' : ''}>💰 Staff Advances</option>
           </select>
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:3px;">🏷️ Status</label>
           <select id="cfStatus" onchange="updateClaimsFilter()">
-            <option value="unclaimed" ${window._claimsState.statusFilter==='unclaimed'?'selected':''}>⏳ Pending</option>
-            <option value="claimed" ${window._claimsState.statusFilter==='claimed'?'selected':''}>📤 Claimed</option>
-            <option value="received" ${window._claimsState.statusFilter==='received'?'selected':''}>✅ Settled</option>
-            <option value="all" ${window._claimsState.statusFilter==='all'?'selected':''}>All Statuses</option>
+            <option value="unclaimed" ${window._claimsState.statusFilter === 'unclaimed' ? 'selected' : ''}>⏳ Pending</option>
+            <option value="claimed" ${window._claimsState.statusFilter === 'claimed' ? 'selected' : ''}>📤 Claimed</option>
+            <option value="received" ${window._claimsState.statusFilter === 'received' ? 'selected' : ''}>✅ Settled</option>
+            <option value="all" ${window._claimsState.statusFilter === 'all' ? 'selected' : ''}>All Statuses</option>
           </select>
         </div>
         <div>
@@ -442,7 +442,7 @@ window.renderClaims = async function() {
   await loadClaimsData();
 };
 
-window.setClaimsQuickDate = function(f, t) {
+window.setClaimsQuickDate = function (f, t) {
   const fEl = document.getElementById('cfFromDate');
   const tEl = document.getElementById('cfToDate');
   if (fEl) fEl.value = f;
@@ -455,7 +455,7 @@ window.setClaimsQuickDate = function(f, t) {
   window.updateClaimsFilter();
 };
 
-window.updateClaimsFilter = function() {
+window.updateClaimsFilter = function () {
   const fD = document.getElementById('cfFromDate')?.value;
   const tD = document.getElementById('cfToDate')?.value;
   const mF = document.getElementById('cfModule')?.value;
@@ -649,9 +649,9 @@ function renderClaimsTable() {
     // Employee filter
     if (employeeFilter && employeeFilter !== 'all') {
       const matchEmp = (item.staffName === employeeFilter) ||
-                       (item.vendorOrStaff === employeeFilter) ||
-                       (item.empId === employeeFilter) ||
-                       (empMap[item.empId] === employeeFilter);
+        (item.vendorOrStaff === employeeFilter) ||
+        (item.empId === employeeFilter) ||
+        (empMap[item.empId] === employeeFilter);
       if (!matchEmp) return false;
     }
 
@@ -747,12 +747,12 @@ function renderClaimsTable() {
       </thead>
       <tbody>
         ${filtered.map(item => {
-          const isChecked = selectedIds.has(item.uniqKey);
-          const badgeClass = item.status === 'received' ? 'background:#DCFCE7;color:#15803D;' : item.status === 'claimed' ? 'background:#FEF3C7;color:#92400E;' : 'background:#FEE2E2;color:#B91C1C;';
-          const badgeLabel = item.status === 'received' ? '✅ Settled' : item.status === 'claimed' ? '📤 Claimed' : '⏳ Pending';
-          const sourceBadge = window.UHHSODManager ? UHHSODManager.getBadge(item.paidBy) : item.paidBy;
+    const isChecked = selectedIds.has(item.uniqKey);
+    const badgeClass = item.status === 'received' ? 'background:#DCFCE7;color:#15803D;' : item.status === 'claimed' ? 'background:#FEF3C7;color:#92400E;' : 'background:#FEE2E2;color:#B91C1C;';
+    const badgeLabel = item.status === 'received' ? '✅ Settled' : item.status === 'claimed' ? '📤 Claimed' : '⏳ Pending';
+    const sourceBadge = window.UHHSODManager ? UHHSODManager.getBadge(item.paidBy) : item.paidBy;
 
-          return `
+    return `
             <tr style="border-bottom:1px solid #E2E8F0;background:${isChecked ? '#EFF6FF' : '#fff'};">
               <td style="padding:10px;"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectClaim('${item.uniqKey}')" /></td>
               <td style="padding:10px;font-weight:600;">${item.moduleLabel}</td>
@@ -782,7 +782,7 @@ function renderClaimsTable() {
               </td>
             </tr>
           `;
-        }).join('')}
+  }).join('')}
       </tbody>
     </table>
   `;
@@ -791,14 +791,14 @@ function renderClaimsTable() {
 }
 
 // 5. Checkbox & Selection Helpers
-window.toggleSelectClaim = function(uniqKey) {
+window.toggleSelectClaim = function (uniqKey) {
   const { selectedIds } = window._claimsState;
   if (selectedIds.has(uniqKey)) selectedIds.delete(uniqKey);
   else selectedIds.add(uniqKey);
   renderClaimsTable();
 };
 
-window.toggleSelectAllClaims = function(masterCb) {
+window.toggleSelectAllClaims = function (masterCb) {
   const { selectedIds, filteredKeys } = window._claimsState;
   if (masterCb.checked) {
     (filteredKeys || []).forEach(k => selectedIds.add(k));
@@ -909,7 +909,7 @@ async function updateItemClaimStatus(item, targetStatus, today = new Date().toIS
 }
 
 // Single-item action toggle
-window.updateSingleClaim = async function(uniqKey, targetStatus) {
+window.updateSingleClaim = async function (uniqKey, targetStatus) {
   const item = (window._claimsState.allData || []).find(i => i.uniqKey === uniqKey);
   if (!item) return;
   const label = targetStatus === 'received' ? 'Settled (Received)' : targetStatus === 'claimed' ? 'Claimed' : 'Pending';
@@ -926,7 +926,7 @@ window.updateSingleClaim = async function(uniqKey, targetStatus) {
 };
 
 // Checkbox selection action handler
-window.bulkUpdateClaims = async function(targetStatus) {
+window.bulkUpdateClaims = async function (targetStatus) {
   const { selectedIds, allData } = window._claimsState;
   if (selectedIds.size === 0) {
     alert('⚠️ Please select at least 1 item using checkboxes, or click "Claim All in Range" / "Settle All in Range" above to update the whole date range at once!');
@@ -962,7 +962,7 @@ window.bulkUpdateClaims = async function(targetStatus) {
 };
 
 // ⚡ Range Bulk Updater (Claim All / Settle All across selected date range)
-window.bulkUpdateRange = async function(targetStatus) {
+window.bulkUpdateRange = async function (targetStatus) {
   const { fromDate, toDate, allData, moduleFilter, paidByFilter } = window._claimsState;
 
   const matchingItems = (allData || []).filter(item => {
@@ -1028,20 +1028,20 @@ window.bulkUpdateRange = async function(targetStatus) {
 };
 
 // 7. UHHS Deposit Entry Modal & Ledger Popup
-window.openUhhsDepositModal = function() {
+window.openUhhsDepositModal = function () {
   if (window.cbDepositToODModal) window.cbDepositToODModal();
 };
 
-window.openUhhsReturnModal = function() {
+window.openUhhsReturnModal = function () {
   if (window.cbReturnFromODModal) window.cbReturnFromODModal();
 };
 
-window.closeUhhsStatementModal = function() {
+window.closeUhhsStatementModal = function () {
   const m = document.getElementById('uhhsLedgerModalOverlay');
   if (m) m.remove();
 };
 
-window.showUhhsStatementModal = async function() {
+window.showUhhsStatementModal = async function () {
   try {
     const { fromDate, toDate } = window._claimsState || {};
     const fDate = fromDate || '2026-09-17';
@@ -1122,9 +1122,9 @@ window.showUhhsStatementModal = async function() {
               <div class="kpi-label" style="font-size:9.5px;color:#991B1B;font-weight:700;">TOTAL SPENT (-)</div>
               <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:#DC2626;margin-top:2px;">₹${totalOutflow.toLocaleString('en-IN')}</div>
             </div>
-            <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:${netBalance>=0?'#ECFDF5':'#FFF1F2'};border:1.5px solid ${netBalance>=0?'#10B981':'#EF4444'};border-radius:8px;text-align:center;">
-              <div class="kpi-label" style="font-size:9.5px;color:${netBalance>=0?'#065F46':'#9F1239'};font-weight:800;">NET RUNNING BAL</div>
-              <div class="kpi-val" style="font-size:15px;font-weight:900;color:${netBalance>=0?'#059669':'#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+            <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:${netBalance >= 0 ? '#ECFDF5' : '#FFF1F2'};border:1.5px solid ${netBalance >= 0 ? '#10B981' : '#EF4444'};border-radius:8px;text-align:center;">
+              <div class="kpi-label" style="font-size:9.5px;color:${netBalance >= 0 ? '#065F46' : '#9F1239'};font-weight:800;">NET RUNNING BAL</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:900;color:${netBalance >= 0 ? '#059669' : '#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
@@ -1145,9 +1145,9 @@ window.showUhhsStatementModal = async function() {
                 ${txns.map(t => `
                   <tr style="border-bottom:1px solid #E2E8F0;">
                     <td style="padding:8px 10px;white-space:nowrap;color:#475569;font-weight:600;">${t.date || '-'}</td>
-                    <td style="padding:8px 10px;white-space:nowrap;"><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isOpening?'#EFF6FF':(t.isDep?'#DCFCE7':'#FEE2E2')};color:${t.isOpening?'#1D4ED8':(t.isDep?'#15803D':'#B91C1C')};">${t.isOpening ? '💼 OPENING BAL' : (t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE')}</span></td>
+                    <td style="padding:8px 10px;white-space:nowrap;"><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${t.isOpening ? '#EFF6FF' : (t.isDep ? '#DCFCE7' : '#FEE2E2')};color:${t.isOpening ? '#1D4ED8' : (t.isDep ? '#15803D' : '#B91C1C')};">${t.isOpening ? '💼 OPENING BAL' : (t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE')}</span></td>
                     <td style="padding:8px 10px;min-width:240px;max-width:none !important;white-space:normal !important;word-break:break-word !important;color:#1E293B;line-height:1.35;">${t.desc}</td>
-                    <td style="padding:8px 10px;text-align:right;font-weight:700;color:${t.isDep?'#15803D':'#B91C1C'};white-space:nowrap;min-width:115px;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                    <td style="padding:8px 10px;text-align:right;font-weight:700;color:${t.isDep ? '#15803D' : '#B91C1C'};white-space:nowrap;min-width:115px;">${t.isDep ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
                     <td style="padding:8px 10px;text-align:center;white-space:nowrap;min-width:135px;">
                       ${(t.isSecurityDeposit || t.isSecurityRefund) && t.booking_id ? `
                         <button onclick="window.showSecurityDepositModal('${t.booking_id}')" class="btn-sm" style="background:#0284C7;color:#fff;padding:4px 9px;font-size:10.5px;font-weight:600;border:none;border-radius:4px;cursor:pointer;" title="Manage Security Deposit">🛡️ Manage</button>
@@ -1169,7 +1169,7 @@ window.showUhhsStatementModal = async function() {
         <!-- STICKY FOOTER -->
         <div style="padding:10px 16px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="font-size:12px;color:#64748B;">
-            Period Net Balance: <strong style="color:${netBalance>=0?'#059669':'#DC2626'};font-size:13px;">₹${netBalance.toLocaleString('en-IN')}</strong>
+            Period Net Balance: <strong style="color:${netBalance >= 0 ? '#059669' : '#DC2626'};font-size:13px;">₹${netBalance.toLocaleString('en-IN')}</strong>
           </div>
           <button type="button" class="modal-close" onclick="window.closeUhhsStatementModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
             ✕ Close Ledger
@@ -1194,7 +1194,7 @@ window.showUhhsStatementModal = async function() {
 };
 
 // 7b. In-Place Daily Expense Edit Modal for Ledger (z-index 9999999 so it never appears in background)
-window.openReimbursementEditModal = async function(id) {
+window.openReimbursementEditModal = async function (id) {
   const oldModal = document.getElementById('reimbEditModalOverlay');
   if (oldModal) oldModal.remove();
 
@@ -1235,8 +1235,8 @@ window.openReimbursementEditModal = async function(id) {
           <label style="font-weight:600;font-size:12px;display:block;margin-bottom:4px;">Category *</label>
           <select id="ledgerEditCat" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
             ${['🛒 Grocery/Food', '🧹 Cleaning Supplies', '🚚 Delivery/Transport', '💡 Utilities', '🎁 Guest Requests', '📦 Other'].map(c =>
-              `<option value="${c}" ${(rec.category || '').includes(c.slice(2).trim()) ? 'selected' : ''}>${c}</option>`
-            ).join('')}
+      `<option value="${c}" ${(rec.category || '').includes(c.slice(2).trim()) ? 'selected' : ''}>${c}</option>`
+    ).join('')}
           </select>
         </div>
 
@@ -1277,7 +1277,7 @@ window.openReimbursementEditModal = async function(id) {
   }
 };
 
-window.saveReimbursementFromLedger = async function(id) {
+window.saveReimbursementFromLedger = async function (id) {
   const btn = document.getElementById('btnSaveLedgerEdit');
   const errEl = document.getElementById('ledgerEditErr');
   const date = document.getElementById('ledgerEditDate')?.value;
@@ -1321,7 +1321,7 @@ window.saveReimbursementFromLedger = async function(id) {
   }
 };
 
-window.deleteReimbursementFromLedger = async function(id) {
+window.deleteReimbursementFromLedger = async function (id) {
   if (!confirm('🗑️ Are you sure you want to delete this daily expense record?')) return;
   try {
     const { error } = await sb.from('reimbursements').delete().eq('id', id);
@@ -1343,12 +1343,12 @@ window.deleteReimbursementFromLedger = async function(id) {
 // ══════════════════════════════════════════════════════════════════
 // 8. INTERACTIVE EMPLOYEE ADVANCE ANALYSIS MODAL (TOTAL, MONTHLY & BETWEEN)
 // ══════════════════════════════════════════════════════════════════
-window.closeEmployeeAdvanceModal = function() {
+window.closeEmployeeAdvanceModal = function () {
   const m = document.getElementById('empAdvModalOverlay');
   if (m) m.remove();
 };
 
-window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) {
+window.showEmployeeAdvanceAnalysisModal = async function (preselectedEmp = null) {
   try {
     let allAdvs = window._claimsState.allAdvs || [];
     let empList = window._claimsState.empList || [];
@@ -1436,7 +1436,7 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
 
     document.body.appendChild(modal);
 
-    window.setModalAdvRange = function(f, t) {
+    window.setModalAdvRange = function (f, t) {
       const fEl = document.getElementById('modalAdvFrom');
       const tEl = document.getElementById('modalAdvTo');
       if (fEl) fEl.value = f;
@@ -1444,7 +1444,7 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
       updateEmpAdvModalView();
     };
 
-    window.updateEmpAdvModalView = function() {
+    window.updateEmpAdvModalView = function () {
       const empVal = document.getElementById('modalAdvEmp')?.value || 'all';
       const fVal = document.getElementById('modalAdvFrom')?.value || '';
       const tVal = document.getElementById('modalAdvTo')?.value || '';
@@ -1524,13 +1524,13 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
             <tbody>
               ${betweenMatching.length === 0 ? '<tr><td colspan="7" style="padding:24px;text-align:center;color:#94A3B8;">No advance entries found in this date range</td></tr>' : ''}
               ${betweenMatching.map(a => {
-                const sName = a.employees?.name || window._claimsState.empMap[a.emp_id] || 'Staff';
-                const st = a.claim_status || (a.is_deducted ? 'received' : 'unclaimed');
-                const stBadge = st === 'received' ? '<span style="background:#DCFCE7;color:#15803D;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">✅ Settled</span>'
-                  : st === 'claimed' ? '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">📤 Claimed</span>'
-                  : '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">⏳ Pending</span>';
+        const sName = a.employees?.name || window._claimsState.empMap[a.emp_id] || 'Staff';
+        const st = a.claim_status || (a.is_deducted ? 'received' : 'unclaimed');
+        const stBadge = st === 'received' ? '<span style="background:#DCFCE7;color:#15803D;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">✅ Settled</span>'
+          : st === 'claimed' ? '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">📤 Claimed</span>'
+            : '<span style="background:#FEE2E2;color:#B91C1C;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">⏳ Pending</span>';
 
-                return `
+        return `
                   <tr style="border-bottom:1px solid #E2E8F0;">
                     <td style="padding:8px;white-space:nowrap;">${a.date_given || (a.created_at || '').slice(0, 10)}</td>
                     <td style="padding:8px;font-weight:700;color:#1E293B;">${sName}</td>
@@ -1541,7 +1541,7 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
                     <td style="padding:8px;text-align:center;">${stBadge}</td>
                   </tr>
                 `;
-              }).join('')}
+      }).join('')}
             </tbody>
           </table>
         </div>
@@ -1564,7 +1564,7 @@ window.showEmployeeAdvanceAnalysisModal = async function(preselectedEmp = null) 
   }
 };
 
-window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
+window.exportUhhsLedgerPDF = function (fDate, tDate, totalInflow, totalOutflow, netBalance, txnsJson) {
   let txns = [];
   if ((!fDate || typeof fDate !== 'string') && window._currentUhhsStatementData) {
     fDate = window._currentUhhsStatementData.fDate;
@@ -1657,8 +1657,8 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
           <div class="val" style="color:#dc2626;">₹${safeOutflow.toLocaleString('en-IN')}</div>
         </div>
         <div class="card card-bal">
-          <div class="lbl" style="color:${safeBalance>=0?'#065f46':'#9f1239'};">NET RUNNING BALANCE</div>
-          <div class="val" style="color:${safeBalance>=0?'#059669':'#dc2626'};">₹${safeBalance.toLocaleString('en-IN')}</div>
+          <div class="lbl" style="color:${safeBalance >= 0 ? '#065f46' : '#9f1239'};">NET RUNNING BALANCE</div>
+          <div class="val" style="color:${safeBalance >= 0 ? '#059669' : '#dc2626'};">₹${safeBalance.toLocaleString('en-IN')}</div>
         </div>
       </div>
 
@@ -1678,7 +1678,7 @@ window.exportUhhsLedgerPDF = function(fDate, tDate, totalInflow, totalOutflow, n
                 <td style="padding:8px 10px;white-space:nowrap;width:95px;">${t.date || '-'}</td>
                 <td style="padding:8px 10px;white-space:nowrap;width:110px;"><span class="${t.isDep ? 'dep' : 'exp'}">${t.isDep ? '📥 DEPOSIT' : '📤 EXPENSE'}</span></td>
                 <td style="padding:8px 10px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.4;min-width:240px;">${escapeHtml(t.desc)}</td>
-                <td style="padding:8px 10px;text-align:right;white-space:nowrap;font-weight:700;width:125px;color:${t.isDep?'#15803d':'#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
+                <td style="padding:8px 10px;text-align:right;white-space:nowrap;font-weight:700;width:125px;color:${t.isDep ? '#15803d' : '#b91c1c'};">${t.isDep ? '+' : '-'}₹${(Number(t.amount) || 0).toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1716,16 +1716,16 @@ function getFilteredClaimsItems() {
     if (statusFilter && statusFilter !== 'all' && item.status !== statusFilter) return false;
     if (employeeFilter && employeeFilter !== 'all') {
       const matchEmp = (item.staffName === employeeFilter) ||
-                       (item.vendorOrStaff === employeeFilter) ||
-                       (item.empId === employeeFilter) ||
-                       (empMap && empMap[item.empId] === employeeFilter);
+        (item.vendorOrStaff === employeeFilter) ||
+        (item.empId === employeeFilter) ||
+        (empMap && empMap[item.empId] === employeeFilter);
       if (!matchEmp) return false;
     }
     return true;
   });
 }
 
-window.generateClaimReport = function() {
+window.generateClaimReport = function () {
   const items = getFilteredClaimsItems();
   if (!items || items.length === 0) {
     if (window.fsn?.warn) fsn.warn('No Data', 'No claim items found matching current filters.');
@@ -1828,7 +1828,7 @@ window.generateClaimReport = function() {
                   <td style="padding:8px;white-space:nowrap;"><span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#E0E7FF;color:#3730A3;">${i.paidBy}</span></td>
                   <td style="padding:8px;text-align:right;font-weight:700;color:#0F172A;white-space:nowrap;">₹${(i.amount || 0).toLocaleString('en-IN')}</td>
                   <td style="padding:8px;text-align:center;white-space:nowrap;">
-                    <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${i.status==='received'?'#DCFCE7':i.status==='claimed'?'#FEF3C7':'#F1F5F9'};color:${i.status==='received'?'#15803D':i.status==='claimed'?'#92400E':'#475569'};">
+                    <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${i.status === 'received' ? '#DCFCE7' : i.status === 'claimed' ? '#FEF3C7' : '#F1F5F9'};color:${i.status === 'received' ? '#15803D' : i.status === 'claimed' ? '#92400E' : '#475569'};">
                       ${i.status.toUpperCase()}
                     </span>
                   </td>
@@ -1842,7 +1842,7 @@ window.generateClaimReport = function() {
       <!-- FOOTER -->
       <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="font-size:12px;color:#64748B;">
-          Pending Payable: <strong style="color:${pendingAmt>0?'#B45309':'#059669'};">₹${pendingAmt.toLocaleString('en-IN')}</strong>
+          Pending Payable: <strong style="color:${pendingAmt > 0 ? '#B45309' : '#059669'};">₹${pendingAmt.toLocaleString('en-IN')}</strong>
         </div>
         <button type="button" onclick="document.getElementById('claimReportModalOverlay')?.remove()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
           ✕ Close
@@ -1854,7 +1854,7 @@ window.generateClaimReport = function() {
   document.body.appendChild(modal);
 };
 
-window.printClaimReportStatement = function() {
+window.printClaimReportStatement = function () {
   const items = getFilteredClaimsItems();
   if (!items || items.length === 0) return;
 
@@ -1943,7 +1943,7 @@ window.printClaimReportStatement = function() {
               <td>${i.description || '-'}</td>
               <td>${i.vendorOrStaff || '-'}</td>
               <td>${i.paidBy}</td>
-              <td style="text-align:right;font-weight:700;">₹${(i.amount||0).toLocaleString('en-IN')}</td>
+              <td style="text-align:right;font-weight:700;">₹${(i.amount || 0).toLocaleString('en-IN')}</td>
               <td style="text-align:center;">${i.status.toUpperCase()}</td>
             </tr>
           `).join('')}
@@ -1961,7 +1961,7 @@ window.printClaimReportStatement = function() {
   window.printDocumentHTML(html, pdfTitle);
 };
 
-window.copyClaimWhatsAppText = function() {
+window.copyClaimWhatsAppText = function () {
   const items = getFilteredClaimsItems();
   if (!items || items.length === 0) {
     alert('No claim items found to summarize.');
@@ -1983,7 +1983,7 @@ window.copyClaimWhatsAppText = function() {
     if (i.status === 'claimed' || i.status === 'received') claimedAmt += (i.amount || 0);
     if (i.module === 'advances') advancesAmt += (i.amount || 0);
     const emoji = i.module === 'reimbursements' ? '💸' : i.module === 'maintenance' ? '🔧' : i.module === 'laundry' ? '🧺' : '💰';
-    listText += `${idx + 1}. ${emoji} *${i.description || i.module}* (${i.dateStr})\n   👤 ${i.vendorOrStaff || i.paidBy} → ₹${(i.amount||0).toLocaleString('en-IN')}\n`;
+    listText += `${idx + 1}. ${emoji} *${i.description || i.module}* (${i.dateStr})\n   👤 ${i.vendorOrStaff || i.paidBy} → ₹${(i.amount || 0).toLocaleString('en-IN')}\n`;
   });
 
   if (items.length > 40) {
@@ -2013,7 +2013,7 @@ console.log("✅ Claims Manager v8 MASTER LOADED!");
 // 🏢 COMPANY LEDGER — Statement of Company Expenses & Advances
 // ═══════════════════════════════════════════════════════════
 
-window.showCompanyLedgerModal = function() {
+window.showCompanyLedgerModal = function () {
   const old = document.getElementById('companyLedgerModalOverlay');
   if (old) old.remove();
 
@@ -2066,7 +2066,7 @@ window.showCompanyLedgerModal = function() {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 };
 
-window.exportCompanyLedgerPDF = async function(fDate, tDate) {
+window.exportCompanyLedgerPDF = async function (fDate, tDate) {
   const btn = document.getElementById('btnGenCompLedger');
   if (btn) { btn.disabled = true; btn.innerText = '⏳ Fetching Data...'; }
 
@@ -2104,7 +2104,7 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
   const catMap = {};
   compItems.forEach(i => { const c = i.moduleLabel || 'Other'; catMap[c] = (catMap[c] || 0) + (Number(i.amount) || 0); });
 
-  const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const cleanFDate = String(fromD).replace(/[\/\\:*?"<>|]/g, '-');
   const cleanTDate = String(toD).replace(/[\/\\:*?"<>|]/g, '-');
   const title = `TUHH_Company_Payments_Ledger_${cleanFDate}_to_${cleanTDate}`;
@@ -2149,25 +2149,25 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
     '<div class="card c-pending"><div class="lbl" style="color:#991b1b;">PENDING TO SETTLE</div><div class="val" style="color:#dc2626;">₹' + pendingExpenses.toLocaleString('en-IN') + '</div></div>' +
     '</div>' +
     '<div style="font-size:11px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Category Breakdown</div>' +
-    '<div class="cat-box">' + Object.entries(catMap).map(([c,a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
+    '<div class="cat-box">' + Object.entries(catMap).map(([c, a]) => '<div class="cat-chip">' + c + ': ₹' + a.toLocaleString('en-IN') + '</div>').join('') + '</div>' +
     '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">' +
     '<table class="uhh-report-table" style="width:100%;min-width:720px;border-collapse:collapse;table-layout:auto;">' +
     '<thead><tr><th>#</th><th>Date</th><th>Type</th><th>Description</th><th>Vendor / Staff</th><th>Status</th><th style="text-align:right;">Amount (₹)</th></tr></thead><tbody>' +
     (compItems.length === 0
       ? '<tr><td colspan="7" style="text-align:center;padding:20px;color:#64748B;">No COMPANY-paid expenses found in this date range.</td></tr>'
       : compItems.map((item, idx) =>
-          '<tr>' +
-          '<td style="color:#64748B;white-space:nowrap;width:36px;">' + (idx+1) + '</td>' +
-          '<td style="white-space:nowrap;width:88px;">' + (item.dateStr||'-') + '</td>' +
-          '<td style="white-space:nowrap;width:95px;">' + (item.moduleLabel||'-') + '</td>' +
-          '<td style="white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.4;">' + esc(item.description) + '</td>' +
-          '<td style="color:#475569;white-space:normal;word-break:break-word;overflow-wrap:anywhere;width:150px;">' + esc(item.vendorOrStaff) + '</td>' +
-          '<td style="text-align:center;white-space:nowrap;width:95px;"><span class="' + (item.status==='received'?'bs':item.status==='claimed'?'bc':'bp') + '">' + (item.status==='received'?'✅ SETTLED':item.status==='claimed'?'⏳ CLAIMED':'🔴 PENDING') + '</span></td>' +
-          '<td style="text-align:right;white-space:nowrap;font-weight:700;color:#EA580C;width:110px;">₹' + (Number(item.amount)||0).toLocaleString('en-IN') + '</td>' +
-          '</tr>'
-        ).join('') +
-        '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
-        '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;white-space:nowrap;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
+        '<tr>' +
+        '<td style="color:#64748B;white-space:nowrap;width:36px;">' + (idx + 1) + '</td>' +
+        '<td style="white-space:nowrap;width:88px;">' + (item.dateStr || '-') + '</td>' +
+        '<td style="white-space:nowrap;width:95px;">' + (item.moduleLabel || '-') + '</td>' +
+        '<td style="white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.4;">' + esc(item.description) + '</td>' +
+        '<td style="color:#475569;white-space:normal;word-break:break-word;overflow-wrap:anywhere;width:150px;">' + esc(item.vendorOrStaff) + '</td>' +
+        '<td style="text-align:center;white-space:nowrap;width:95px;"><span class="' + (item.status === 'received' ? 'bs' : item.status === 'claimed' ? 'bc' : 'bp') + '">' + (item.status === 'received' ? '✅ SETTLED' : item.status === 'claimed' ? '⏳ CLAIMED' : '🔴 PENDING') + '</span></td>' +
+        '<td style="text-align:right;white-space:nowrap;font-weight:700;color:#EA580C;width:110px;">₹' + (Number(item.amount) || 0).toLocaleString('en-IN') + '</td>' +
+        '</tr>'
+      ).join('') +
+      '<tr class="tr-total"><td colspan="6" style="text-align:right;padding:10px 8px;font-size:13px;">🏢 TOTAL COMPANY PAID</td>' +
+      '<td style="text-align:right;font-size:14px;font-weight:800;color:#EA580C;padding:10px 8px;white-space:nowrap;">₹' + totalCompanyExpenses.toLocaleString('en-IN') + '</td></tr>'
     ) +
     '</tbody></table></div>' +
     '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #DDD6FE;text-align:center;font-size:11px;color:#64748b;">' +
@@ -2180,7 +2180,7 @@ window.exportCompanyLedgerPDF = async function(fDate, tDate) {
 // =========================================================================
 // 📸 BALANCE STATEMENT SCREENSHOT DOWNLOAD & WHATSAPP PROOF (OWNER TRUST)
 // =========================================================================
-window.downloadTodayBalanceScreenshot = async function(evt) {
+window.downloadTodayBalanceScreenshot = async function (evt) {
   if (typeof html2canvas === 'undefined') {
     alert('Screenshot component is still loading. Please try again in 2 seconds.');
     return;
@@ -2408,7 +2408,7 @@ window.downloadTodayBalanceScreenshot = async function(evt) {
   }
 };
 
-window.shareTodayBalanceWhatsApp = function() {
+window.shareTodayBalanceWhatsApp = function () {
   // Only initialize if statement state is completely missing; do not override user's active choice (e.g. Today vs Range)
   if (!window._tuhhOdBalanceState?.selectedDate && typeof window.renderClosingStatementForDate === 'function') {
     const curFrom = document.getElementById('cfFromDate')?.value || window._claimsState?.fromDate;

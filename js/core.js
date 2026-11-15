@@ -1912,11 +1912,19 @@ function renderShell(content, activePage = 'dashboard') {
     });
 
     // 5. Update mobile bottom nav (HomeyHuts / Airbnb 5-tab capsule pill)
+    const botNavEl = document.getElementById('pwa-bottom-nav');
+    if (botNavEl) {
+      botNavEl.classList.remove('auth-nav-hidden');
+      botNavEl.style.removeProperty('display');
+      botNavEl.style.removeProperty('visibility');
+      botNavEl.style.removeProperty('pointer-events');
+    }
     document.querySelectorAll('#pwa-bottom-nav .pwa-nav-item, .bottom-nav a').forEach(btn => {
       const p = btn.dataset.page;
       const isAct = (p === targetSidebarKey) ||
         (p === 'calendar' && targetSidebarKey === 'bookings') ||
-        (p === 'flats' && targetSidebarKey === 'rooms');
+        (p === 'flats' && targetSidebarKey === 'rooms') ||
+        (p === 'rooms' && targetSidebarKey === 'rooms');
       if (isAct) btn.classList.add('active');
       else btn.classList.remove('active');
     });
@@ -2143,6 +2151,13 @@ function renderShell(content, activePage = 'dashboard') {
   if (backdropEl) backdropEl.onclick = closeMobileDrawer;
 
   // Bottom Nav handlers (mobile)
+  const botNavFull = document.getElementById('pwa-bottom-nav');
+  if (botNavFull) {
+    botNavFull.classList.remove('auth-nav-hidden');
+    botNavFull.style.removeProperty('display');
+    botNavFull.style.removeProperty('visibility');
+    botNavFull.style.removeProperty('pointer-events');
+  }
   document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
     a.onclick = e => {
       e.preventDefault();
@@ -2489,6 +2504,13 @@ function navigate(page) {
     }
   }
   SESSION.currentPage = page;
+  const botNavNav = document.getElementById('pwa-bottom-nav');
+  if (botNavNav) {
+    botNavNav.classList.remove('auth-nav-hidden');
+    botNavNav.style.removeProperty('display');
+    botNavNav.style.removeProperty('visibility');
+    botNavNav.style.removeProperty('pointer-events');
+  }
   try { localStorage.setItem('uh_last_page', page); } catch(e) {}
   if (window.trackPageVisit) window.trackPageVisit(page);
   // 🧭 USER AUDIT PAGE TRACKER — Instant per-user page visit recording
