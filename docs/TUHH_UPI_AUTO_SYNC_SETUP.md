@@ -20,7 +20,7 @@
 ## 🚀 2-Minute Deployment Steps (Praveen & Firoz Bhai)
 
 ### Step 1: Open Google Apps Script
-1. Log in to the Google Account that receives your bank/UPI credit notification emails (e.g. `videoeditorlucknow@gmail.com` or Firoz Khan's email).
+1. Log in to the Google Account that receives your bank/UPI credit notification emails (e.g. your registered company admin email).
 2. Go to: **[script.google.com](https://script.google.com/)**
 3. Click on **"+ New project"** (ऊपर बाएँ कोने में "+ New project" पर क्लिक करें).
 4. Rename the project to: `TUHH-UPI-Auto-Sync`.

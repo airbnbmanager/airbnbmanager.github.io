@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.uniquehavenhomesstay.twa",
+        "sha256_cert_fingerprints": ["B9:42:45:1E:DC:62:4F:EB:42:34:9B:02:2D:91:E3:6D:C1:AF:CF:D2:0C:55:9E:82:6D:FA:AE:01:41:BC:69:D8"]
+      }
+    }]

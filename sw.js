@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tuhh-live-v450';
-const RUNTIME_CACHE = 'tuhh-runtime-v450';
+const CACHE_NAME = 'tuhh-live-v461';
+const RUNTIME_CACHE = 'tuhh-runtime-v461';
 
 const CORE_ASSETS = [
   '/admin.html',
@@ -24,6 +24,8 @@ const CORE_ASSETS = [
   '/assets/signature-stamp.svg',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
+  '/assets/screenshot-wide.png',
+  '/assets/screenshot-narrow.png',
   '/js/core.js',
   '/js/user-audit.js',
   '/js/airbnb-audit-data.js',

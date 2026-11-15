@@ -1501,7 +1501,7 @@ async function renderEmployeeTasks(viewMode) {
   try {
     const [{ data: tasks, error: tasksErr }, { data: emps, error: empsErr }, { data: rooms, error: roomsErr }] = await Promise.all([
       sb.from('employee_tasks').select('*').order('assigned_date', { ascending: false }),
-      sb.from('employees').select('emp_id, name, phone, status'),
+      sb.from('employees').select('emp_id, name, phone, status, is_active, role'),
       sb.from('rooms').select('room_id, nickname, unit_no, property_name')
     ]);
 
@@ -1510,6 +1510,7 @@ async function renderEmployeeTasks(viewMode) {
     }
 
     const allTasks = tasks || [];
+    const activeStaffEmps = (emps || []).filter(isEmployeeActive);
     const empMap = {};
     const empPhoneMap = {};
     (emps || []).forEach(e => {
@@ -2045,8 +2046,8 @@ async function renderEmployeeTasks(viewMode) {
 
             <!-- Staff Dropdown Filter -->
             <select onchange="window._taskStaffFilter=this.value;renderEmployeeTasks('${viewMode}')" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);font-size:12px;font-weight:600;">
-              <option value="ALL" ${staffFilter==='ALL'?'selected':''}>All Staff</option>
-              ${(emps||[]).map(e => `<option value="${e.emp_id}" ${staffFilter===e.emp_id?'selected':''}>${e.name}</option>`).join('')}
+              <option value="ALL" ${staffFilter==='ALL'?'selected':''}>All Staff (${activeStaffEmps.length})</option>
+              ${activeStaffEmps.map(e => `<option value="${e.emp_id}" ${staffFilter===e.emp_id?'selected':''}>${escapeHtml(e.name)}</option>`).join('')}
             </select>
 
             <!-- Property Filter -->
@@ -4098,7 +4099,958 @@ async function showEmpDetailModal(empId) {
   document.body.appendChild(modal);
 }
 
-console.log("✅ Employees Module v7 loaded");
+console.log("✅ Employees Module v8 loaded");
+
+// ============================================================
+// 💰 EMPLOYEE PAY REPORT (Per-Flat Cleaners + Fixed Monthly Staff)
+// Compares: Earned (Flats or Salary) vs Paid vs Advance vs Balance
+// Filters: Excludes fired/disabled staff by default, supports Custom Date Range
+// ============================================================
+async function renderEmployeePayReport() {
+  const today = new Date().toISOString().slice(0, 10);
+  const firstOfMonth = today.slice(0, 7) + '-01';
+
+  const fromKey = 'tuhh_epr_from';
+  const toKey   = 'tuhh_epr_to';
+  const typeKey = 'tuhh_epr_type';
+  const inactKey = 'tuhh_epr_show_inact';
+
+  let dateFrom  = sessionStorage.getItem(fromKey) || firstOfMonth;
+  let dateTo    = sessionStorage.getItem(toKey)   || today;
+  let typeFilter = sessionStorage.getItem(typeKey) || 'ALL';
+  let showInactive = sessionStorage.getItem(inactKey) === 'true';
+
+  renderShell('<div class="loading">Loading Employee Pay Report...</div>', 'employee-pay-report');
+
+  try {
+    const [
+      { data: emps, error: empErr },
+      { data: tasks, error: taskErr },
+      { data: salaries, error: salErr },
+      { data: advances, error: advErr }
+    ] = await Promise.all([
+      sb.from('employees').select('emp_id,name,role,per_flat_rate,employee_type,monthly_salary,status,is_active,phone').order('name'),
+      sb.from('employee_tasks').select('emp_id,status,assigned_date,task_type').gte('assigned_date', dateFrom).lte('assigned_date', dateTo),
+      sb.from('salary_tracker').select('emp_id,salary_paid,payment_date,month'),
+      sb.from('advance_tracker').select('emp_id,advance_amount,repaid_amount,date_given,reason')
+    ]);
+
+    if (empErr) console.error('Error fetching employees:', empErr);
+    if (advErr) console.error('Error fetching advance_tracker:', advErr);
+    if (salErr) console.error('Error fetching salary_tracker:', salErr);
+
+    // 1. Filter out fired/disabled/inactive staff unless explicitly requested
+    const allEmps = emps || [];
+    const activeStaff = allEmps.filter(isEmployeeActive);
+    const inactiveStaff = allEmps.filter(e => !isEmployeeActive(e));
+    const targetEmps = showInactive ? allEmps : activeStaff;
+
+    // 2. Build tasks map for date range
+    const tasksByEmp = {};
+    (tasks || []).forEach(t => {
+      if (!tasksByEmp[t.emp_id]) tasksByEmp[t.emp_id] = [];
+      tasksByEmp[t.emp_id].push(t);
+    });
+
+    // 3. Filter salaries within date range
+    const salByEmp = {};
+    (salaries || []).forEach(s => {
+      const pDate = (s.payment_date || '').slice(0, 10);
+      const isDateInRange = pDate && (pDate >= dateFrom && pDate <= dateTo);
+      const isMonthInRange = s.month && (s.month >= dateFrom.slice(0,7) && s.month <= dateTo.slice(0,7));
+      if (isDateInRange || (!pDate && isMonthInRange)) {
+        salByEmp[s.emp_id] = (salByEmp[s.emp_id] || 0) + Number(s.salary_paid || 0);
+      }
+    });
+
+    // 4. Filter advances within date range
+    const advByEmp = {};
+    (advances || []).forEach(a => {
+      const aDate = (a.date_given || '').slice(0, 10);
+      if (aDate && aDate >= dateFrom && aDate <= dateTo) {
+        advByEmp[a.emp_id] = (advByEmp[a.emp_id] || 0) + Number(a.advance_amount || 0);
+      }
+    });
+
+    // Calculate days in period for pro-rata fixed salary
+    const dFrom = new Date(dateFrom);
+    const dTo = new Date(dateTo);
+    const diffDays = Math.max(1, Math.round((dTo - dFrom) / (1000 * 60 * 60 * 24)) + 1);
+
+    // Grand totals
+    let grandFlats = 0;
+    let grandEarned = 0;
+    let grandPaid = 0;
+    let grandAdv = 0;
+    let countedEmployees = 0;
+
+    // Prepare processed list
+    const processed = [];
+
+    targetEmps.forEach(e => {
+      const savedType = localStorage.getItem('tuhh_emp_type_' + e.emp_id);
+      const isPerFlat = (savedType === 'per_flat') || (e.employee_type === 'per_flat') || isEmpCleanerPieceRate(e);
+
+      // Apply type filter
+      if (typeFilter === 'per_flat' && !isPerFlat) return;
+      if (typeFilter === 'monthly' && isPerFlat) return;
+
+      const isActive = isEmployeeActive(e);
+      const empTasks = tasksByEmp[e.emp_id] || [];
+      const doneFlats = empTasks.filter(t => t.status === 'Completed').length;
+      const pendFlats = empTasks.filter(t => t.status === 'Pending').length;
+
+      let earned = 0;
+      let rateDisplay = '';
+      let workDetails = '';
+
+      if (isPerFlat) {
+        const rate = Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133;
+        earned = doneFlats * rate;
+        rateDisplay = `₹${rate}/flat`;
+        workDetails = `${doneFlats} flats cleaned`;
+        grandFlats += doneFlats;
+      } else {
+        const mSal = Number(e.monthly_salary) || 0;
+        rateDisplay = `₹${mSal.toLocaleString('en-IN')}/mo`;
+        if (diffDays >= 27 && diffDays <= 31) {
+          earned = mSal;
+          workDetails = '1 Full Month';
+        } else {
+          earned = Math.round((mSal / 30) * diffDays);
+          workDetails = `${diffDays} Days (@ ₹${Math.round(mSal / 30)}/day)`;
+        }
+      }
+
+      const paid = salByEmp[e.emp_id] || 0;
+      const advance = advByEmp[e.emp_id] || 0;
+      const totalRcvd = paid + advance;
+      const balance = earned - totalRcvd;
+
+      grandEarned += earned;
+      grandPaid += paid;
+      grandAdv += advance;
+      countedEmployees++;
+
+      processed.push({
+        ...e,
+        isPerFlat,
+        isActive,
+        doneFlats,
+        pendFlats,
+        rateDisplay,
+        workDetails,
+        earned,
+        paid,
+        advance,
+        totalRcvd,
+        balance
+      });
+    });
+
+    const grandBalance = grandEarned - grandPaid - grandAdv;
+    const grandBalColor = grandBalance > 0 ? '#B91C1C' : grandBalance < 0 ? '#B45309' : '#059669';
+
+    // Store in window for CSV export
+    window._currentPayReportData = {
+      dateFrom,
+      dateTo,
+      items: processed
+    };
+
+    const rows = processed.map(item => {
+      const balColor = item.balance > 0 ? '#B91C1C' : item.balance < 0 ? '#B45309' : '#059669';
+      const balLabel = item.balance > 0 ? `₹${item.balance.toLocaleString('en-IN')} बाकी ⬆️` :
+                       item.balance < 0 ? `₹${Math.abs(item.balance).toLocaleString('en-IN')} ज़्यादा दिया ⬇️` :
+                                          '✅ Clear';
+
+      const typeBadge = item.isPerFlat ?
+        `<span style="font-size:10px;font-weight:700;color:#7E22CE;background:#FAF5FF;border:1px solid #E9D5FF;padding:2px 6px;border-radius:12px;">🧹 Per-Flat</span>` :
+        `<span style="font-size:10px;font-weight:700;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 6px;border-radius:12px;">💼 Fixed Monthly</span>`;
+
+      return `
+        <tr style="border-bottom:1px solid var(--border);background:${item.isActive ? 'transparent' : '#FFF1F2'};">
+          <td style="padding:10px 8px;">
+            <div style="font-weight:700;font-size:13.5px;color:var(--dark);">${escapeHtml(item.name)}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap;">
+              ${getEmpRoleBadge(item.role)}
+              ${typeBadge}
+              ${!item.isActive ? '<span style="font-size:9.5px;color:#DC2626;background:#FEE2E2;padding:1px 5px;border-radius:4px;font-weight:800;">DISABLED / FIRED</span>' : ''}
+            </div>
+          </td>
+          <td style="text-align:center;padding:10px 8px;">
+            ${item.isPerFlat ? `
+              <span style="font-size:18px;font-weight:800;color:#4F46E5;">${item.doneFlats}</span>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;">flats</div>
+              ${item.pendFlats > 0 ? `<div style="font-size:10px;color:#B45309;font-weight:600;">${item.pendFlats} pend</div>` : ''}
+            ` : `
+              <span style="font-size:13px;font-weight:700;color:#334155;">${item.workDetails}</span>
+            `}
+          </td>
+          <td style="text-align:center;padding:10px 8px;color:#64748B;font-weight:700;font-size:12.5px;">${item.rateDisplay}</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:#1D4ED8;font-size:14px;">₹${item.earned.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#059669;font-weight:700;font-size:13px;">₹${item.paid.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;color:#B45309;font-weight:700;font-size:13px;">₹${item.advance.toLocaleString('en-IN')}</td>
+          <td style="text-align:right;padding:10px 8px;font-weight:800;color:${balColor};font-size:13px;">${balLabel}</td>
+          <td style="text-align:center;padding:10px 8px;white-space:nowrap;">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;padding:4px 9px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;"
+              onclick="printEmployeePaySlip('${item.emp_id}')" title="Print or Save PDF Salary Slip">
+              <span>📄</span> PDF Slip
+            </button>
+            <button class="btn-sm" style="background:#25D366;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;margin-left:4px;"
+              onclick="shareEmployeePaySlip('${item.emp_id}')" title="Send WhatsApp Salary Slip">
+              <span>📲</span>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // 📱 Native Mobile Staff Cards for high-end phone experience
+    const mobileCards = processed.map(item => {
+      const balColor = item.balance > 0 ? '#B91C1C' : item.balance < 0 ? '#B45309' : '#059669';
+      const balBadge = item.balance > 0 ? `<span style="background:#FEE2E2;color:#991B1B;font-weight:800;padding:3px 8px;border-radius:6px;font-size:11.5px;">₹${item.balance.toLocaleString('en-IN')} बाकी ⬆️</span>` :
+                       item.balance < 0 ? `<span style="background:#FEF3C7;color:#92400E;font-weight:800;padding:3px 8px;border-radius:6px;font-size:11.5px;">₹${Math.abs(item.balance).toLocaleString('en-IN')} ज़्यादा ⬇️</span>` :
+                                          `<span style="background:#DCFCE7;color:#166534;font-weight:800;padding:3px 8px;border-radius:6px;font-size:11.5px;">✅ Clear</span>`;
+
+      const typeBadge = item.isPerFlat ?
+        `<span style="font-size:10px;font-weight:700;color:#7E22CE;background:#FAF5FF;border:1px solid #E9D5FF;padding:2px 6px;border-radius:12px;">🧹 Per-Flat</span>` :
+        `<span style="font-size:10px;font-weight:700;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 6px;border-radius:12px;">💼 Fixed</span>`;
+
+      return `
+        <div class="card" style="padding:14px;border-radius:14px;border-left:4px solid ${item.balance > 0 ? '#EF4444' : item.balance < 0 ? '#F59E0B' : '#10B981'};margin-bottom:10px;background:${item.isActive ? '#fff' : '#FFF1F2'};">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div>
+              <div style="font-weight:800;font-size:15px;color:var(--dark);">${escapeHtml(item.name)}</div>
+              <div style="display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap;">
+                ${getEmpRoleBadge(item.role)}
+                ${typeBadge}
+                ${!item.isActive ? '<span style="font-size:9.5px;color:#DC2626;background:#FEE2E2;padding:1px 5px;border-radius:4px;font-weight:800;">FIRED</span>' : ''}
+              </div>
+            </div>
+            <div>${balBadge}</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;background:#F8FAFC;padding:10px;border-radius:10px;border:1px solid #E2E8F0;">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Work Done</div>
+              <div style="font-size:13px;font-weight:800;color:#334155;margin-top:2px;">
+                ${item.isPerFlat ? `🧹 ${item.doneFlats} flats <span style="font-size:10.5px;color:#64748B;">(@ ${item.rateDisplay})</span>` : `💼 ${item.workDetails}`}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Gross Earned</div>
+              <div style="font-size:14px;font-weight:900;color:#1D4ED8;margin-top:2px;">₹${item.earned.toLocaleString('en-IN')}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Salary Paid</div>
+              <div style="font-size:13px;font-weight:800;color:#059669;margin-top:2px;">₹${item.paid.toLocaleString('en-IN')}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Advance Taken</div>
+              <div style="font-size:13px;font-weight:800;color:#B45309;margin-top:2px;">₹${item.advance.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="btn-sm" style="flex:1;background:#0F172A;color:#fff;padding:8px 12px;font-size:12px;font-weight:800;border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;"
+              onclick="printEmployeePaySlip('${item.emp_id}')">
+              📄 PDF Salary Slip
+            </button>
+            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;padding:8px 14px;font-size:12px;font-weight:800;border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;"
+              onclick="shareEmployeePaySlip('${item.emp_id}')" title="Share WhatsApp Slip">
+              📲 WhatsApp
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    renderShell(`
+      <style>
+        .epr-mobile-cards { display: none; }
+        .epr-desktop-table { display: block; }
+        @media (max-width: 768px) {
+          .epr-mobile-cards { display: flex; flex-direction: column; gap: 8px; }
+          .epr-desktop-table { display: none; }
+          .epr-view-toggle { display: inline-flex !important; }
+        }
+      </style>
+
+      <!-- Header -->
+      <div class="card" style="padding:14px;border-radius:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h1 style="margin:0;font-size:clamp(18px, 4.5vw, 22px);font-weight:800;color:var(--dark);">💰 Employee Pay Report</h1>
+            <div class="sub" style="margin-top:2px;font-size:12px;">
+              Per-Flat Cleaners + Fixed Monthly Staff &bull; <strong>${dateFrom} to ${dateTo}</strong>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-sm" style="background:#0F172A;color:#fff;font-weight:800;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"
+              onclick="printEmployeePayReportConsolidated()" title="Print / PDF Consolidated Report">
+              🖨️ PDF Report
+            </button>
+            <button class="btn-sm" style="background:#059669;color:#fff;font-weight:700;padding:7px 12px;border-radius:8px;border:none;cursor:pointer;"
+              onclick="exportEmployeePayReportCSV()">
+              📥 CSV
+            </button>
+            <button class="btn-sm outline" onclick="renderEmployeePayReport()">🔄</button>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div style="display:flex;align-items:stretch;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid var(--border);">
+          <!-- Date Range Controls -->
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;">
+            <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">📅 Dates:</span>
+            <input type="date" id="eprFrom" value="${dateFrom}" max="${today}"
+              style="padding:6px 9px;border-radius:7px;border:1px solid var(--border);font-size:12.5px;font-weight:600;"
+              onchange="sessionStorage.setItem('tuhh_epr_from',this.value);renderEmployeePayReport();" />
+            <span style="color:var(--muted);font-weight:700;font-size:12px;">to</span>
+            <input type="date" id="eprTo" value="${dateTo}" max="${today}"
+              style="padding:6px 9px;border-radius:7px;border:1px solid var(--border);font-size:12.5px;font-weight:600;"
+              onchange="sessionStorage.setItem('tuhh_epr_to',this.value);renderEmployeePayReport();" />
+
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="btn-sm" style="font-size:11px;background:#0284C7;color:#fff;padding:5px 9px;border-radius:6px;border:none;"
+                onclick="sessionStorage.setItem('tuhh_epr_from','${today.slice(0,7)}-01');sessionStorage.setItem('tuhh_epr_to','${today}');renderEmployeePayReport();">This Month</button>
+              <button class="btn-sm" style="font-size:11px;background:#7C3AED;color:#fff;padding:5px 9px;border-radius:6px;border:none;"
+                onclick="sessionStorage.setItem('tuhh_epr_from','${new Date(new Date().setDate(new Date().getDate()-29)).toISOString().slice(0,10)}');sessionStorage.setItem('tuhh_epr_to','${today}');renderEmployeePayReport();">Last 30 Days</button>
+            </div>
+          </div>
+
+          <!-- Type & Status Filters -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <select onchange="sessionStorage.setItem('tuhh_epr_type',this.value);renderEmployeePayReport();"
+              style="padding:6px 9px;border-radius:7px;border:1px solid var(--border);font-size:12px;font-weight:600;">
+              <option value="ALL" ${typeFilter==='ALL'?'selected':''}>All Staff Types</option>
+              <option value="per_flat" ${typeFilter==='per_flat'?'selected':''}>🧹 Per-Flat Staff Only</option>
+              <option value="monthly" ${typeFilter==='monthly'?'selected':''}>💼 Fixed Monthly Staff Only</option>
+            </select>
+
+            <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;user-select:none;">
+              <input type="checkbox" id="eprShowInactive" ${showInactive ? 'checked' : ''}
+                onchange="sessionStorage.setItem('tuhh_epr_show_inact', this.checked);renderEmployeePayReport();" />
+              <span>Include Fired (${inactiveStaff.length})</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Ribbon -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px;">
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #4F46E5;">
+          <div style="font-size:22px;font-weight:800;color:#4F46E5;">${countedEmployees}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Active Staff</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #7E22CE;">
+          <div style="font-size:22px;font-weight:800;color:#7E22CE;">${grandFlats}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Flats Cleaned</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #1D4ED8;">
+          <div style="font-size:18px;font-weight:800;color:#1D4ED8;">₹${grandEarned.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Total Earned</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #059669;">
+          <div style="font-size:18px;font-weight:800;color:#059669;">₹${grandPaid.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Salary Paid</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid #B45309;">
+          <div style="font-size:18px;font-weight:800;color:#B45309;">₹${grandAdv.toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Advance Given</div>
+        </div>
+        <div class="card" style="padding:10px;text-align:center;border-left:4px solid ${grandBalColor};">
+          <div style="font-size:18px;font-weight:800;color:${grandBalColor};">₹${Math.abs(grandBalance).toLocaleString('en-IN')}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">${grandBalance > 0 ? 'Total Baki ⬆️' : grandBalance < 0 ? 'ज़्यादा दिया ⬇️' : 'All Clear ✅'}</div>
+        </div>
+      </div>
+
+      <!-- 📱 Native Mobile Staff Cards View -->
+      <div class="epr-mobile-cards">
+        ${mobileCards || '<div class="card" style="padding:20px;text-align:center;color:var(--muted);">No staff found matching current filters.</div>'}
+      </div>
+
+      <!-- 📊 Desktop Table View -->
+      <div class="epr-desktop-table card" style="padding:0;overflow:hidden;border-radius:14px;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;border-collapse:collapse;min-width:680px;">
+            <thead>
+              <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
+                <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Work / Flats</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Salary Rate</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Total Earned</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Salary Paid</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">🔸 Advance</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">⚖️ Balance</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">📲</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No active staff found matching current filters.</td></tr>'}
+            </tbody>
+            <tfoot>
+              <tr style="background:#F8FAFC;border-top:2px solid var(--border);font-weight:800;">
+                <td style="padding:10px 8px;font-size:13px;">📊 GRAND TOTAL (${countedEmployees} Staff)</td>
+                <td style="text-align:center;padding:10px 8px;color:#7E22CE;font-size:16px;">${grandFlats > 0 ? `${grandFlats} flats` : '-'}</td>
+                <td></td>
+                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;font-size:14px;">₹${grandEarned.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#059669;font-size:13px;">₹${grandPaid.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#B45309;font-size:13px;">₹${grandAdv.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};font-size:14px;">
+                  ${grandBalance > 0 ? `₹${grandBalance.toLocaleString('en-IN')} बाकी` : grandBalance < 0 ? `₹${Math.abs(grandBalance).toLocaleString('en-IN')} ज़्यादा` : '✅ Clear'}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+            <thead>
+              <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
+                <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Work / Flats</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Salary Rate</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Total Earned</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Salary Paid</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">🔸 Advance</th>
+                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">⚖️ Balance</th>
+                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">📲</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No active staff found matching current filters.</td></tr>'}
+            </tbody>
+            <tfoot>
+              <tr style="background:#F8FAFC;border-top:2px solid var(--border);font-weight:800;">
+                <td style="padding:10px 8px;font-size:13px;">📊 GRAND TOTAL (${countedEmployees} Staff)</td>
+                <td style="text-align:center;padding:10px 8px;color:#7E22CE;font-size:16px;">${grandFlats > 0 ? `${grandFlats} flats` : '-'}</td>
+                <td></td>
+                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;font-size:14px;">₹${grandEarned.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#059669;font-size:13px;">₹${grandPaid.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:#B45309;font-size:13px;">₹${grandAdv.toLocaleString('en-IN')}</td>
+                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};font-size:14px;">
+                  ${grandBalance > 0 ? `₹${grandBalance.toLocaleString('en-IN')} बाकी` : grandBalance < 0 ? `₹${Math.abs(grandBalance).toLocaleString('en-IN')} ज़्यादा` : '✅ Clear'}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Explanatory note -->
+      <div style="margin-top:12px;padding:10px;background:#FFFBEB;border-radius:10px;border:1px solid #FDE68A;font-size:12px;color:#92400E;">
+        <strong>📌 Calculation Rules:</strong>
+        <ul style="margin:4px 0 0 16px;padding:0;">
+          <li><strong>🧹 Per-Flat Staff:</strong> Earned = Completed Flats × Rate per flat.</li>
+          <li><strong>💼 Fixed Monthly Staff:</strong> Earned = Monthly salary (pro-rated if custom date range selected).</li>
+          <li><strong>✅ Paid:</strong> Total salary payments recorded in this period.</li>
+          <li><strong>🔸 Advance:</strong> Total advances given in this period.</li>
+          <li><strong style="color:#B91C1C;">बाकी ⬆️:</strong> Amount payable to employee (Company due).</li>
+          <li><strong style="color:#B45309;">ज़्यादा दिया ⬇️:</strong> Employee overpaid or advance balance recoverable.</li>
+        </ul>
+      </div>
+    `, 'employee-pay-report');
+
+  } catch(err) {
+    console.error('Error rendering Employee Pay Report:', err);
+    renderShell(`<div class="card" style="padding:20px;text-align:center;color:#DC2626;">
+      <div style="font-size:18px;">❌ Error loading report</div>
+      <div style="font-size:13px;margin-top:8px;">${err.message || err}</div>
+      <button class="btn-sm" style="margin-top:12px;" onclick="renderEmployeePayReport()">🔄 Retry</button>
+    </div>`, 'employee-pay-report');
+  }
+}
+window.renderEmployeePayReport = renderEmployeePayReport;
+window.renderCleanerPayReport = renderEmployeePayReport; // Backward compatibility alias
+
+// ============================================================
+// 📲 SHARE WHATSAPP PAY SLIP
+// ============================================================
+window.shareEmployeePaySlip = function(empId) {
+  const data = window._currentPayReportData;
+  if (!data || !data.items) return;
+  const item = data.items.find(i => i.emp_id === empId);
+  if (!item) return;
+
+  const todayStr = new Date().toLocaleDateString('en-IN');
+  let msg = `📄 *Employee Pay Slip — TUHH*\n`;
+  msg += `📅 Date: ${todayStr}\n`;
+  msg += `🗓️ Period: *${data.dateFrom} to ${data.dateTo}*\n`;
+  msg += `👤 Staff: *${item.name}*\n`;
+  msg += `💼 Role / Type: *${item.role || 'Staff'}* (${item.isPerFlat ? 'Per-Flat Piece Rate' : 'Fixed Monthly'})\n\n`;
+
+  if (item.isPerFlat) {
+    msg += `🏠 Flats Cleaned: *${item.doneFlats}*\n`;
+    msg += `💰 Rate: *${item.rateDisplay}*\n`;
+  } else {
+    msg += `💼 Salary Basis: *${item.rateDisplay}* (${item.workDetails})\n`;
+  }
+
+  msg += `📊 *Total Earned: ₹${item.earned.toLocaleString('en-IN')}*\n\n`;
+  msg += `✅ Salary Paid: ₹${item.paid.toLocaleString('en-IN')}\n`;
+  msg += `🔸 Advance Given: ₹${item.advance.toLocaleString('en-IN')}\n`;
+  msg += `💵 Total Received: ₹${item.totalRcvd.toLocaleString('en-IN')}\n\n`;
+
+  if (item.balance > 0) {
+    msg += `⚖️ *Net Payable: ₹${item.balance.toLocaleString('en-IN')} (बाकी है)*\n\n`;
+  } else if (item.balance < 0) {
+    msg += `⚖️ *Net Balance: ₹${Math.abs(item.balance).toLocaleString('en-IN')} (ज़्यादा दिया / Advance due)*\n\n`;
+  } else {
+    msg += `⚖️ *Net Balance: All Clear (₹0)*\n\n`;
+  }
+
+  msg += `_The Unique Haven Homes Pvt. Ltd._`;
+
+  const phone = (item.phone || '').replace(/\D/g, '');
+  const url = phone.length === 10 ?
+    `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}` :
+    `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+  window.open(url, '_blank');
+};
+
+// ============================================================
+// 📥 EXPORT CSV (Excel & LibreOffice Compatible)
+// ============================================================
+window.exportEmployeePayReportCSV = function() {
+  const data = window._currentPayReportData;
+  if (!data || !data.items || !data.items.length) {
+    if (window.fsn) fsn.info('No Data', 'Export karne ke liye koi data nahi hai.');
+    else alert('No data to export.');
+    return;
+  }
+
+  let csv = `Employee Pay Report (${data.dateFrom} to ${data.dateTo})\n`;
+  csv += `Employee,Role,Type,Status,Work Done,Rate Basis,Earned (Rs),Salary Paid (Rs),Advance Given (Rs),Net Balance (Rs),Balance Status\n`;
+
+  data.items.forEach(i => {
+    const balStatus = i.balance > 0 ? 'Due to Staff (Baki)' : i.balance < 0 ? 'Overpaid / Advance' : 'Settled';
+    const row = [
+      `"${(i.name || '').replace(/"/g, '""')}"`,
+      `"${(i.role || '').replace(/"/g, '""')}"`,
+      i.isPerFlat ? 'Per-Flat' : 'Fixed Monthly',
+      i.isActive ? 'Active' : 'Disabled/Fired',
+      `"${(i.isPerFlat ? `${i.doneFlats} flats` : i.workDetails).replace(/"/g, '""')}"`,
+      `"${(i.rateDisplay || '').replace(/"/g, '""')}"`,
+      i.earned,
+      i.paid,
+      i.advance,
+      i.balance,
+      `"${balStatus}"`
+    ];
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TUHH_Employee_Pay_Report_${data.dateFrom}_to_${data.dateTo}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// ============================================================
+// 📄 PRINT / PDF INDIVIDUAL SALARY PAY SLIP
+// ============================================================
+window.printEmployeePaySlip = function(empId) {
+  const data = window._currentPayReportData;
+  if (!data || !data.items) {
+    if (window.fsn) fsn.error('Error', 'Report data not loaded');
+    return;
+  }
+  const item = data.items.find(i => i.emp_id === empId);
+  if (!item) {
+    if (window.fsn) fsn.error('Error', 'Employee record not found');
+    return;
+  }
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const slipNo = `TUHH/PAY/${(data.dateFrom || '').replace(/-/g, '')}/${String(item.emp_id || '000').slice(-6).toUpperCase()}`;
+  const pdfTitle = `Salary_Slip_${String(item.name || 'Staff').replace(/\s+/g, '_')}_${data.dateFrom}_to_${data.dateTo}`;
+
+  const balColor = item.balance > 0 ? '#B91C1C' : item.balance < 0 ? '#B45309' : '#059669';
+  const balStatusLabel = item.balance > 0 ? 'NET DUE PAYABLE TO STAFF' :
+                         item.balance < 0 ? 'ADVANCE / EXCESS DUE TO COMPANY' :
+                         'ALL ACCOUNTS SETTLED';
+  const balAmountDisplay = item.balance > 0 ? `₹${item.balance.toLocaleString('en-IN')} (बाकी है)` :
+                           item.balance < 0 ? `₹${Math.abs(item.balance).toLocaleString('en-IN')} (ज़्यादा दिया)` :
+                           '₹0 (Clear)';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${pdfTitle}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 24px; color: #0F172A; background: #fff; line-height: 1.45; }
+        .voucher-wrap { max-width: 760px; margin: 0 auto; border: 2px solid #0F172A; border-radius: 12px; padding: 24px; background: #fff; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 18px; }
+        .company-title { font-size: 20px; font-weight: 800; color: #0F172A; letter-spacing: -0.3px; margin: 0; }
+        .company-sub { font-size: 11px; color: #64748B; margin-top: 3px; font-weight: 600; }
+        .doc-badge { background: #0F172A; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 800; text-align: right; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; }
+        .meta-lbl { color: #64748B; font-weight: 600; }
+        .meta-val { color: #0F172A; font-weight: 700; text-align: right; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; }
+        th { background: #F1F5F9; color: #334155; padding: 9px 12px; text-align: left; font-weight: 700; border-top: 1px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+        td { padding: 10px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: middle; }
+        .amt-col { text-align: right; font-weight: 700; }
+
+        .summary-card { background: #F8FAFC; border: 2px solid ${item.balance > 0 ? '#FECACA' : item.balance < 0 ? '#FED7AA' : '#A7F3D0'}; border-radius: 10px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .summary-lbl { font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; }
+        .summary-amt { font-size: 22px; font-weight: 900; color: ${balColor}; margin-top: 2px; }
+
+        .sig-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; text-align: center; }
+        .sig-line { border-top: 1.5px solid #0F172A; padding-top: 6px; font-size: 11.5px; font-weight: 700; color: #334155; }
+        .sig-sub { font-size: 10px; color: #64748B; margin-top: 2px; }
+
+        .footer-note { margin-top: 24px; text-align: center; font-size: 10.5px; color: #94A3B8; border-top: 1px dashed #E2E8F0; padding-top: 10px; }
+
+        @media (max-width: 640px) {
+          body { padding: 8px !important; }
+          .voucher-wrap { padding: 14px 10px !important; border-radius: 8px !important; }
+          .header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+          .doc-badge { text-align: left !important; }
+          .meta-grid { grid-template-columns: 1fr !important; gap: 4px !important; padding: 10px !important; }
+          .summary-card { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+          .sig-row { grid-template-columns: 1fr !important; gap: 20px !important; }
+        }
+
+        @media print {
+          body { padding: 0 !important; background: #fff !important; }
+          .voucher-wrap { border: 1.5px solid #000 !important; max-width: 100% !important; margin: 0 !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="voucher-wrap">
+        <div class="header">
+          <div>
+            <h1 class="company-title">THE UNIQUE HAVEN HOMES PVT. LTD.</h1>
+            <div class="company-sub">Luxury Serviced Stays &bull; Hospitality &bull; Property Operations</div>
+            <div class="company-sub">Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow, UP - 226010</div>
+          </div>
+          <div>
+            <div class="doc-badge">OFFICIAL SALARY SLIP</div>
+            <div style="font-size:11px;color:#64748B;font-weight:700;margin-top:6px;text-align:right;">Ref: ${slipNo}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-row"><span class="meta-lbl">Employee Name:</span> <span class="meta-val">${escapeHtml(item.name)}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Role / Designation:</span> <span class="meta-val">${escapeHtml(item.role || 'Staff')}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Contact Phone:</span> <span class="meta-val">${item.phone || '-'}</span></div>
+          </div>
+          <div>
+            <div class="meta-row"><span class="meta-lbl">Pay Period:</span> <span class="meta-val">${data.dateFrom} to ${data.dateTo}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Salary Structure:</span> <span class="meta-val">${item.isPerFlat ? '🧹 Per-Flat Piece Rate' : '💼 Fixed Monthly Salary'}</span></div>
+            <div class="meta-row"><span class="meta-lbl">Generated On:</span> <span class="meta-val">${todayStr}</span></div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description / Particulars</th>
+              <th style="text-align:center;">Work / Basis</th>
+              <th style="text-align:center;">Rate</th>
+              <th class="amt-col">Amount Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>${item.isPerFlat ? 'Apartment Housekeeping & Deep Cleaning' : 'Operational Property & Staff Duties'}</strong>
+                <div style="font-size:11px;color:#64748B;margin-top:2px;">
+                  ${item.isPerFlat ? `Verified housekeeping tasks completed in period` : `Staff salary for period (${item.workDetails})`}
+                </div>
+              </td>
+              <td style="text-align:center;font-weight:700;">
+                ${item.isPerFlat ? `${item.doneFlats} flats` : item.workDetails}
+              </td>
+              <td style="text-align:center;font-weight:700;color:#64748B;">
+                ${item.rateDisplay}
+              </td>
+              <td class="amt-col" style="color:#1D4ED8;font-size:14px;">
+                ₹${item.earned.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Disbursal &amp; Advance Ledger Summary</th>
+              <th class="amt-col">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gross Salary Earned</strong></td>
+              <td class="amt-col" style="color:#1D4ED8;">+ ₹${item.earned.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td>Direct Salary Disbursed / Paid</td>
+              <td class="amt-col" style="color:#059669;">- ₹${item.paid.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td>Salary Advance / Imprest Given</td>
+              <td class="amt-col" style="color:#B45309;">- ₹${item.advance.toLocaleString('en-IN')}</td>
+            </tr>
+            <tr style="background:#F8FAFC;font-weight:800;">
+              <td><strong>Total Disbursed to Staff</strong></td>
+              <td class="amt-col">₹${item.totalRcvd.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary-card">
+          <div>
+            <div class="summary-lbl">${balStatusLabel}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:3px;">
+              ${item.balance > 0 ? 'Company is due to pay this balance to the employee' : item.balance < 0 ? 'Employee has received excess / advance recoverable' : 'All accounts for this period are settled'}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="summary-lbl">Net Balance</div>
+            <div class="summary-amt">${balAmountDisplay}</div>
+          </div>
+        </div>
+
+        <div class="sig-row">
+          <div>
+            <div class="sig-line">Prepared By</div>
+            <div class="sig-sub">HR &amp; Operations Dept.</div>
+          </div>
+          <div>
+            <div class="sig-line">Verified &amp; Approved By</div>
+            <div class="sig-sub">Praveen Singh (Manager)</div>
+          </div>
+          <div>
+            <div class="sig-line">Employee Signature</div>
+            <div class="sig-sub">${escapeHtml(item.name)}</div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          This is a computer-generated employee salary pay voucher issued by The Unique Haven Homes Private Limited. Valid without physical seal when verified in CRM.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, pdfTitle);
+  } else {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { w.print(); }, 400);
+    }
+  }
+};
+
+// ============================================================
+// 🖨️ PRINT CONSOLIDATED EMPLOYEE PAY REPORT (ALL STAFF)
+// ============================================================
+window.printEmployeePayReportConsolidated = function() {
+  const data = window._currentPayReportData;
+  if (!data || !data.items || !data.items.length) {
+    if (window.fsn) fsn.error('Error', 'Report data not loaded');
+    return;
+  }
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const pdfTitle = `TUHH_Employee_Pay_Report_${data.dateFrom}_to_${data.dateTo}`;
+
+  let totalFlats = 0;
+  let totalEarned = 0;
+  let totalPaid = 0;
+  let totalAdv = 0;
+
+  data.items.forEach(i => {
+    totalFlats += (i.doneFlats || 0);
+    totalEarned += (i.earned || 0);
+    totalPaid += (i.paid || 0);
+    totalAdv += (i.advance || 0);
+  });
+
+  const totalBal = totalEarned - totalPaid - totalAdv;
+  const balColor = totalBal > 0 ? '#B91C1C' : totalBal < 0 ? '#B45309' : '#059669';
+
+  const rowsHtml = data.items.map((i, idx) => {
+    const bColor = i.balance > 0 ? '#B91C1C' : i.balance < 0 ? '#B45309' : '#059669';
+    const bLabel = i.balance > 0 ? `₹${i.balance.toLocaleString('en-IN')} बाकी` :
+                   i.balance < 0 ? `₹${Math.abs(i.balance).toLocaleString('en-IN')} ज़्यादा` : 'Clear';
+
+    return `
+      <tr style="border-bottom:1px solid #E2E8F0;">
+        <td style="padding:8px 6px;text-align:center;">${idx + 1}</td>
+        <td style="padding:8px 6px;">
+          <strong>${escapeHtml(i.name)}</strong>
+          <div style="font-size:10px;color:#64748B;">${escapeHtml(i.role || 'Staff')} &bull; ${i.isPerFlat ? '🧹 Per-Flat' : '💼 Fixed'}</div>
+        </td>
+        <td style="padding:8px 6px;text-align:center;">${i.isPerFlat ? `${i.doneFlats} flats` : i.workDetails}</td>
+        <td style="padding:8px 6px;text-align:center;color:#64748B;">${i.rateDisplay}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:700;color:#1D4ED8;">₹${i.earned.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;color:#059669;">₹${i.paid.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;color:#B45309;">₹${i.advance.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:800;color:${bColor};">${bLabel}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${pdfTitle}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 20px; color: #0F172A; background: #fff; line-height: 1.4; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0F172A; padding-bottom: 14px; margin-bottom: 16px; }
+        .company-title { font-size: 20px; font-weight: 800; color: #0F172A; margin: 0; }
+        .company-sub { font-size: 11px; color: #64748B; margin-top: 2px; }
+        .doc-badge { background: #0F172A; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+
+        .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+        .kpi-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; text-align: center; }
+        .kpi-lbl { font-size: 9.5px; font-weight: 700; color: #64748B; text-transform: uppercase; }
+        .kpi-val { font-size: 16px; font-weight: 800; margin-top: 3px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 20px; }
+        th { background: #F1F5F9; color: #334155; padding: 8px 6px; text-align: left; font-weight: 700; border-top: 1px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+        td { vertical-align: middle; }
+
+        .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; text-align: center; }
+        .sig-line { border-top: 1.5px solid #0F172A; padding-top: 6px; font-size: 11.5px; font-weight: 700; color: #334155; }
+        .sig-sub { font-size: 10px; color: #64748B; margin-top: 2px; }
+
+        @media (max-width: 640px) {
+          body { padding: 8px !important; }
+          .header { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+          .company-title { font-size: 16px !important; }
+          .kpi-row { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+          .kpi-box:last-child { grid-column: span 2 !important; }
+          .table-scroll-container { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; }
+          .mobile-swipe-notice { display: block !important; }
+        }
+        .table-scroll-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .mobile-swipe-notice { display: none; font-size: 11px; font-weight: 700; color: #64748B; margin-bottom: 6px; text-align: right; }
+
+        @media print {
+          body { padding: 0 !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <h1 class="company-title">THE UNIQUE HAVEN HOMES PVT. LTD.</h1>
+          <div class="company-sub">Consolidated Staff Pay, Attendance &amp; Advance Settlement Statement</div>
+          <div class="company-sub">Report Period: <strong>${data.dateFrom}</strong> to <strong>${data.dateTo}</strong> &bull; Printed: ${todayStr}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="doc-badge">PAY STATEMENT</div>
+          <div style="font-size:11px;color:#64748B;margin-top:4px;">${data.items.length} Active Staff Members</div>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-lbl">Total Flats</div><div class="kpi-val" style="color:#7E22CE;">${totalFlats}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Gross Earned</div><div class="kpi-val" style="color:#1D4ED8;">₹${totalEarned.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Salary Paid</div><div class="kpi-val" style="color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Advance Given</div><div class="kpi-val" style="color:#B45309;">₹${totalAdv.toLocaleString('en-IN')}</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Net Balance</div><div class="kpi-val" style="color:${balColor};">${totalBal > 0 ? `₹${totalBal.toLocaleString('en-IN')} बाकी` : totalBal < 0 ? `₹${Math.abs(totalBal).toLocaleString('en-IN')} ज़्यादा` : 'Clear'}</div></div>
+      </div>
+
+      <div class="mobile-swipe-notice">👉 Swipe left/right for full breakdown</div>
+      <div class="table-scroll-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30px;text-align:center;">#</th>
+              <th>Employee &amp; Role</th>
+              <th style="text-align:center;">Work / Basis</th>
+              <th style="text-align:center;">Rate</th>
+              <th style="text-align:right;">Earned</th>
+              <th style="text-align:right;">Salary Paid</th>
+              <th style="text-align:right;">Advance</th>
+              <th style="text-align:right;">Net Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+          <tfoot>
+            <tr style="background:#F8FAFC;border-top:2px solid #CBD5E1;font-weight:800;">
+              <td colspan="2" style="padding:10px 6px;">TOTAL (${data.items.length} Staff)</td>
+              <td style="text-align:center;padding:10px 6px;color:#7E22CE;">${totalFlats} flats</td>
+              <td></td>
+              <td style="text-align:right;padding:10px 6px;color:#1D4ED8;">₹${totalEarned.toLocaleString('en-IN')}</td>
+              <td style="text-align:right;padding:10px 6px;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</td>
+              <td style="text-align:right;padding:10px 6px;color:#B45309;">₹${totalAdv.toLocaleString('en-IN')}</td>
+              <td style="text-align:right;padding:10px 6px;color:${balColor};">${totalBal > 0 ? `₹${totalBal.toLocaleString('en-IN')} बाकी` : totalBal < 0 ? `₹${Math.abs(totalBal).toLocaleString('en-IN')} ज़्यादा` : 'Clear'}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+        <tfoot>
+          <tr style="background:#F8FAFC;border-top:2px solid #0F172A;font-weight:800;font-size:12px;">
+            <td colspan="2" style="padding:10px 6px;">TOTAL (${data.items.length} Staff)</td>
+            <td style="text-align:center;padding:10px 6px;color:#7E22CE;">${totalFlats} flats</td>
+            <td></td>
+            <td style="text-align:right;padding:10px 6px;color:#1D4ED8;">₹${totalEarned.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:#059669;">₹${totalPaid.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:#B45309;">₹${totalAdv.toLocaleString('en-IN')}</td>
+            <td style="text-align:right;padding:10px 6px;color:${balColor};">
+              ${totalBal > 0 ? `₹${totalBal.toLocaleString('en-IN')} बाकी` : totalBal < 0 ? `₹${Math.abs(totalBal).toLocaleString('en-IN')} ज़्यादा` : 'Clear'}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="sig-row">
+        <div>
+          <div class="sig-line">Prepared &amp; Audited By</div>
+          <div class="sig-sub">HR &amp; Operations Team</div>
+        </div>
+        <div>
+          <div class="sig-line">Authorized Signatory / Manager</div>
+          <div class="sig-sub">Praveen Singh (The Unique Haven Homes Pvt. Ltd.)</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (typeof window.printDocumentHTML === 'function') {
+    window.printDocumentHTML(html, pdfTitle);
+  } else {
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { w.print(); }, 400);
+    }
+  }
+};
 
 
 window.toggleEmpSalaryTypeInputs = function() {

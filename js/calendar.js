@@ -661,7 +661,7 @@ async function renderReports() {
         </div>
       </div>
 
-      <!-- Row 2: View Switcher & Property Filter (Duplicate New Booking button removed) -->
+      <!-- Row 2: View Switcher & Property Filter -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="hh-cal-toggle-group" style="margin:0;">
           <button type="button" class="hh-cal-toggle-btn" onclick="setCalViewMode('timeline')" title="TUHH Multi-Property Gantt Timeline">
@@ -672,8 +672,8 @@ async function renderReports() {
           </button>
         </div>
 
-        <div>
-          <select onchange="window._calRoom = this.value; renderReports();" style="padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;background:#F8FAFC;font-size:12px;font-weight:700;color:#0F172A;cursor:pointer;">
+        <div style="flex:1 1 200px;min-width:180px;max-width:100%;">
+          <select onchange="window._calRoom = this.value; renderReports();" style="width:100%;padding:7px 12px;border-radius:10px;border:1.5px solid #CBD5E1;background:#FFFFFF;font-size:12px;font-weight:800;color:#0F172A;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);height:36px;">
             ${allRooms.length > 0 ? `<option value="all" ${selRoom==='all'?'selected':''}>🏘️ All Properties (${allRooms.length})</option>` : ''}
             ${allRooms.map(r => `<option value="${r.room_id}" ${selRoom===r.room_id?'selected':''}>${escapeHtml((r.unit_no ? r.unit_no + ' — ' : '') + (r.nickname || r.property_name || r.unit_no))}</option>`).join('')}
           </select>
@@ -681,20 +681,20 @@ async function renderReports() {
       </div>
 
       <!-- PLATFORMS / CHANNELS COLOR LEGEND -->
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#475569;">
-        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:11px;">Platforms:</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct / Offline</strong></span>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #E2E8F0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:#475569;">
+        <span style="font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.4px;font-size:10.5px;">Platforms:</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#0284C7;display:inline-block;"></span> <strong>Direct</strong></span>
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#FF385C;display:inline-block;"></span> <strong>Airbnb</strong></span>
         ${bcomCount > 0 ? `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#003580;display:inline-block;"></span> <strong>Booking.com</strong></span>` : ''}
         <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:3px;background:#475569;display:inline-block;"></span> <strong>Blocked</strong></span>
         <span style="height:14px;width:1px;background:#CBD5E1;display:inline-block;margin:0 2px;"></span>
-        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓ Paid</span> Full Settled</span>
-        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">⚠️ Due</span> Outstanding</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#D1FAE5;color:#065F46;border:1px solid #86EFAC;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">✓</span> Paid Full</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:4px;padding:1px 5px;font-size:9.5px;font-weight:800;">!</span> Due</span>
       </div>
     </div>
 
     <!-- KPI STAT CARDS (Clean Single-Row Strip — Unwanted & 0 Items Removed) -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
+    <div class="cal-kpi-strip" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
       <div class="stat-card" style="border-left:4px solid #0F172A;border-radius:12px;padding:12px 14px;">
         <div class="stat-num" style="font-size:20px;font-weight:900;color:#0F172A;">${realMb.length}</div>
         <div class="stat-label" style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Bookings</div>
@@ -739,6 +739,8 @@ async function renderReports() {
 
   displayRooms.forEach(r => {
     let cellsHtml = '';
+    let prevGuestName = '';
+    let prevBookingId = '';
 
     // Day headers
     days.forEach(d => {
@@ -762,14 +764,8 @@ async function renderReports() {
       const isPast = ds < todayStr;
 
       if (bk) {
-        const isSameDay = bk.check_in === bk.check_out;
-        const isCheckIn = bk.check_in === ds;
-        const isCheckOut = isSameDay ? true : (dateAdd(ds, 1) === bk.check_out);
         const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(bk) : null;
         const isBlocked = bSrc ? (bSrc.type === 'blocked') : isBkBlocked(bk);
-
-        // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
-        const bg = bSrc ? bSrc.pillGradient : (isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#FF385C');
 
         const rawName = bk.guest_name || (isBlocked ? 'Blocked' : 'Guest');
         let cleanGuestName = rawName
@@ -785,6 +781,27 @@ async function renderReports() {
           cleanGuestName = codeMatch ? codeMatch[1].slice(-4) : 'Airbnb';
         }
 
+        // Check if this is the same guest continuing from yesterday (extension stay or multi-night stay)
+        const isContinuingSameGuest = !isBlocked && (prevGuestName && cleanGuestName.toLowerCase() === prevGuestName.toLowerCase());
+
+        // Check if tomorrow continues with the same guest
+        const nextDs = dateAdd(ds, 1);
+        const nextBkArr = bMap[`${r.room_id}_${nextDs}`] || [];
+        const nextRealBks = nextBkArr.filter(x => !isBkBlocked(x));
+        const nextBk = nextRealBks.length > 0 ? nextRealBks[0] : nextBkArr[0];
+        let nextGuestName = '';
+        if (nextBk && !isBlocked) {
+          nextGuestName = (nextBk.guest_name || '').replace(/^🚫\s*/, '').replace(/^(Send|Message|Contact)\s+/i, '').trim().toLowerCase();
+        }
+        const isNextSameGuest = !isBlocked && nextBk && (nextGuestName === cleanGuestName.toLowerCase());
+
+        const isSameDay = bk.check_in === bk.check_out;
+        const isCheckIn = (bk.check_in === ds) && !isContinuingSameGuest;
+        const isCheckOut = isSameDay ? true : (!isNextSameGuest && (dateAdd(ds, 1) === bk.check_out || !nextBk));
+
+        // Airbnb = Red (#FF385C), Booking.com = Navy Blue (#003580), Direct = Green (#059669), Blocked = Slate (#475569)
+        const bg = bSrc ? bSrc.pillGradient : (isBlocked ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : '#FF385C');
+
         const guestInitial = isBlocked ? '🔒' : (isPlaceholder ? '🏨' : cleanGuestName.charAt(0).toUpperCase());
         const nameParts = cleanGuestName.split(/\s+/);
         let firstName = isBlocked ? 'Blocked' : (nameParts[0] || 'Guest');
@@ -795,8 +812,6 @@ async function renderReports() {
 
         const hasReview = isReviewedBooking(bk);
         const currentNight = calcNights(bk.check_in, ds);
-        // Show guest name on ALL screen sizes (including mobile), especially on Check-in or recurring days
-        const showName = true;
         const showAvatar = (isCheckIn || isBlocked || isSameDay) && !isMobile;
 
         // Payment status check for non-blocked bookings
@@ -806,20 +821,26 @@ async function renderReports() {
         const isPaidFull = !isBlocked && (totalAmt > 0 && dueAmt <= 0);
         const isDue = !isBlocked && (dueAmt > 0);
 
+        // Payment status badge: Show on EVERY booked date so pending balance and paid status are 100% transparent!
         let payTagHtml = '';
         if (!isBlocked) {
           if (isDue) {
-            const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : dueAmt;
-            payTagHtml = `<span class="cal-pay-tag due" title="⚠️ Unpaid: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})">₹${dueShort}</span>`;
+            const dueShort = dueAmt >= 1000 ? `${(dueAmt/1000).toFixed(dueAmt % 1000 === 0 ? 0 : 1)}k` : Math.round(dueAmt);
+            payTagHtml = `<span class="cal-pay-tag due" title="⚠️ Pending Balance: ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due (Paid: ₹${paidAmt.toLocaleString('en-IN')} / Total: ₹${totalAmt.toLocaleString('en-IN')})">₹${dueShort}</span>`;
           } else if (isPaidFull) {
             payTagHtml = `<span class="cal-pay-tag paid" title="✓ Paid in Full (₹${paidAmt.toLocaleString('en-IN')})">✓ Paid</span>`;
           }
         }
 
-        let borderRadius = '0';
-        if (isCheckIn && isCheckOut) borderRadius = '14px';
-        else if (isCheckIn) borderRadius = '14px 0 0 14px';
-        else if (isCheckOut) borderRadius = '0 14px 14px 0';
+        const dDay = new Date(yr, mo, d).getDay(); // 0 = Sun, 6 = Sat
+        const hasLeftRound = isCheckIn || isSameDay || dDay === 0;
+        const hasRightRound = isCheckOut || isSameDay || dDay === 6;
+
+        let borderRadius = '5px';
+        if (hasLeftRound && hasRightRound) borderRadius = '5px';
+        else if (hasLeftRound) borderRadius = '5px 2px 2px 5px';
+        else if (hasRightRound) borderRadius = '2px 5px 5px 2px';
+        else borderRadius = '2px';
 
         const overlapTitle = overlapCount > 1
           ? bkArr.map(x => x.guest_name || 'Guest').join(' + ')
@@ -827,28 +848,43 @@ async function renderReports() {
 
         const paymentTitle = isBlocked ? 'Blocked' : (isDue ? `⚠️ ₹${Math.round(dueAmt).toLocaleString('en-IN')} Due` : '✓ Paid in Full');
 
+        // Always show guest name on every booked day so the manager immediately knows who is in the flat
+        let pillInnerHtml = '';
+        if (isBlocked) {
+          pillInnerHtml = `<span class="cal-name">🔒 Block</span>`;
+        } else if (isSameDay) {
+          pillInnerHtml = `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">⚡ ${escapeHtml(firstName)}</span>`;
+        } else {
+          pillInnerHtml = `<span class="cal-name ${isCheckIn ? 'is-checkin' : ''}" title="${escapeHtml(cleanGuestName)}${hasReview ? ' • ⭐ 5-Star' : ''}">${escapeHtml(firstName)}${hasReview ? ' ⭐' : ''}</span>`;
+        }
+
         cellsHtml += `
-          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}'${overlapCount <= 1 && bk && bk.booking_id ? `,'${bk.booking_id}'` : ''})" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}" style="position:relative;">
-            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:1px 3px 0;box-sizing:border-box;">
-              <div class="cal-date-num">${d}</div>
-              <div style="display:flex;align-items:center;gap:2px;margin-left:auto;">
-                ${overlapCount > 1 ? `<span style="background:#DC2626;color:#fff;border-radius:50%;min-width:14px;height:14px;padding:0 2px;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;" title="${overlapCount} bookings on this date">${overlapCount}</span>` : ''}
-                ${hasReview && overlapCount <= 1 ? `<span style="font-size:9.5px;line-height:1;" title="⭐ 5-Star Review Verified!">⭐</span>` : ''}
+          <div class="cal-day booked ${isToday ? 'today' : ''} ${isBlocked ? 'is-blocked-day' : ''}" onclick="showBookingPopup('${r.room_id}','${ds}'${overlapCount <= 1 && bk && bk.booking_id ? `,'${bk.booking_id}'` : ''})" title="${overlapTitle} • ${paymentTitle}${hasReview ? ' • ⭐ 5-Star Review Verified' : ''}">
+            <div class="cal-day-top-bar">
+              <span class="cal-date-num">${d}</span>
+              <div class="cal-day-badges">
+                ${overlapCount > 1 ? `<span style="background:#DC2626;color:#fff;border-radius:50%;min-width:13px;height:13px;padding:0 2px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;line-height:1;" title="${overlapCount} bookings on this date">${overlapCount}</span>` : ''}
+                ${hasReview && overlapCount <= 1 ? `<span style="font-size:9px;line-height:1;" title="⭐ 5-Star Review Verified!">⭐</span>` : ''}
                 ${payTagHtml}
               </div>
             </div>
             <div class="cal-pill ${isBlocked ? 'blocked' : ''}" style="background:${bg};border-radius:${borderRadius};${hasReview ? 'box-shadow:0 0 0 1.5px #F59E0B;' : ''}">
-              ${isSameDay ? `<span class="cal-avatar" style="background:rgba(255,255,255,0.25);color:#fff;">⚡</span>` : (showAvatar ? `<span class="cal-avatar" style="${hasReview ? 'background:#FEF3C7;color:#D97706;' : ''}">${hasReview ? '⭐' : guestInitial}</span>` : '')}
-              ${isSameDay ? `<span class="cal-name" title="Day Use: ${(bk.check_in_time||'09:30').slice(0,5)} to ${(bk.check_out_time||'16:30').slice(0,5)}">${firstName} (Day)</span>` : (!isBlocked ? `<span class="cal-name">${firstName}${hasReview ? ' ⭐' : ''}</span>` : '')}
-              ${isBlocked ? `<span class="cal-name">🔒 Blocked</span>` : ''}
+              ${pillInnerHtml}
             </div>
           </div>`;
+
+        prevGuestName = cleanGuestName;
+        prevBookingId = bk.booking_id;
       } else {
+        prevGuestName = '';
+        prevBookingId = '';
         const rate = r.rent_per_night || 0;
         cellsHtml += `
           <div class="cal-day empty ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" onclick="calCreateBooking('${r.room_id}','${ds}')" title="Free — Click to book">
-            <div class="cal-date-num">${d}</div>
-            ${rate > 0 && !isPast ? `<div class="cal-rate">₹${(rate/1000).toFixed(1)}K</div>` : ''}
+            <div class="cal-day-top-bar">
+              <span class="cal-date-num">${d}</span>
+            </div>
+            ${rate > 0 && !isPast ? `<div class="cal-rate">₹${(rate/1000).toFixed(1)}k</div>` : '<div class="cal-rate-spacer"></div>'}
           </div>`;
       }
     }
@@ -907,17 +943,18 @@ async function renderReports() {
     }
     .cal-hdr {
       font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
+      font-weight: 800;
+      color: #64748B;
       text-align: center;
       padding: 6px 0;
       text-transform: uppercase;
       background: #F8FAFC;
-      border-radius: 4px;
+      border-radius: 6px;
       box-sizing: border-box;
     }
-    .cal-empty { min-height: 62px; }
-    .cal-day { min-height: 62px;
+    .cal-empty { min-height: 56px; }
+    .cal-day {
+      min-height: 56px;
       border: 1px solid #E2E8F0;
       border-radius: 8px;
       padding: 3px;
@@ -927,7 +964,7 @@ async function renderReports() {
       flex-direction: column;
       justify-content: space-between;
       transition: transform 0.1s, box-shadow 0.1s;
-      background: #fff;
+      background: #FFFFFF;
       box-sizing: border-box;
       min-width: 0;
       overflow: hidden;
@@ -938,12 +975,13 @@ async function renderReports() {
       z-index: 2;
     }
     .cal-day.today {
-      background: #FEE2E2 !important;
-      border-color: #FF385C;
+      background: #FFF1F2 !important;
+      border-color: #FF385C !important;
+      box-shadow: inset 0 0 0 1px #FF385C !important;
     }
     .cal-day.today .cal-date-num {
-      color: #FF385C;
-      font-weight: 800;
+      color: #E11D48 !important;
+      font-weight: 900 !important;
     }
     .cal-day.past {
       opacity: 0.55;
@@ -952,121 +990,228 @@ async function renderReports() {
       display: none;
     }
     .cal-day.empty {
-      background: #fff;
+      background: #FFFFFF;
     }
     .cal-day.booked {
       border: 1px solid rgba(0,0,0,0.06);
       background: transparent;
-      padding: 0;
+      padding: 2px 2px 3px;
     }
     .cal-day.booked.is-blocked-day {
       border: 1px dashed rgba(71, 85, 105, 0.35);
       background: #F8FAFC;
     }
-    .cal-date-num { font-size: 11.5px; font-weight: 700; color: #334155; padding: 3px 4px 0; line-height: 1.25;
+    .cal-day-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1px 2px 0;
+      box-sizing: border-box;
+      min-height: 15px;
+      line-height: 1;
     }
-    .cal-rate { font-size: 9.5px; color: #059669; font-weight: 700; text-align: center; padding-bottom: 4px; line-height: 1.25;
+    .cal-date-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: #334155;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .cal-day-badges {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .cal-rate {
+      font-size: 9px;
+      color: #059669;
+      font-weight: 800;
+      text-align: right;
+      padding: 0 2px 1px;
+      line-height: 1;
+    }
+    .cal-rate-spacer {
+      height: 10px;
     }
     .cal-pill {
-      flex: 1;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 3px;
-      color: #fff;
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 3px 4px;
-      margin: 2px 0;
+      gap: 2px;
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2.5px 3px;
+      margin: 2px 0 0;
       overflow: hidden;
-      min-width: 0;
       box-sizing: border-box;
+      min-height: 20px;
     }
     .cal-pill.blocked {
       background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
     }
-    .cal-avatar {
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      display: inline-flex;
+    .cal-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 9.5px;
+      color: #FFFFFF;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+      max-width: 100%;
+      font-weight: 800;
+      display: block;
+      min-width: 0;
+      line-height: 1.2;
+      text-align: center;
+      letter-spacing: -0.2px;
+    }
+    .cal-stay-connector {
+      display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      gap: 3px;
+      width: 100%;
+      color: rgba(255,255,255,0.9);
+      font-size: 8.5px;
       font-weight: 800;
-      flex-shrink: 0;
       line-height: 1;
     }
-    .cal-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); max-width: 100%; font-weight: 700; display: inline-block; min-width: 0; line-height: 1.35; padding: 1px 0;
+    .cal-stay-arrow {
+      font-size: 8px;
+      opacity: 0.85;
+    }
+    .cal-stay-desk-name {
+      display: inline;
     }
     .cal-room-card {
       overflow: hidden;
       box-sizing: border-box;
     }
+    .cal-pay-tag {
+      font-size: 8px;
+      font-weight: 800;
+      border-radius: 4px;
+      padding: 1px 3.5px;
+      line-height: 1.1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: -0.2px;
+      box-sizing: border-box;
+    }
+    .cal-pay-tag.paid {
+      background: #DCFCE7;
+      color: #15803D;
+      border: 1px solid #86EFAC;
+    }
+    .cal-pay-tag.due {
+      background: #FEE2E2;
+      color: #B91C1C;
+      border: 1px solid #FECACA;
+      font-weight: 900;
+    }
 
     @media (max-width: 640px) {
-      .cal-stat-grid {
+      .cal-kpi-strip {
+        display: flex !important;
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
+        margin-bottom: 12px !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .cal-kpi-strip::-webkit-scrollbar {
         display: none !important;
+      }
+      .cal-kpi-strip .stat-card {
+        flex: 0 0 115px !important;
+        min-width: 115px !important;
+        padding: 8px 10px !important;
+        border-radius: 10px !important;
+      }
+      .cal-kpi-strip .stat-num {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+      }
+      .cal-kpi-strip .stat-label {
+        font-size: 9px !important;
+        letter-spacing: 0.3px !important;
       }
       .cal-grid {
-        gap: 3px;
+        gap: 2px !important;
+      }
+      .cal-empty {
+        min-height: 48px !important;
+        height: 48px !important;
       }
       .cal-day {
-        min-height: 56px;
-        border-radius: 8px;
-        padding: 2px 1px;
+        min-height: 48px !important;
+        height: 48px !important;
+        border-radius: 6px !important;
+        padding: 2px 1.5px 2px !important;
       }
       .cal-date-num {
-        font-size: 10.5px;
-        font-weight: 800;
-        padding: 2px 2px 0;
+        font-size: 10px !important;
+        font-weight: 800 !important;
+        line-height: 1 !important;
       }
       .cal-rate {
-        font-size: 8px;
-        font-weight: 800;
-        padding-bottom: 2px;
+        font-size: 8px !important;
+        font-weight: 800 !important;
+        padding: 0 1px 0 !important;
+        line-height: 1 !important;
+      }
+      .cal-pay-tag {
+        font-size: 7.5px !important;
+        font-weight: 800 !important;
+        padding: 0.5px 2.5px !important;
+        border-radius: 3px !important;
+        letter-spacing: -0.2px !important;
+        line-height: 1.1 !important;
       }
       .cal-pill {
-        font-size: 9.5px;
-        padding: 3px 2px;
-        margin: 1px 0;
-        gap: 2px;
-        min-height: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        box-sizing: border-box;
-      }
-      .cal-avatar {
-        display: none !important;
+        font-size: 8.5px !important;
+        padding: 1.5px 2px !important;
+        margin: 1px 0 0 !important;
+        min-height: 20px !important;
+        height: 20px !important;
       }
       .cal-name {
-        font-size: 9px !important;
+        font-size: 8.5px !important;
         font-weight: 800 !important;
+        line-height: 1.1 !important;
+        letter-spacing: -0.2px !important;
         max-width: 100% !important;
-        line-height: 1.2 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        text-align: center !important;
         display: block !important;
-        letter-spacing: -0.2px;
+        padding: 0 !important;
       }
       .cal-hdr {
-        font-size: 10px;
-        font-weight: 800;
-        padding: 5px 0;
+        font-size: 9.5px !important;
+        font-weight: 800 !important;
+        padding: 4px 0 !important;
+        border-radius: 4px !important;
       }
       .cal-room-card {
         padding: 10px 6px !important;
-        border-radius: 14px;
+        border-radius: 12px !important;
         margin-bottom: 12px !important;
       }
       .cal-room-header {
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
       }
     }
   `;
