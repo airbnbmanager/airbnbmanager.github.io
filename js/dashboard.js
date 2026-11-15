@@ -590,6 +590,14 @@ async function renderDashboard() {
     const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
     const agodaPct = Math.round((agodaRev / totalChanRev) * 100);
 
+    // Channel metrics for performance highlight capsule
+    const curOfflineRev = directRev || 0;
+    const curOnlineRev = (abRev + bcomRev + agodaRev) || 0;
+    const curTotCombined = (curOfflineRev + curOnlineRev) || 1;
+    const curOfflinePct = Math.round((curOfflineRev / curTotCombined) * 100);
+    const curOnlinePct = Math.max(0, 100 - curOfflinePct);
+    const curNetIncome = typeof hhNetOpIncome === 'number' ? hhNetOpIncome : (monthRevenue - monthExpenses);
+
     // Properties Leaderboard
     const ROOM_SLUG_MAP = {
       'GOM-101': 'redrose-palace', 'GOM-102': 'black-beauty',
@@ -2049,6 +2057,14 @@ window.renderExecutiveDashboard = async function () {
     const abPct = Math.round((abRev / totalChanRev) * 100);
     const bcomPct = Math.round((bcomRev / totalChanRev) * 100);
     const agodaPct = Math.round((agodaRev / totalChanRev) * 100);
+
+    // Channel metrics for performance highlight capsule
+    const curOfflineRev = directRev || 0;
+    const curOnlineRev = (abRev + bcomRev + agodaRev) || 0;
+    const curTotCombined = (curOfflineRev + curOnlineRev) || 1;
+    const curOfflinePct = Math.round((curOfflineRev / curTotCombined) * 100);
+    const curOnlinePct = Math.max(0, 100 - curOfflinePct);
+    const curNetIncome = typeof hhNetOpIncome === 'number' ? hhNetOpIncome : (monthRevenue - monthExpenses);
 
     // Properties Leaderboard
     const ROOM_SLUG_MAP = {
