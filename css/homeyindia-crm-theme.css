@@ -1715,39 +1715,53 @@ html, body {
 
   /* 4. Responsive Leaderboard Refinements */
   .hh-leaderboard-card {
-    padding: 14px 10px !important;
+    padding: 14px 8px !important;
   }
   .hh-leaderboard-table {
     display: table !important;
-    min-width: 460px !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     width: 100% !important;
-    table-layout: fixed !important;
+    table-layout: auto !important;
+  }
+  .hh-leaderboard-table th,
+  .hh-leaderboard-table td {
+    padding: 8px 4px !important;
+    font-size: 11px !important;
   }
   .hh-leaderboard-table th:first-child,
   .hh-leaderboard-table td:first-child {
-    width: 50% !important;
-    min-width: 170px !important;
-    max-width: 210px !important;
+    width: 44% !important;
+    min-width: 0 !important;
+    max-width: 155px !important;
     overflow: hidden !important;
+    padding-left: 2px !important;
   }
   .hh-leaderboard-table th:nth-child(2),
   .hh-leaderboard-table td:nth-child(2) {
-    width: 25% !important;
-    min-width: 95px !important;
+    width: 28% !important;
+    min-width: 0 !important;
     text-align: right !important;
     white-space: nowrap !important;
-    padding-right: 12px !important;
+    padding-right: 4px !important;
+    font-size: 11px !important;
   }
   .hh-leaderboard-table th:nth-child(3),
-  .hh-leaderboard-table td:nth-child(3) {
-    display: none !important; /* Hide occupancy bar on very small screens to save space */
+  .hh-leaderboard-table td:nth-child(3),
+  .hh-leaderboard-table .hh-td-occ {
+    display: none !important; /* Hide occupancy bar on mobile to give full room to profit and revenue */
   }
   .hh-leaderboard-table th:nth-child(4),
   .hh-leaderboard-table td:nth-child(4) {
-    width: 25% !important;
-    min-width: 95px !important;
+    width: 28% !important;
+    min-width: 0 !important;
     text-align: right !important;
     white-space: nowrap !important;
+    padding-right: 2px !important;
+    font-size: 11px !important;
+  }
+  .hh-leaderboard-table .hh-lead-badge {
+    display: none !important; /* Hide badge on mobile to prevent clipping numbers */
   }
 
   /* Suppress pseudo-card ::before labels that were breaking tables */
@@ -3043,15 +3057,34 @@ html, body {
   /* 5 KPI Ribbon on Mobile: 2 Columns */
   .hh-kpi-ribbon-5 {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-    margin-bottom: 16px !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
   }
   .hh-kpi-card-v2 {
-    padding: 12px 10px !important;
+    padding: 10px 8px !important;
     border-radius: 12px !important;
   }
   .hh-kpi-card-v2:last-child {
     grid-column: span 2 !important;
+  }
+  .hh-kpi-main-val {
+    font-size: 17px !important;
+    letter-spacing: -0.3px !important;
+    line-height: 1.15 !important;
+    word-break: normal !important;
+  }
+  .hh-kpi-change-tag {
+    font-size: 10px !important;
+    padding: 1px 5px !important;
+  }
+  .hh-kpi-header {
+    font-size: 11px !important;
+    margin-bottom: 2px !important;
+  }
+  .hh-chart-card {
+    padding: 14px 10px !important;
+    border-radius: 14px !important;
+    margin-bottom: 14px !important;
   }
 }
 
@@ -3243,6 +3276,15 @@ html, body {
   letter-spacing: 0.5px;
   padding: 10px 12px;
   border-bottom: 2px solid #E2E8F0;
+}
+
+.hh-leaderboard-table th.hh-th-rev,
+.hh-leaderboard-table th.hh-th-net {
+  text-align: right !important;
+}
+
+.hh-leaderboard-table th.hh-th-occ {
+  text-align: center !important;
 }
 
 .hh-leaderboard-table td {

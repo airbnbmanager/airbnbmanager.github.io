@@ -2092,22 +2092,24 @@ window.renderExecutiveDashboard = async function () {
       const sorted = [...list].sort((a, b) => sortBy === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
       return sorted.map((p, idx) => {
         const isCurSelected = globalProp && matchesRoom(p, globalProp);
+        const revVal = Math.round(p.rRev || 0);
+        const netVal = Math.round(p.rNet || 0);
         return `
           <tr onclick="window.setAnalyticsPropertyFilter('${escapeHtml(p.rId)}')" style="cursor:pointer;background:${isCurSelected ? '#EFF6FF' : 'transparent'};transition:background 0.15s ease;" title="Click to filter analytics to ${escapeHtml(p.rName)}">
             <td class="hh-prop-cell-name">
-              <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:10px;min-width:0;max-width:210px;">
-                ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:8px;background:${isCurSelected ? '#BFDBFE' : '#F1F5F9'};color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
+              <div class="hh-prop-cell-inner" style="display:flex;align-items:center;gap:8px;min-width:0;max-width:210px;">
+                ${p.thumb ? `<img src="${p.thumb}" alt="${escapeHtml(p.rName)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #E2E8F0;flex-shrink:0;">` : `<div style="width:28px;height:28px;border-radius:6px;background:${isCurSelected ? '#BFDBFE' : '#F1F5F9'};color:#0F172A;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex-shrink:0;">${escapeHtml(p.unit || p.rId)}</div>`}
                 <div style="min-width:0;flex:1;overflow:hidden;">
-                  <div style="font-weight:700;color:#0F172A;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
-                  <div style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">
+                  <div style="font-weight:700;color:#0F172A;font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.rName)}">${escapeHtml(p.rName)}</div>
+                  <div style="font-size:10.5px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">
                     <span>${escapeHtml(p.unit || '')}</span>
-                    ${isCurSelected ? `<span style="background:#2563EB;color:#ffffff;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:4px;">FILTERED</span>` : ''}
+                    ${isCurSelected ? `<span style="background:#2563EB;color:#ffffff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;">FILTERED</span>` : ''}
                   </div>
                 </div>
               </div>
             </td>
-            <td style="font-weight:800;color:${sortBy === 'revenue' ? '#059669' : '#0F172A'};text-align:right;white-space:nowrap;padding:10px 12px;">₹${p.rRev.toLocaleString('en-IN')}</td>
-            <td>
+            <td style="font-weight:800;color:${sortBy === 'revenue' ? '#059669' : '#0F172A'};text-align:right;white-space:nowrap;padding:8px 10px;">₹${revVal.toLocaleString('en-IN')}</td>
+            <td class="hh-td-occ">
               <div class="hh-occ-bar-wrap" style="display:flex;align-items:center;gap:8px;">
                 <div class="hh-occ-bar-track" style="flex:1;height:6px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
                   <div class="hh-occ-bar-fill" style="width:${p.rOcc}%;height:100%;background:${p.rOcc >= 70 ? '#10B981' : (p.rOcc >= 45 ? '#F59E0B' : '#EF4444')};border-radius:999px;"></div>
@@ -2115,10 +2117,10 @@ window.renderExecutiveDashboard = async function () {
                 <span style="font-weight:700;font-size:11.5px;color:#64748B;min-width:28px;">${p.rOcc}%</span>
               </div>
             </td>
-            <td style="font-weight:800;color:${sortBy === 'profit' ? '#4F46E5' : '#0F172A'};text-align:right;white-space:nowrap;padding:10px 12px;">
-              <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-                <span>₹${p.rNet.toLocaleString('en-IN')}</span>
-                ${idx === 0 ? `<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">#1 Top</span>` : (p.rOcc < 45 && p.rOcc > 0 ? `<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Occ -${50 - p.rOcc}%</span>` : '')}
+            <td style="font-weight:800;color:${sortBy === 'profit' ? '#4F46E5' : '#0F172A'};text-align:right;white-space:nowrap;padding:8px 10px;">
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;">
+                <span>₹${netVal.toLocaleString('en-IN')}</span>
+                ${idx === 0 ? `<span class="hh-lead-badge" style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">#1 Top</span>` : (p.rOcc < 45 && p.rOcc > 0 ? `<span class="hh-lead-badge" style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px;">Occ -${50 - p.rOcc}%</span>` : '')}
               </div>
             </td>
           </tr>
@@ -2262,7 +2264,7 @@ window.renderExecutiveDashboard = async function () {
     window.downloadTuhhAnalyticsExcel = window.downloadHomeyhutsExcel;
 
     renderShell(`
-      <div style="max-width:1440px;margin:0 auto;padding:6px 4px 30px;">
+      <div style="max-width:1440px;margin:0 auto;padding:6px 4px 85px;">
         <!-- 💎 HOMEYHUTS LUXURY MAC WINDOW MOCKUP -->
         <div class="hh-mac-window">
           <!-- macOS Titlebar -->
@@ -2310,23 +2312,23 @@ window.renderExecutiveDashboard = async function () {
                   ` : ''}
 
                   <!-- 🚀 FAST PERIOD SWITCHER PILLS (MTD, This Month, Last Month, QTD, YTD, 2026 Year) -->
-                  <div style="display:inline-flex;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap;">
-                    <button type="button" onclick="window.setDashboardPeriod('mtd')" style="background:${periodMode === 'mtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'mtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'mtd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Month to Date (1 Nov to Today)">
+                  <div style="display:inline-flex;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:999px;padding:3px;gap:2px;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;">
+                    <button type="button" onclick="window.setDashboardPeriod('mtd')" style="background:${periodMode === 'mtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'mtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'mtd' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Month to Date (1 Nov to Today)">
                       ⚡ MTD
                     </button>
-                    <button type="button" onclick="window.setDashboardPeriod('this_month')" style="background:${periodMode === 'this_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_month' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Full Current Month (1 - 30 Nov 2026)">
+                    <button type="button" onclick="window.setDashboardPeriod('this_month')" style="background:${periodMode === 'this_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_month' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Full Current Month (1 - 30 Nov 2026)">
                       This Month
                     </button>
-                    <button type="button" onclick="window.setDashboardPeriod('last_month')" style="background:${periodMode === 'last_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'last_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'last_month' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Last Month (October 2026)">
+                    <button type="button" onclick="window.setDashboardPeriod('last_month')" style="background:${periodMode === 'last_month' ? '#0F172A' : 'transparent'};color:${periodMode === 'last_month' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'last_month' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Last Month (October 2026)">
                       Last Month
                     </button>
-                    <button type="button" onclick="window.setDashboardPeriod('qtd')" style="background:${periodMode === 'qtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'qtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'qtd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Quarter to Date (Q4: 1 Oct to Today)">
+                    <button type="button" onclick="window.setDashboardPeriod('qtd')" style="background:${periodMode === 'qtd' ? '#0F172A' : 'transparent'};color:${periodMode === 'qtd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'qtd' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Quarter to Date (Q4: 1 Oct to Today)">
                       QTD
                     </button>
-                    <button type="button" onclick="window.setDashboardPeriod('ytd')" style="background:${periodMode === 'ytd' ? '#0F172A' : 'transparent'};color:${periodMode === 'ytd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'ytd' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Year to Date (1 Jan to Today)">
+                    <button type="button" onclick="window.setDashboardPeriod('ytd')" style="background:${periodMode === 'ytd' ? '#0F172A' : 'transparent'};color:${periodMode === 'ytd' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'ytd' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Year to Date (1 Jan to Today)">
                       YTD
                     </button>
-                    <button type="button" onclick="window.setDashboardPeriod('this_year')" style="background:${periodMode === 'this_year' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_year' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_year' ? '800' : '700'};cursor:pointer;transition:all 0.15s ease;" title="Full Year 2026">
+                    <button type="button" onclick="window.setDashboardPeriod('this_year')" style="background:${periodMode === 'this_year' ? '#0F172A' : 'transparent'};color:${periodMode === 'this_year' ? '#FFFFFF' : '#475569'};border:none;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:${periodMode === 'this_year' ? '800' : '700'};cursor:pointer;white-space:nowrap;transition:all 0.15s ease;" title="Full Year 2026">
                       2026 Year
                     </button>
                   </div>
@@ -2404,7 +2406,7 @@ window.renderExecutiveDashboard = async function () {
                     <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Total confirmed booking revenue</div>
                   </div>
                   <div class="hh-kpi-val-row">
-                    <div class="hh-kpi-main-val">₹${monthRevenue.toLocaleString('en-IN')}</div>
+                    <div class="hh-kpi-main-val">₹${Math.round(monthRevenue).toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(revChangePct)}
                   </div>
                   ${sparklineSvg(parseFloat(revChangePct) >= 0)}
@@ -2417,7 +2419,7 @@ window.renderExecutiveDashboard = async function () {
                     <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Revenue minus operating costs (NOI)</div>
                   </div>
                   <div class="hh-kpi-val-row">
-                    <div class="hh-kpi-main-val">₹${hhNetOpIncome.toLocaleString('en-IN')}</div>
+                    <div class="hh-kpi-main-val">₹${Math.round(hhNetOpIncome).toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(netChangePct)}
                   </div>
                   ${sparklineSvg(parseFloat(netChangePct) >= 0)}
@@ -2443,7 +2445,7 @@ window.renderExecutiveDashboard = async function () {
                     <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Avg daily tariff per booked room-night</div>
                   </div>
                   <div class="hh-kpi-val-row">
-                    <div class="hh-kpi-main-val">₹${hhAdr.toLocaleString('en-IN')}</div>
+                    <div class="hh-kpi-main-val">₹${Math.round(hhAdr).toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(adrChangePct)}
                   </div>
                   ${sparklineSvg(parseFloat(adrChangePct) >= 0)}
@@ -2456,7 +2458,7 @@ window.renderExecutiveDashboard = async function () {
                     <div style="font-size:11px;color:#64748B;font-weight:600;margin-bottom:8px;line-height:1.2;">Revenue per available fleet room night</div>
                   </div>
                   <div class="hh-kpi-val-row">
-                    <div class="hh-kpi-main-val">₹${hhRevPar.toLocaleString('en-IN')}</div>
+                    <div class="hh-kpi-main-val">₹${Math.round(hhRevPar).toLocaleString('en-IN')}</div>
                     ${formatDeltaTag(revParChangePct)}
                   </div>
                   ${sparklineSvg(parseFloat(revParChangePct) >= 0)}
@@ -2464,7 +2466,7 @@ window.renderExecutiveDashboard = async function () {
               </div>
 
               <!-- 🌟 DUAL-CHANNEL (OFFLINE DIRECT + ONLINE AIRBNB) MONTHLY EARNINGS & PERFORMANCE MATRIX -->
-              <div class="hh-chart-card" style="margin-bottom:20px;padding:20px 24px;">
+              <div class="hh-chart-card" style="margin-bottom:20px;">
                 <div class="hh-chart-card-head" style="margin-bottom:14px;flex-wrap:wrap;gap:12px;">
                   <div>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -2476,20 +2478,20 @@ window.renderExecutiveDashboard = async function () {
                   </div>
 
                   <!-- Channel Filter Switcher Pills & Matrix Toggle -->
-                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <div style="display:inline-flex;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:3px;gap:3px;">
-                      <button type="button" id="btnPerfChanAll" onclick="window.setPerformanceChannel('all')" style="background:#0F172A;color:#FFFFFF;border:none;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:800;cursor:pointer;transition:all 0.15s ease;">
-                        🌟 All (Combined)
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <div class="perf-chan-pills-wrap" style="display:inline-flex;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:999px;padding:3px;gap:2px;max-width:100%;overflow-x:auto;">
+                      <button type="button" id="btnPerfChanAll" onclick="window.setPerformanceChannel('all')" style="background:#0F172A;color:#FFFFFF;border:none;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;">
+                        🌟 All
                       </button>
-                      <button type="button" id="btnPerfChanOffline" onclick="window.setPerformanceChannel('offline')" style="background:transparent;color:#64748B;border:none;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all 0.15s ease;">
-                        🟢 Offline (Direct)
+                      <button type="button" id="btnPerfChanOffline" onclick="window.setPerformanceChannel('offline')" style="background:transparent;color:#64748B;border:none;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;">
+                        🟢 Direct
                       </button>
-                      <button type="button" id="btnPerfChanOnline" onclick="window.setPerformanceChannel('online')" style="background:transparent;color:#64748B;border:none;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all 0.15s ease;">
-                        🔴 Online (Airbnb)
+                      <button type="button" id="btnPerfChanOnline" onclick="window.setPerformanceChannel('online')" style="background:transparent;color:#64748B;border:none;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;">
+                        🔴 Airbnb
                       </button>
                     </div>
 
-                    <button type="button" id="btnToggleMatrixTable" onclick="window.toggleMonthlyMatrixTable()" style="background:#FFFFFF;border:1px solid #CBD5E1;color:#0F172A;border-radius:999px;padding:5px 14px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:all 0.15s ease;">
+                    <button type="button" id="btnToggleMatrixTable" onclick="window.toggleMonthlyMatrixTable()" style="background:#FFFFFF;border:1px solid #CBD5E1;color:#0F172A;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:all 0.15s ease;">
                       <span>📋</span> <span>Monthly Matrix Breakdown</span>
                     </button>
                   </div>
@@ -2519,25 +2521,25 @@ window.renderExecutiveDashboard = async function () {
                   <div>
                     <div style="font-size:12px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">Current Month: November 2026 (Portfolio Combined)</div>
                     <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;">
-                      <span style="font-size:22px;font-weight:900;color:#0F172A;">₹7,55,325.34</span>
+                      <span style="font-size:22px;font-weight:900;color:#0F172A;">₹${Math.round(monthRevenue).toLocaleString('en-IN')}</span>
                       <span style="font-size:12px;color:#64748B;font-weight:700;">Total (INR)</span>
                     </div>
                   </div>
 
-                  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
                     <div>
-                      <div style="font-size:11.5px;color:#059669;font-weight:800;">🟢 Offline Direct</div>
-                      <div style="font-size:16px;font-weight:900;color:#0F172A;">₹5,27,300.00 <span style="font-size:11px;color:#059669;font-weight:700;">(70%)</span></div>
+                      <div style="font-size:11px;color:#059669;font-weight:800;">🟢 Offline Direct</div>
+                      <div style="font-size:15px;font-weight:900;color:#0F172A;">₹${Math.round(curOfflineRev).toLocaleString('en-IN')} <span style="font-size:10.5px;color:#059669;font-weight:700;">(${curOfflinePct}%)</span></div>
                     </div>
                     <div>
-                      <div style="font-size:11.5px;color:#E11D48;font-weight:800;">🔴 Online Airbnb</div>
-                      <div style="font-size:16px;font-weight:900;color:#0F172A;">₹2,28,025.34 <span style="font-size:11px;color:#E11D48;font-weight:700;">(30%)</span></div>
+                      <div style="font-size:11px;color:#E11D48;font-weight:800;">🔴 Online Airbnb</div>
+                      <div style="font-size:15px;font-weight:900;color:#0F172A;">₹${Math.round(curOnlineRev).toLocaleString('en-IN')} <span style="font-size:10.5px;color:#E11D48;font-weight:700;">(${curOnlinePct}%)</span></div>
                     </div>
                     <div>
-                      <div style="font-size:11.5px;color:#4F46E5;font-weight:800;">💼 Net Op. Income</div>
-                      <div style="font-size:16px;font-weight:900;color:#0F172A;">₹3,86,822.84</div>
+                      <div style="font-size:11px;color:#4F46E5;font-weight:800;">💼 Net Op. Income</div>
+                      <div style="font-size:15px;font-weight:900;color:#0F172A;">₹${Math.round(curNetIncome).toLocaleString('en-IN')}</div>
                     </div>
-                    <button type="button" onclick="navigate('ca-audit')" style="background:#0F172A;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity 0.15s ease;">
+                    <button type="button" onclick="navigate('ca-audit')" style="background:#0F172A;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:opacity 0.15s ease;">
                       <span>CA &amp; Tax Audit</span> <span>→</span>
                     </button>
                   </div>
@@ -2663,20 +2665,20 @@ window.renderExecutiveDashboard = async function () {
                     <span style="font-size:12.5px;font-weight:800;color:#0F172A;" id="propBarChartTitle">📊 Top Properties by Net Revenue</span>
                     <span style="font-size:11px;color:#64748B;font-weight:600;">Click any bar or table row to filter unit</span>
                   </div>
-                  <div style="position:relative;height:200px;width:100%;">
+                  <div style="position:relative;height:280px;width:100%;">
                     <canvas id="dashPropBarChart"></canvas>
                   </div>
                 </div>
 
                 <!-- Responsive Table -->
                 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
-                  <table class="hh-leaderboard-table" style="width:100%;min-width:480px;border-collapse:collapse;">
+                  <table class="hh-leaderboard-table" style="width:100%;border-collapse:collapse;">
                     <thead>
                       <tr>
-                        <th style="min-width:170px;text-align:left;">PROPERTY</th>
-                        <th style="min-width:110px;text-align:right;padding-right:12px;">NET REVENUE</th>
-                        <th style="min-width:130px;">OCCUPANCY</th>
-                        <th style="min-width:110px;text-align:right;">NET OP. INCOME</th>
+                        <th class="hh-th-prop" style="text-align:left;">PROPERTY</th>
+                        <th class="hh-th-rev" style="text-align:right;">NET REVENUE</th>
+                        <th class="hh-th-occ" style="text-align:center;">OCCUPANCY</th>
+                        <th class="hh-th-net" style="text-align:right;">NET OP. INCOME</th>
                       </tr>
                     </thead>
                     <tbody id="hhLeaderboardBody">
@@ -3641,9 +3643,16 @@ function initExecutiveDashboardCharts(data) {
     function getBarData(mode) {
       const sorted = [...rankingList].sort((a, b) => mode === 'revenue' ? (b.rRev - a.rRev) : (b.rNet - a.rNet));
       const top = sorted.slice(0, 8); // Top 8 properties
+      const isMobile = window.innerWidth <= 768;
       return {
-        labels: top.map(p => p.unit ? `${p.unit} - ${(p.rName || '').slice(0, 14)}` : (p.rName || '').slice(0, 16)),
-        values: top.map(p => mode === 'revenue' ? p.rRev : p.rNet),
+        labels: top.map(p => {
+          const rawName = (p.rName || '').replace(/^The\s+/i, '').replace(/Luxury\s+Homestay.*$/i, '').trim();
+          if (isMobile) {
+            return p.unit ? `${p.unit} · ${rawName.slice(0, 10)}` : rawName.slice(0, 12);
+          }
+          return p.unit ? `${p.unit} · ${(p.rName || '').slice(0, 16)}` : (p.rName || '').slice(0, 18);
+        }),
+        values: top.map(p => Math.round(mode === 'revenue' ? p.rRev : p.rNet)),
         ids: top.map(p => p.rId)
       };
     }
@@ -3667,6 +3676,9 @@ function initExecutiveDashboardCharts(data) {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: { left: 0, right: 12, top: 4, bottom: 4 }
+        },
         onClick: (event, elements) => {
           if (elements && elements.length > 0) {
             const idx = elements[0].index;
@@ -3693,16 +3705,20 @@ function initExecutiveDashboardCharts(data) {
           x: {
             grid: { color: 'rgba(0, 0, 0, 0.04)' },
             ticks: {
-              font: { size: 10.5 },
+              font: { size: 10 },
               color: '#64748B',
               callback: function (v) {
-                return '₹' + (v >= 1000 ? (v / 1000) + 'k' : v);
+                return '₹' + (v >= 100000 ? (v / 100000).toFixed(1) + 'L' : (v >= 1000 ? Math.round(v / 1000) + 'k' : v));
               }
             }
           },
           y: {
             grid: { display: false },
-            ticks: { font: { size: 11, weight: '700' }, color: '#334155' }
+            ticks: {
+              font: { size: 10.5, weight: '700' },
+              color: '#334155',
+              autoSkip: false
+            }
           }
         }
       }
@@ -3981,8 +3997,8 @@ function initExecutiveDashboardCharts(data) {
       const capsule = document.getElementById('perfHighlightCapsule');
 
       // Update button styling
-      const activeStyle = 'background:#0F172A;color:#FFFFFF;border:none;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:800;cursor:pointer;transition:all 0.15s ease;';
-      const inactiveStyle = 'background:transparent;color:#64748B;border:none;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all 0.15s ease;';
+      const activeStyle = 'background:#0F172A;color:#FFFFFF;border:none;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;';
+      const inactiveStyle = 'background:transparent;color:#64748B;border:none;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;';
 
       if (btnAll) btnAll.style.cssText = mode === 'all' ? activeStyle : inactiveStyle;
       if (btnOff) btnOff.style.cssText = mode === 'offline' ? activeStyle : inactiveStyle;
