@@ -279,7 +279,7 @@ async function renderExpenses() {
 
   renderShell(`
     <!-- ─── EXECUTIVE EXPENSES HEADER & COMPACT ACTIONS ─── -->
-    <div class="card" style="margin-bottom:12px;padding:14px 16px;">
+    <div class="card exp-header-card" style="margin-bottom:12px;padding:14px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
           <h1 style="margin:0;font-size:20px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
@@ -290,7 +290,7 @@ async function renderExpenses() {
           </div>
         </div>
 
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <div class="exp-actions-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <button onclick="if(window.renderAddReimbursement) window.renderAddReimbursement(); else navigate('expenses');" style="background:#0284C7;color:#fff;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
             <span>➕</span> Add Expense
           </button>
@@ -308,7 +308,7 @@ async function renderExpenses() {
     </div>
 
     <!-- ─── UNIFIED COMPACT FINANCIAL DASHBOARD CARD ─── -->
-    <div class="card" style="margin-bottom:12px;padding:14px 16px;background:#ffffff;border:1px solid #E2E8F0;border-radius:14px;">
+    <div class="card exp-dashboard-card" style="margin-bottom:12px;padding:14px 16px;background:#ffffff;border:1px solid #E2E8F0;border-radius:14px;">
       <!-- Row 1: High Level P&L -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #E2E8F0;flex-wrap:wrap;gap:8px;">
         <span style="font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">
@@ -319,7 +319,7 @@ async function renderExpenses() {
         </span>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
+      <div class="exp-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
         <div style="background:#F0FDF4;padding:10px 12px;border-radius:10px;border:1px solid #DCFCE7;">
           <div style="font-size:10.5px;font-weight:700;color:#166534;text-transform:uppercase;">Bookings Revenue</div>
           <div style="font-size:18px;font-weight:900;color:#15803D;margin-top:2px;">₹${inc.toLocaleString('en-IN')}</div>
@@ -335,7 +335,7 @@ async function renderExpenses() {
       </div>
 
       <!-- Row 2: Payment Source Quick Breakdown Badges -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:8px;">
+      <div class="exp-source-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:8px;">
         <div style="background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="window.filterExpensesBySource('UHHS-OD')" title="Click to filter by TUHH-OD">
           <span style="font-size:11.5px;font-weight:700;color:#475569;">🏦 TUHH-OD Paid</span>
           <span style="font-size:13px;font-weight:800;color:#059669;">₹${totalOdExp.toLocaleString('en-IN')}</span>
@@ -352,22 +352,24 @@ async function renderExpenses() {
     </div>
 
     <!-- ─── UNIFIED RESPONSIVE FILTER & SEARCH TOOLBAR ─── -->
-    <div class="card" style="margin-bottom:12px;padding:12px 14px;">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:200px;position:relative;">
+    <div class="card exp-filter-card" style="margin-bottom:12px;padding:12px 14px;">
+      <div class="exp-filter-bar" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <div class="exp-search-wrap" style="flex:1;min-width:200px;position:relative;">
           <input type="text" id="expSearchInput" placeholder="🔍 Search description, notes, staff, amount..." oninput="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:8px 12px;font-size:13px;border:1px solid #CBD5E1;border-radius:8px;">
         </div>
-        <div style="min-width:140px;">
-          <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid #CBD5E1;border-radius:8px;">
-        </div>
-        <div>
-          <button type="button" onclick="window.resetExpenseFilters()" class="btn-sm" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
-            ↺ Reset
-          </button>
+        <div class="exp-filter-secondary-row" style="display:flex;gap:8px;align-items:center;">
+          <div class="exp-month-wrap" style="min-width:140px;">
+            <input type="month" id="expMonthFilter" value="${cm}" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12.5px;border:1px solid #CBD5E1;border-radius:8px;">
+          </div>
+          <div class="exp-reset-wrap">
+            <button type="button" onclick="window.resetExpenseFilters()" class="btn-sm" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+              ↺ Reset
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;">
+      <div class="exp-dropdowns-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;">
         <div>
           <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:3px;">Category / Channel</label>
           <select id="expChannelFilter" onchange="applyExpenseFilters()" style="width:100%;box-sizing:border-box;padding:7px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;">
@@ -477,15 +479,15 @@ function applyExpenseFilters() {
   window._currentExpenseMonth = monthVal || 'All';
 
   wrap.innerHTML = `
-    <div class="card">
-      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
+    <div class="card exp-table-card">
+      <div class="section-title exp-table-header-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span>🧾 Filtered Entries</span>
           <span style="background:#FEE2E2;color:#991B1B;font-weight:800;font-size:12.5px;padding:3px 10px;border-radius:999px;">
             Total: ₹${total.toLocaleString('en-IN')} (${list.length} entries)
           </span>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
+        <div class="exp-table-actions-btns" style="display:flex;gap:6px;align-items:center;">
           <button type="button" class="btn-sm" onclick="window.exportExpensesCSV()" style="background:#059669;color:#fff;font-weight:700;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
             📥 Export CSV
           </button>
@@ -498,7 +500,7 @@ function applyExpenseFilters() {
         </div>
       </div>
 
-      <div class="table-wrap">
+      <div class="table-wrap exp-table-wrap">
         <table>
           <thead>
             <tr>
@@ -517,27 +519,27 @@ function applyExpenseFilters() {
               ? '<tr><td colspan="8" class="sub" style="text-align:center;padding:20px;">No expenses match the selected filters</td></tr>'
               : list.map(item => `
                 <tr>
-                  <td style="font-size:12px;white-space:nowrap;">${item.date || '-'}</td>
-                  <td>
+                  <td data-label="Date" style="font-size:12px;white-space:nowrap;">${item.date || '-'}</td>
+                  <td data-label="Channel">
                     <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${getChannelBg(item.channel)};color:${getChannelColor(item.channel)};border:1px solid ${getChannelBorder(item.channel)};white-space:nowrap;">
                       ${item.channelLabel}
                     </span>
                   </td>
-                  <td style="font-size:12.5px;max-width:220px;word-break:break-word;">
+                  <td data-label="Description" style="font-size:12.5px;max-width:220px;word-break:break-word;">
                     <strong>${escapeHtml(item.title)}</strong>
                     ${item.notes && item.notes !== item.title ? `<div style="font-size:11px;color:#64748B;">${escapeHtml(item.notes.slice(0, 60))}</div>` : ''}
                   </td>
-                  <td style="font-size:12px;white-space:nowrap;">${escapeHtml(item.roomLabel || 'General')}</td>
-                  <td style="font-size:12px;font-weight:600;white-space:nowrap;">${escapeHtml(item.staffName || '-')}</td>
-                  <td>
+                  <td data-label="Property" style="font-size:12px;white-space:nowrap;">${escapeHtml(item.roomLabel || 'General')}</td>
+                  <td data-label="Staff / Payee" style="font-size:12px;font-weight:600;white-space:nowrap;">${escapeHtml(item.staffName || '-')}</td>
+                  <td data-label="Account">
                     <span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;background:${item.paidBy === 'UHHS-OD' ? '#E0F2FE' : '#FEF3C7'};color:${item.paidBy === 'UHHS-OD' ? '#0369A1' : '#92400E'};white-space:nowrap;">
                       ${item.paidBy === 'UHHS-OD' ? '🏦 TUHH-OD' : '🏢 COMPANY (Firoz)'}
                     </span>
                   </td>
-                  <td style="font-weight:800;color:#DC2626;font-size:13.5px;white-space:nowrap;">
+                  <td data-label="Amount" style="font-weight:800;color:#DC2626;font-size:13.5px;white-space:nowrap;">
                     ₹${item.amount.toLocaleString('en-IN')}
                   </td>
-                  <td>
+                  <td data-label="Salary Deductible?">
                     ${item.isSalaryDeductible
                       ? `<span style="background:#FEE2E2;color:#991B1B;font-weight:700;padding:2px 8px;border-radius:999px;font-size:10.5px;white-space:nowrap;">⚠️ YES (${item.deductionStatus})</span>`
                       : `<span style="color:#059669;font-size:11px;font-weight:600;white-space:nowrap;">🛡️ No (Company Paid)</span>`

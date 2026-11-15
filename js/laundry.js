@@ -137,7 +137,7 @@ window.renderLaundry = async function() {
     </tr>`).join('');
 
   renderShell(`
-    <div class="card">
+    <div class="card laundry-header-card">
       <h1>🧺 Laundry Tracker</h1>
       <div class="sub">${(records||[]).length} records — ${currentMonth}</div>
       <div class="laundry-action-buttons" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
@@ -187,11 +187,11 @@ window.renderLaundry = async function() {
     </div>
 
     <!-- VENDOR-WISE REPORT & ITEM-WISE CONSUMPTION DUAL GRID -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;">
+    <div class="laundry-vendor-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px;">
       ${Object.keys(vendorStats).length > 0 ? `
       <div class="card" style="margin-bottom:0;padding:12px 14px;">
         <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">🏆 Vendor-wise Report (${currentMonth})</div>
-        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:540px;width:100%;">
+        <div class="table-wrap preserve-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="preserve-table" style="min-width:540px;width:100%;">
           <thead><tr>
             <th>Vendor</th>
             <th style="text-align:center;">Orders</th>
@@ -207,7 +207,7 @@ window.renderLaundry = async function() {
       ${Object.keys(itemStats).length > 0 ? `
       <div class="card" style="margin-bottom:0;padding:12px 14px;">
         <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">📊 Item-wise Consumption (${currentMonth})</div>
-        <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:380px;width:100%;">
+        <div class="table-wrap preserve-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="preserve-table" style="min-width:380px;width:100%;">
           <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Amount</th></tr></thead>
           <tbody>${itemStatsHTML}</tbody>
         </table></div>
@@ -219,7 +219,7 @@ window.renderLaundry = async function() {
         <div class="section-title" style="margin:0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;">📋 Laundry Records</div>
         <input type="text" id="laundrySearchInput" placeholder="🔍 Filter property, vendor, item..." onkeyup="filterLaundryRecords()" style="max-width:260px;padding:6px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:8px;" />
       </div>
-      <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="min-width:680px;width:100%;">
+      <div class="table-wrap preserve-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="preserve-table" style="min-width:680px;width:100%;">
         <thead><tr>
           <th>Date</th><th>Property</th><th>Vendor</th><th>Items</th>
           <th style="text-align:right;">Total</th><th>Status</th><th>📷 Photos</th><th>Actions</th>

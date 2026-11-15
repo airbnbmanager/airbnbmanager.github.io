@@ -5332,14 +5332,19 @@ textarea:focus {
    📅 CALENDAR FIX v2 — Grid layout on mobile (uses divs not tables)
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Calendar uses inline grid divs — protect them */
-  #mainContent .card > div[style*="grid-template-columns"] {
+  /* Calendar uses inline grid divs — protect them strictly within calendar views */
+  #mainContent .calendar-grid,
+  #mainContent .cal-grid,
+  #mainContent #calendarMonthGrid,
+  #mainContent .calendar-month-view {
     display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     gap: 3px !important;
   }
 
-  #mainContent .card > div[style*="grid-template-columns"] > div {
+  #mainContent .cal-grid > div,
+  #mainContent #calendarMonthGrid > div,
+  #mainContent .calendar-month-view > div {
     display: block !important;
     text-align: center !important;
     padding: 4px 2px !important;
@@ -5351,7 +5356,9 @@ textarea:focus {
   }
 
   /* Day labels row */
-  #mainContent .card > div[style*="grid-template-columns"] > div:nth-child(-n+7) {
+  #mainContent .cal-grid > div:nth-child(-n+7),
+  #mainContent #calendarMonthGrid > div:nth-child(-n+7),
+  #mainContent .calendar-month-view > div:nth-child(-n+7) {
     font-weight: 700 !important;
     background: rgba(0,0,0,0.05) !important;
     border-radius: 4px !important;
@@ -6855,9 +6862,9 @@ textarea:focus {
   padding: 10px 20px;
   margin: -16px -16px 18px -16px;
   position: sticky;
-  top: 60px;
+  top: 64px;
   z-index: 100;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .hub-subnav-scroll {
@@ -6913,7 +6920,10 @@ textarea:focus {
   .hub-subnav-strip {
     top: calc(56px + env(safe-area-inset-top, 0px));
     padding: 8px 14px;
-    margin: 0 0 14px 0;
+    margin: -16px -16px 14px -16px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   .hub-subnav-tab {
     padding: 6px 13px;
@@ -6921,11 +6931,30 @@ textarea:focus {
   }
 }
 
+@media (max-width: 768px) {
+  .hub-subnav-strip {
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    padding: 8px 12px;
+    margin: -16px -12px 14px -12px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .hub-subnav-tab {
+    padding: 6px 13px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .hub-subnav-strip {
     top: calc(56px + env(safe-area-inset-top, 0px));
-    padding: 6px 10px;
-    margin: 0 0 12px 0;
+    padding: 7px 10px;
+    margin: -16px -10px 12px -10px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   .hub-subnav-tab {
     padding: 5px 12px;
@@ -9853,6 +9882,301 @@ textarea:focus {
 .homeyhuts-menu-empty-notice {
   animation: fadeIn 0.2s ease;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   📱 TUHH MOBILE PERFECTION: EXPENSES, CLAIMS, LAUNDRY, MAINTENANCE
+   ═══════════════════════════════════════════════════════════ */
+
+/* 1. Universal Table Scroll Preserver for Dense Datasets */
+@media (max-width: 768px) {
+  .table-wrap.preserve-table,
+  .table-wrap:has(table.preserve-table),
+  #claimsTableContainer,
+  .laundry-vendor-grid .table-wrap,
+  .maint-table-wrap {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin: 0 0 12px 0 !important;
+    padding-bottom: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  .table-wrap.preserve-table table,
+  table.preserve-table,
+  #claimsTableContainer table,
+  .laundry-vendor-grid table,
+  .maint-table-wrap table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+  }
+
+  .table-wrap.preserve-table thead,
+  table.preserve-table thead,
+  #claimsTableContainer thead,
+  .laundry-vendor-grid thead,
+  .maint-table-wrap thead {
+    display: table-header-group !important;
+  }
+
+  .table-wrap.preserve-table tbody,
+  table.preserve-table tbody,
+  #claimsTableContainer tbody,
+  .laundry-vendor-grid tbody,
+  .maint-table-wrap tbody {
+    display: table-row-group !important;
+  }
+
+  .table-wrap.preserve-table tr,
+  table.preserve-table tr,
+  #claimsTableContainer tr,
+  .laundry-vendor-grid tr,
+  .maint-table-wrap tr {
+    display: table-row !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .table-wrap.preserve-table th,
+  .table-wrap.preserve-table td,
+  table.preserve-table th,
+  table.preserve-table td,
+  #claimsTableContainer th,
+  #claimsTableContainer td,
+  .laundry-vendor-grid th,
+  .laundry-vendor-grid td,
+  .maint-table-wrap th,
+  .maint-table-wrap td {
+    display: table-cell !important;
+    padding: 8px 10px !important;
+    vertical-align: middle !important;
+    white-space: normal !important;
+    min-height: unset !important;
+    text-align: inherit !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+  }
+
+  .table-wrap.preserve-table td::before,
+  table.preserve-table td::before,
+  #claimsTableContainer td::before,
+  .laundry-vendor-grid td::before,
+  .maint-table-wrap td::before {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* 2. Sub-Nav Strip Edge-to-Edge & Mobile Optimization */
+@media (max-width: 768px) {
+  .hub-subnav-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .hub-subnav-scroll {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+}
+
+/* 3. Expenses Hub & Sub-Tabs Responsive Overhauls */
+@media (max-width: 640px) {
+  /* Expenses Header & Action Buttons */
+  .exp-actions-row,
+  .claims-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+  .exp-actions-row button,
+  .claims-header-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+    box-sizing: border-box !important;
+  }
+  .claims-header-actions button:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Expenses KPI Grid (Revenue, Expenses, Profit) */
+  .exp-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .exp-kpi-grid > div:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Expenses Source Badges */
+  .exp-source-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  /* Expenses Search & Toolbar */
+  .exp-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .exp-search-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .exp-filter-secondary-row {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .exp-month-wrap {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  .exp-reset-wrap button {
+    padding: 8px 14px !important;
+  }
+
+  /* Expenses Dropdowns Grid */
+  .exp-dropdowns-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .exp-dropdowns-grid select {
+    font-size: 11.5px !important;
+    padding: 7px 6px !important;
+    min-width: 0 !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Expenses Table Action Buttons */
+  .exp-table-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .exp-table-actions-btns {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .exp-table-actions-btns button {
+    width: 100% !important;
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    justify-content: center !important;
+  }
+
+  /* Claims OD Live Banner */
+  .claims-od-stats-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+  }
+  .claims-od-bal-box {
+    grid-column: 1 / -1 !important;
+    border-left: none !important;
+    border-top: 1px solid #CBD5E1 !important;
+    padding-left: 0 !important;
+    padding-top: 8px !important;
+    text-align: left !important;
+  }
+
+  /* Claims Summary Cards */
+  .claims-summary-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Claims Bulk Actions & Selection Actions */
+  .claims-bulk-actions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+  .claims-bulk-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+  }
+  .claims-selection-actions {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+  }
+  .claims-selection-actions button:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Laundry Action Buttons & KPI Grid */
+  .laundry-action-buttons {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .laundry-action-buttons input[type="month"] {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+  .laundry-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .laundry-kpi-grid .kpi-tile {
+    padding: 8px 4px !important;
+  }
+  .laundry-kpi-grid .kpi-num {
+    font-size: 15px !important;
+  }
+  .laundry-kpi-grid .kpi-sub {
+    font-size: 9.5px !important;
+  }
+  .laundry-vendor-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Maintenance KPI & Filter Grids */
+  .maint-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .maint-kpi-grid > div:nth-child(4) {
+    grid-column: 1 / 2 !important;
+  }
+  .maint-kpi-grid > div:nth-child(5) {
+    grid-column: 2 / -1 !important;
+  }
+  .maint-filter-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .maint-filter-grid select {
+    font-size: 11.5px !important;
+    padding: 7px 6px !important;
+    min-width: 0 !important;
+  }
+}
+
 
 
 

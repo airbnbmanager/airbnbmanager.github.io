@@ -74,7 +74,7 @@ async function renderMaintenanceLog() {
 
     <!-- COMPACT RESPONSIVE KPI METRICS -->
     <div class="card" style="margin-bottom:12px;padding:12px 14px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px;">
+      <div class="maint-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px;">
         <div style="text-align:center;padding:10px 6px;background:#EFF6FF;border-radius:10px;border:1px solid #DBEAFE;">
           <div style="font-size:18px;font-weight:900;color:#1E40AF;">₹${totalCost.toLocaleString('en-IN')}</div>
           <div style="font-size:11px;font-weight:700;color:#3B82F6;margin-top:2px;">Total Cost</div>
@@ -101,7 +101,7 @@ async function renderMaintenanceLog() {
     <!-- RESPONSIVE FILTER GRID (Mobile 2x2 Clean Grid, Desktop 4-in-a-row) -->
     <div class="card" style="margin-bottom:12px;padding:12px 14px;">
       <div class="section-title" style="margin:0 0 8px 0;font-size:12px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.4px;">🔍 Filter Maintenance Issues</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;">
+      <div class="maint-filter-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px;">
         <select style="width:100%;box-sizing:border-box;padding:8px 10px;font-size:12px;font-weight:600;border:1px solid #CBD5E1;border-radius:8px;background:#ffffff;color:#0F172A;min-width:0;appearance:menulist;-webkit-appearance:menulist;" onchange="window._maintMonth=this.value;renderMaintenanceLog()">
           <option value="All" ${!monthFilter || monthFilter.toUpperCase()==='ALL'?'selected':''}>📅 All Months</option>
           ${months.map(m => `<option value="${m}" ${monthFilter===m?'selected':''}>${m}</option>`).join('')}
@@ -123,8 +123,8 @@ async function renderMaintenanceLog() {
 
     <!-- HORIZONTALLY SCROLLABLE TABLE WRAPPER -->
     <div class="card" style="margin-bottom:12px;padding:12px 14px;">
-      <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table style="min-width:760px;width:100%;">
+      <div class="table-wrap maint-table-wrap preserve-table" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table class="preserve-table" style="min-width:760px;width:100%;">
       <thead><tr>
         <th>Priority</th><th>Account</th><th>Property</th><th>Type</th><th>Description</th>
         <th>Assigned</th><th>Cost</th><th>Status</th><th>Date</th><th>Photo</th><th>Actions</th>

@@ -77,13 +77,15 @@ window.renderClaims = async function() {
   }
 
   renderShell(`
-    <div class="card">
+    <div class="card claims-header-card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
         <div>
-          <h1>⚖️ Universal Claims Manager</h1>
-          <div class="sub">Checkpoint: <strong>16-Sep-2026 11:59 PM (Settled)</strong> · TUHH-OD Engine</div>
+          <h1 style="margin:0;font-size:20px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            <span>⚖️</span> Universal Claims Manager
+          </h1>
+          <div class="sub" style="margin-top:2px;">Checkpoint: <strong>16-Sep-2026 11:59 PM (Settled)</strong> · TUHH-OD Engine</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="claims-header-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="openUhhsDepositModal()" style="background:#0284C7;color:#fff;font-weight:700;">📥 Deposit Entry (TUHH-OD)</button>
           <button onclick="showUhhsStatementModal()" style="background:#0F766E;color:#fff;font-weight:600;">📜 TUHH Ledger</button>
           <button onclick="showCompanyLedgerModal()" style="background:#EA580C;color:#fff;font-weight:600;">🏢 Company Ledger</button>
@@ -94,7 +96,7 @@ window.renderClaims = async function() {
     </div>
 
     <!-- UHHS-OD LIVE ACCOUNT BANNER -->
-    <div class="card" style="background:#F0FDF4;border:1.5px solid #86EFAC;padding:16px;">
+    <div class="card claims-od-banner" style="background:#F0FDF4;border:1.5px solid #86EFAC;padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
         <div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -105,16 +107,16 @@ window.renderClaims = async function() {
             Money received online from Firoz &amp; spent via TUHH-OD (Post-Checkpoint: 17-Sep onwards · Opening Balance: ₹0)
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-          <div style="text-align:right;">
+        <div class="claims-od-stats-row" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+          <div class="claims-od-stat-box" style="text-align:right;">
             <div style="font-size:11px;color:#64748B;font-weight:700;">📥 TOTAL DEPOSITED</div>
             <div style="font-size:18px;font-weight:800;color:#059669;" id="claims-od-inflow">₹0</div>
           </div>
-          <div style="text-align:right;">
+          <div class="claims-od-stat-box" style="text-align:right;">
             <div style="font-size:11px;color:#64748B;font-weight:700;">📤 TOTAL SPENT</div>
             <div style="font-size:18px;font-weight:800;color:#DC2626;" id="claims-od-outflow">₹0</div>
           </div>
-          <div style="text-align:right;padding-left:14px;border-left:1.5px solid #CBD5E1;">
+          <div class="claims-od-stat-box claims-od-bal-box" style="text-align:right;padding-left:14px;border-left:1.5px solid #CBD5E1;">
             <div style="font-size:11px;color:#64748B;font-weight:700;">NET RUNNING BALANCE</div>
             <div style="font-size:24px;font-weight:900;" id="claims-od-banner-bal" class="claims-od-bal-value">₹0</div>
           </div>
@@ -360,7 +362,7 @@ window.renderClaims = async function() {
 
     <!-- SUMMARY CARDS -->
     <div class="card" id="claimsStatCards">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
+      <div class="claims-summary-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px;">
         <div style="text-align:center;padding:12px;background:#EEF2FF;border-radius:8px;">
           <div id="statTotalAmt" style="font-size:20px;font-weight:800;color:#3730A3;">₹0</div>
           <div style="font-size:11px;color:#666;">Total Expenses</div>
@@ -404,7 +406,7 @@ window.renderClaims = async function() {
           </div>
           <div style="font-size:11px;color:#C7D2FE;margin-top:2px;">Settle or claim all transactions matching the selected date range at once — no need to tick individual checkboxes!</div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="claims-bulk-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
           <button onclick="bulkUpdateRange('claimed')" style="background:#F59E0B;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);transition:0.2s;">
             📤 Claim All in Range
           </button>
@@ -422,7 +424,7 @@ window.renderClaims = async function() {
           Selected via Checkboxes: <strong id="selectedCountText">0 items</strong> ·
           Payable: <strong id="selectedAmountText" style="font-size:16px;">₹0</strong>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="claims-selection-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="bulkUpdateClaims('claimed')" class="btn-sm" style="background:#F59E0B;color:#fff;padding:6px 12px;font-weight:600;">📤 Mark Claimed (Selected)</button>
           <button onclick="bulkUpdateClaims('received')" class="btn-sm" style="background:#10B981;color:#fff;padding:6px 12px;font-weight:600;">✅ Mark Settled (Selected)</button>
           <button onclick="bulkUpdateClaims('unclaimed')" class="btn-sm" style="background:#6B7280;color:#fff;padding:6px 12px;font-weight:600;">↩️ Revert Pending</button>
@@ -431,7 +433,7 @@ window.renderClaims = async function() {
     </div>
 
     <div class="card">
-      <div id="claimsTableContainer" style="overflow-x:auto;">
+      <div id="claimsTableContainer" class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <div style="text-align:center;padding:30px;color:#666;">Loading claims data...</div>
       </div>
     </div>
@@ -728,7 +730,7 @@ function renderClaimsTable() {
   }
 
   container.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <table style="min-width:760px;width:100%;border-collapse:collapse;font-size:12px;">
       <thead>
         <tr style="background:#F1F5F9;text-align:left;">
           <th style="padding:10px;width:30px;"><input type="checkbox" onchange="toggleSelectAllClaims(this)" /></th>
