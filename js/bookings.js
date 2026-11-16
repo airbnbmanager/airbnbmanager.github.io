@@ -3238,7 +3238,7 @@ async function renderAddBooking(prefillOpts) {
           </select>
         </div>
         <div class="form-group"><label>Guests</label>
-          <input id="guests" type="number" value="${pre.guests || 1}" min="1" max="50"
+          <input id="guests" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${pre.guests || 1}" min="1" max="50"
             onchange="showIdSlots()" oninput="showIdSlots()" />
         </div>
       </div>
@@ -3252,13 +3252,13 @@ async function renderAddBooking(prefillOpts) {
         <div class="form-grid">
           <div class="form-group">
             <label>Total Amount ₹ *</label>
-            <input id="totalAmount" type="number" placeholder="Total kitne me book hua"
+            <input id="totalAmount" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" placeholder="Total kitne me book hua"
               oninput="delete this.dataset.autofilled; onAmtChg()" value="${pre.totalAmount || ''}" />
             <div id="sugInfo" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
           </div>
           <div class="form-group">
             <label>Per Day Rate ₹ (auto)</label>
-            <input id="perDayRate" type="number" placeholder="Auto from total ÷ nights" readonly
+            <input id="perDayRate" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" placeholder="Auto from total ÷ nights" readonly
               style="background:#f5f5f5;color:var(--muted);" value="${pre.perDayRate || ''}" />
           </div>
         </div>
@@ -3269,12 +3269,12 @@ async function renderAddBooking(prefillOpts) {
         <div class="form-grid">
           <div class="form-group">
             <label>Total Amount ₹ * (Net Payout)</label>
-            <input id="totalAmountOnline" type="number" placeholder="Jo bank me aaya"
+            <input id="totalAmountOnline" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" placeholder="Jo bank me aaya"
               oninput="onAmtChg()" value="${pre.totalAmount || ''}" />
           </div>
           <div class="form-group">
             <label>Per Day Rate ₹ (auto)</label>
-            <input id="perDayRateOnline" type="number" placeholder="Auto calc" readonly
+            <input id="perDayRateOnline" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" placeholder="Auto calc" readonly
               style="background:#f5f5f5;color:var(--muted);" value="${pre.perDayRate || ''}" />
           </div>
         </div>
@@ -3282,7 +3282,7 @@ async function renderAddBooking(prefillOpts) {
 
       <div class="form-grid">
         <div class="form-group"><label>Advance ₹</label>
-          <input id="advanceAmt" type="number" value="${pre.advanceAmt || 0}" oninput="onAmtChg()" />
+          <input id="advanceAmt" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${pre.advanceAmt || 0}" oninput="onAmtChg()" />
         </div>
         <div class="form-group"><label>Advance Mode</label>
           <select id="advMode" onchange="onAdvanceModeChange()">
@@ -4976,12 +4976,13 @@ async function editBooking(bkId) {
       <div class="form-grid">
         <div class="form-group" style="position:relative;">
           <label>Guest Name</label>
-          <input id="guestName" value="${b.guest_name || ''}" oninput="window.handleGuestNameInput(this.value)" autocomplete="off" />
+          <input id="guestName" value="${b.guest_name || ''}" onfocus="this.select()" oninput="window.handleGuestNameInput(this.value)" autocomplete="off" />
           <div id="guestNameSuggestions" class="guest-name-suggestions" style="display:none;"></div>
         </div>
         <div class="form-group">
           <label>Phone (+91 / 0 / 10 digits)</label>
-          <input id="guestPhone" type="tel" placeholder="10 digit mobile (or +91...)" value="${b.phone || ''}"
+          <input id="guestPhone" type="tel" inputmode="numeric" placeholder="10 digit mobile (or +91...)" value="${b.phone || ''}"
+            onfocus="this.select()"
             oninput="window.handleGuestPhoneInput(this.value)"
             onblur="window.handleGuestPhoneInput(this.value)"
             onpaste="window.handleGuestPhonePaste(event, this)" />
@@ -5087,11 +5088,11 @@ async function editBooking(bkId) {
         <div><strong>Open Stay (Per Day basis):</strong> Total calculates dynamically day-by-day based on the daily rate.</div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Guests</label><input id="guests" type="number" value="${guestCountForUI}" min="1" max="50" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
-        <div class="form-group"><label>Per Day Rate ₹</label><input id="perDayRate" type="number" value="${b.per_day_rate || ''}" /></div>
+        <div class="form-group"><label>Guests</label><input id="guests" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${guestCountForUI}" min="1" max="50" onchange="showEditIdSlots()" oninput="showEditIdSlots()" /></div>
+        <div class="form-group"><label>Per Day Rate ₹</label><input id="perDayRate" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${b.per_day_rate || ''}" /></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Total ₹</label><input id="totalAmount" type="number" value="${b.total_amount || 0}" /></div>
+        <div class="form-group"><label>Total ₹</label><input id="totalAmount" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${b.total_amount || 0}" /></div>
         <div class="form-group"><label>Status</label>
           <select id="paySt">
             <option value="Unpaid" ${b.payment_status === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
@@ -6297,7 +6298,21 @@ function showPaymentModal(bkId) {
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>💰 Add Payment</h2>
       ${prevDueHtml}
-      <div class="form-group"><label>Amount ₹ *</label><input id="payAmt" type="number" placeholder="Amount" /></div>
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label style="margin:0;">Amount ₹ *</label>
+          ${totalCollectible > 0 ? `<span style="font-size:11px;color:#DC2626;font-weight:700;">Due: ₹${totalCollectible.toLocaleString('en-IN')}</span>` : ''}
+        </div>
+        <input id="payAmt" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" placeholder="Amount" value="${totalCollectible > 0 ? totalCollectible : ''}" />
+        ${totalCollectible > 0 ? `
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+            <button type="button" class="btn-sm" onclick="document.getElementById('payAmt').value=${totalCollectible}" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#DCFCE7;color:#15803D;border:1px solid #86EFAC;border-radius:4px;cursor:pointer;">✓ Full Due (₹${totalCollectible.toLocaleString('en-IN')})</button>
+            <button type="button" class="btn-sm" onclick="document.getElementById('payAmt').value=${Math.round(totalCollectible / 2)}" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;cursor:pointer;">50% (₹${Math.round(totalCollectible / 2).toLocaleString('en-IN')})</button>
+            <button type="button" class="btn-sm" onclick="document.getElementById('payAmt').value=1000" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;cursor:pointer;">₹1,000</button>
+            <button type="button" class="btn-sm" onclick="document.getElementById('payAmt').value=2000" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;border-radius:4px;cursor:pointer;">₹2,000</button>
+          </div>
+        ` : ''}
+      </div>
       <div class="form-group"><label>Mode</label>
         <select id="payMode" onchange="onPayModeChange()">
           <option value="Cash">Cash</option>
@@ -6659,7 +6674,7 @@ async function editPayment(payId, bkId) {
     <div class="modal-box">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
       <h2>✏️ Edit Payment</h2>
-      <div class="form-group"><label>Amount ₹</label><input id="editPayAmt" type="number" value="${pay.amount}" /></div>
+      <div class="form-group"><label>Amount ₹</label><input id="editPayAmt" type="number" inputmode="numeric" onfocus="this.select()" onwheel="this.blur()" value="${pay.amount}" /></div>
       <div class="form-group"><label>Mode</label>
         <select id="editPayMode" onchange="onEditPayModeChange()">
           <option value="Cash" ${pay.payment_mode === 'Cash' ? 'selected' : ''}>Cash</option>

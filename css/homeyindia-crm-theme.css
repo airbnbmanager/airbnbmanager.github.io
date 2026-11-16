@@ -48,6 +48,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 🧼 Clean modern number inputs without browser spinner arrows & accidental wheel jumps */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* --- 2. Master App Layout --- */
 .app-container {
   display: flex !important;

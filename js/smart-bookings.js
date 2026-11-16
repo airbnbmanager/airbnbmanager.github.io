@@ -2355,13 +2355,18 @@ async function renderSmartAddBooking(prefillOpts) {
         <div class="form-grid">
           <div class="form-group">
             <label style="font-weight:700;">Mobile Phone * <small style="color:var(--muted);">(10 Digits)</small></label>
-            <input id="guestPhone" type="tel" placeholder="e.g. 9560172711" value="${pre.guestPhone || ''}"
-              oninput="window.onSmartPhoneInput(this.value)" style="font-size:14px;font-weight:600;" />
+            <input id="guestPhone" type="tel" inputmode="numeric" placeholder="e.g. 9560172711" value="${pre.guestPhone || ''}"
+              oninput="window.handleSmartPhoneInput(this)"
+              onfocus="this.select()"
+              onpaste="window.handleSmartPhonePaste(event, this)"
+              autocomplete="tel"
+              style="font-size:15px;font-weight:700;letter-spacing:0.5px;" />
           </div>
           <div class="form-group">
             <label style="font-weight:700;">Guest Name *</label>
             <input id="guestName" placeholder="Full name of guest (e.g. Praveen Singh)" value="${pre.guestName || ''}"
-              style="font-size:14px;font-weight:600;" />
+              onfocus="this.select()"
+              style="font-size:15px;font-weight:700;" />
           </div>
         </div>
 
@@ -2505,11 +2510,17 @@ async function renderSmartAddBooking(prefillOpts) {
           <div class="form-grid">
             <div class="form-group">
               <label style="font-weight:700;">Grand Total Stay Amount ₹ *</label>
-              <input id="multiTotalAmount" type="number" placeholder="0" value="0" oninput="window.recalcMultiTotals(true)" style="font-size:16px;font-weight:800;" />
+              <input id="multiTotalAmount" type="number" inputmode="numeric" placeholder="0" value="0" 
+                oninput="this.dataset.userCustomized='true';window.recalcMultiTotals(true)" 
+                onfocus="this.select()" onwheel="this.blur()"
+                style="font-size:16px;font-weight:800;border-radius:8px;" />
             </div>
             <div class="form-group">
               <label style="font-weight:700;">Total Advance Received ₹</label>
-              <input id="multiAdvanceAmt" type="number" placeholder="0" value="${pre.advanceAmt || 0}" oninput="window.recalcMultiTotals(true)" style="font-size:16px;font-weight:800;color:#059669;" />
+              <input id="multiAdvanceAmt" type="number" inputmode="numeric" placeholder="0" value="${pre.advanceAmt || 0}" 
+                oninput="window.recalcMultiTotals(true)" 
+                onfocus="this.select()" onwheel="this.blur()"
+                style="font-size:16px;font-weight:800;color:#059669;border-radius:8px;" />
             </div>
           </div>
 
@@ -2570,7 +2581,7 @@ async function renderSmartAddBooking(prefillOpts) {
             </div>
             <div class="form-group">
               <label style="font-weight:700;">Number of Guests</label>
-              <input id="guests" type="number" min="1" max="50" value="${pre.guests || 2}" />
+              <input id="guests" type="number" min="1" max="50" value="${pre.guests || 2}" onfocus="this.select()" onwheel="this.blur()" />
             </div>
           </div>
 
@@ -2642,14 +2653,35 @@ async function renderSmartAddBooking(prefillOpts) {
 
           <div class="form-grid">
             <div class="form-group">
-              <label style="font-weight:700;">Total Stay Amount ₹ *</label>
-              <input id="totalAmount" type="number" placeholder="Enter total amount"
-                value="${pre.totalAmount || ''}" oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;" />
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+                <label style="margin:0;font-weight:700;">Total Stay Amount ₹ *</label>
+                <div id="smartStandardRateHint" style="font-size:11px;color:var(--muted);"></div>
+              </div>
+              <input id="totalAmount" type="number" inputmode="numeric" placeholder="Enter total amount"
+                value="${pre.totalAmount || ''}" 
+                oninput="window.onTotalAmountInput(this)" 
+                onfocus="this.select()" 
+                onwheel="this.blur()"
+                style="font-size:16px;font-weight:800;border-radius:8px;" />
             </div>
             <div class="form-group">
-              <label style="font-weight:700;">Advance Paid ₹</label>
-              <input id="advanceAmt" type="number" placeholder="0" value="${pre.advanceAmt || 0}"
-                oninput="window.recalcSmartPrice()" style="font-size:15px;font-weight:700;color:#059669;" />
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label style="margin:0;font-weight:700;">Advance Paid ₹</label>
+                <span style="font-size:11px;color:#059669;font-weight:700;">Advance Payment</span>
+              </div>
+              <input id="advanceAmt" type="number" inputmode="numeric" placeholder="0" value="${pre.advanceAmt || 0}"
+                oninput="window.onAdvanceAmountInput(this)" 
+                onfocus="this.select()" 
+                onwheel="this.blur()"
+                style="font-size:16px;font-weight:800;color:#059669;border-radius:8px;" />
+              <!-- Quick 1-Tap Advance Presets -->
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+                <button type="button" class="btn-sm" onclick="window.setQuickAdvance(0)" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:4px;cursor:pointer;">₹0 (Due)</button>
+                <button type="button" class="btn-sm" onclick="window.setQuickAdvance(1000)" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;border-radius:4px;cursor:pointer;">₹1,000</button>
+                <button type="button" class="btn-sm" onclick="window.setQuickAdvance(2000)" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;border-radius:4px;cursor:pointer;">₹2,000</button>
+                <button type="button" class="btn-sm" onclick="window.setQuickAdvance('50%')" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;cursor:pointer;">50%</button>
+                <button type="button" class="btn-sm" onclick="window.setQuickAdvance('full')" style="padding:2px 7px;font-size:10.5px;font-weight:700;background:#DCFCE7;color:#15803D;border:1px solid #86EFAC;border-radius:4px;cursor:pointer;">✓ Full Paid</button>
+              </div>
             </div>
           </div>
 
@@ -3027,7 +3059,7 @@ window.onSmartDateChange = function(source) {
   window.recalcSmartPrice();
 };
 
-window.suggestDefaultPrice = function() {
+window.suggestDefaultPrice = function(force = false) {
   const roomId = document.getElementById('roomId')?.value;
   const totInput = document.getElementById('totalAmount');
   if (!roomId || !totInput) return;
@@ -3048,7 +3080,16 @@ window.suggestDefaultPrice = function() {
   const calcTotal = pricing ? pricing.totalBase : (baseRate * nights);
   const calcPerDay = pricing ? pricing.effectiveNightlyRate : baseRate;
 
-  if (!totInput.value || totInput.dataset.autoFilled === 'true' || totInput.dataset.autofilled === 'true') {
+  // Show standard rate hint with 1-click restore button
+  const hintEl = document.getElementById('smartStandardRateHint');
+  if (hintEl) {
+    hintEl.innerHTML = `Std Rate: <strong>₹${calcTotal.toLocaleString('en-IN')}</strong> (${nights}N @ ₹${calcPerDay}/N) <button type="button" onclick="window.applyStandardPrice(${calcTotal}, ${calcPerDay})" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#0284C7;border-radius:4px;cursor:pointer;font-weight:700;padding:1px 6px;font-size:10.5px;margin-left:4px;">Apply Std</button>`;
+  }
+
+  const isUserCustomized = totInput.dataset.userCustomized === 'true';
+
+  // Only auto-fill if user has NOT customized it, or if forced, or if empty
+  if (force || (!isUserCustomized && (!totInput.value || totInput.dataset.autoFilled === 'true' || totInput.dataset.autofilled === 'true'))) {
     totInput.value = calcTotal;
     totInput.dataset.autoFilled = 'true';
     totInput.dataset.autofilled = 'true';
@@ -3059,6 +3100,64 @@ window.suggestDefaultPrice = function() {
     }
     window.recalcSmartPrice();
   }
+};
+
+window.applyStandardPrice = function(calcTotal, calcPerDay) {
+  const totInput = document.getElementById('totalAmount');
+  if (totInput) {
+    delete totInput.dataset.userCustomized;
+    totInput.dataset.autoFilled = 'true';
+    totInput.dataset.autofilled = 'true';
+    totInput.value = calcTotal;
+  }
+  const perDayInp = document.getElementById('perDayRate');
+  if (perDayInp && calcPerDay) {
+    perDayInp.value = calcPerDay;
+    perDayInp.dataset.autofilled = 'true';
+  }
+  window.recalcSmartPrice();
+};
+
+window.onTotalAmountInput = function(el) {
+  el.dataset.userCustomized = 'true';
+  delete el.dataset.autoFilled;
+  delete el.dataset.autofilled;
+  window.recalcSmartPrice();
+};
+
+window.onAdvanceAmountInput = function(el) {
+  window.recalcSmartPrice();
+};
+
+window.setQuickAdvance = function(val) {
+  const tot = parseFloat(document.getElementById('totalAmount')?.value) || 0;
+  const advInp = document.getElementById('advanceAmt');
+  if (!advInp) return;
+  if (val === 'full') {
+    advInp.value = tot;
+  } else if (val === '50%') {
+    advInp.value = Math.round(tot / 2);
+  } else {
+    advInp.value = Number(val);
+  }
+  window.recalcSmartPrice();
+};
+
+let _smartPhoneDebounceTimer = null;
+window.handleSmartPhoneInput = function(inputEl) {
+  clearTimeout(_smartPhoneDebounceTimer);
+  _smartPhoneDebounceTimer = setTimeout(() => {
+    window.onSmartPhoneInput(inputEl.value);
+  }, 250);
+};
+
+window.handleSmartPhonePaste = function(e, inputEl) {
+  e.preventDefault();
+  const pasteData = (e.clipboardData || window.clipboardData).getData('text') || '';
+  const digits = pasteData.replace(/\D/g, '');
+  const clean10 = digits.slice(-10);
+  inputEl.value = clean10;
+  window.handleSmartPhoneInput(inputEl);
 };
 
 window.recalcSmartPrice = function() {
