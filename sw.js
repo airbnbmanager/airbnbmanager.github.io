@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuhh-live-v468';
+const CACHE_NAME = 'tuhh-live-v469';
 const RUNTIME_CACHE = 'tuhh-runtime-v467';
 
 const CORE_ASSETS = [
@@ -34,6 +34,7 @@ const CORE_ASSETS = [
   '/js/bookings.js',
   '/js/smart-bookings.js',
   '/js/html2canvas.min.js',
+  '/js/html2pdf.bundle.min.js',
   '/js/booking-receipt.js',
   '/js/gst-invoice.js',
   '/js/ca-audit-pack.js',

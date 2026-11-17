@@ -649,12 +649,14 @@ async function renderInvestorReport(investorId, roomId, month) {
             ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group" style="margin-bottom:0;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
-          <button class="btn-sm" style="background:#0F172A;color:#fff;font-weight:700;" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
-          <button class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;" onclick="downloadInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">📥 Download PDF</button>
-          <button class="btn-sm" style="background:#25D366;color:#fff;font-weight:700;" onclick="shareInvestorReportWA('${investorId}','${roomId}','${selMonth}')">💬 WhatsApp Report</button>
-          <button class="btn-sm outline" onclick="downloadInvestorReportHTML('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">📥 HTML Backup</button>
-          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
+        <div class="form-group" style="margin-bottom:0;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;border:none;box-shadow:0 2px 6px rgba(2,132,199,0.3);display:inline-flex;align-items:center;gap:6px;" onclick="downloadInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">
+            <span>📥</span> Download PDF
+          </button>
+          <button class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;" onclick="shareInvestorReportWA('${investorId}','${roomId}','${selMonth}')">
+            <span>💬</span> WhatsApp
+          </button>
+          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" style="padding:6px 10px;font-size:11px;" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends (${excludedBookings.length})</button>` : ''}
         </div>
       </div>
     </div>
@@ -662,15 +664,15 @@ async function renderInvestorReport(investorId, roomId, month) {
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- 📄 BEAUTIFUL CONTINUOUS AUDITED STATEMENT (.report-doc)     -->
     <!-- ═══════════════════════════════════════════════════════════ -->
-    <div class="card report-doc" id="investorReportDoc" style="max-width:880px;margin:0 auto;padding:26px 30px;background:#FFFFFF;box-shadow:0 10px 30px rgba(15,23,42,0.06);border:1px solid #E2E8F0;border-radius:12px;color:#0F172A;">
+    <div class="card report-doc" id="investorReportDoc" style="max-width:880px;margin:0 auto;padding:24px 28px;background:#FFFFFF;box-shadow:0 10px 30px rgba(15,23,42,0.06);border:1px solid #E2E8F0;border-radius:12px;color:#0F172A;box-sizing:border-box;">
 
       <!-- Top Accent Stripe (Royal Blue Palette) -->
-      <div style="height:4px;background:linear-gradient(90deg,#0284C7 0%,#0369A1 60%,#0F172A 100%);border-radius:2px;margin-bottom:18px;"></div>
+      <div style="height:4px;background:linear-gradient(90deg,#0284C7 0%,#0369A1 60%,#0F172A 100%);border-radius:2px;margin-bottom:16px;"></div>
 
       <!-- Header Banner -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH Logo" style="width:48px;height:48px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;padding:2px;border:1px solid #E2E8F0;" />
+          <img src="https://uniquehavenhomesstay.com/assets/logo.png" onerror="this.src='assets/logo.png'" alt="TUHH Logo" style="width:46px;height:46px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;padding:2px;border:1px solid #E2E8F0;" />
           <div>
             <div style="font-size:15px;font-weight:900;color:#0F172A;letter-spacing:0.8px;text-transform:uppercase;line-height:1.2;">
               THE UNIQUE HAVEN HOMES PRIVATE LIMITED
@@ -683,7 +685,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </div>
           </div>
         </div>
-        <div style="text-align:right;font-size:10px;line-height:1.45;color:#475569;background:#F8FAFC;padding:8px 12px;border-radius:8px;border:1px solid #E2E8F0;">
+        <div style="text-align:right;font-size:10px;line-height:1.45;color:#475569;background:#F8FAFC;padding:7px 12px;border-radius:8px;border:1px solid #E2E8F0;">
           <div><strong style="color:#0F172A;">Statement Period:</strong> <span style="color:#0284C7;font-weight:800;">${monthYear.toUpperCase()}</span></div>
           <div><strong style="color:#0F172A;">Property:</strong> ${room?.nickname || room?.property_name || '-'}</div>
           <div><strong style="color:#0F172A;">Investor:</strong> ${inv?.name || '-'}</div>
@@ -691,119 +693,119 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
       </div>
 
-      <!-- 3 TOP SUMMARY KPI CARDS (Matching Reference Screenshot) -->
-      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px;">
+      <!-- 3 TOP SUMMARY KPI CARDS (Side-by-Side Flex, No Overlap) -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;width:100%;box-sizing:border-box;">
         <!-- Card 1: Revenue -->
-        <div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-          <div style="font-size:10px;font-weight:800;color:#0369A1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
+        <div style="flex:1 1 0;min-width:0;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:10px 12px;box-sizing:border-box;">
+          <div style="font-size:9.5px;font-weight:800;color:#0369A1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             TOTAL REALIZED REVENUE
           </div>
-          <div style="font-size:22px;font-weight:900;color:#0284C7;line-height:1.2;">
+          <div style="font-size:20px;font-weight:900;color:#0284C7;line-height:1.2;white-space:nowrap;">
             ₹${totalRev.toLocaleString('en-IN')}
           </div>
-          <div style="font-size:10px;color:#0369A1;font-weight:600;margin-top:4px;">
+          <div style="font-size:9.5px;color:#0369A1;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${activeBookings.length} total stays &bull; ${totalNights} nights
           </div>
         </div>
 
         <!-- Card 2: Expenses -->
-        <div style="background:#FEF2F2;border:1.5px solid #FECDD3;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-          <div style="font-size:10px;font-weight:800;color:#991B1B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
+        <div style="flex:1 1 0;min-width:0;background:#FEF2F2;border:1.5px solid #FECDD3;border-radius:10px;padding:10px 12px;box-sizing:border-box;">
+          <div style="font-size:9.5px;font-weight:800;color:#991B1B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             TOTAL OPERATING EXPENSES
           </div>
-          <div style="font-size:22px;font-weight:900;color:#DC2626;line-height:1.2;">
+          <div style="font-size:20px;font-weight:900;color:#DC2626;line-height:1.2;white-space:nowrap;">
             ₹${totalExp.toLocaleString('en-IN')}
           </div>
-          <div style="font-size:10px;color:#B91C1C;font-weight:600;margin-top:4px;">
+          <div style="font-size:9.5px;color:#B91C1C;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${expList.length} itemized expenses
           </div>
         </div>
 
         <!-- Card 3: Net Profit -->
-        <div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-          <div style="font-size:10px;font-weight:800;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
+        <div style="flex:1 1 0;min-width:0;background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:10px;padding:10px 12px;box-sizing:border-box;">
+          <div style="font-size:9.5px;font-weight:800;color:#065F46;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             NET DISTRIBUTABLE PROFIT
           </div>
-          <div style="font-size:22px;font-weight:900;color:#059669;line-height:1.2;">
+          <div style="font-size:20px;font-weight:900;color:#059669;line-height:1.2;white-space:nowrap;">
             ₹${profit.toLocaleString('en-IN')}
           </div>
-          <div style="font-size:10px;color:#047857;font-weight:600;margin-top:4px;">
+          <div style="font-size:9.5px;color:#047857;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             Investor Pool (70%): ₹${investorPool.toLocaleString('en-IN')}
           </div>
         </div>
       </div>
 
       <!-- CATEGORY BREAKDOWN PILLS -->
-      <div style="margin-bottom:14px;">
+      <div style="margin-bottom:12px;">
         <div style="font-size:9px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
           CATEGORY BREAKDOWN
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:#1E3A8A;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:3px 9px;font-size:10px;font-weight:700;color:#1E3A8A;display:inline-flex;align-items:center;gap:4px;">
             🌐 Airbnb: ₹${onRev.toLocaleString('en-IN')} <span style="font-weight:500;color:#64748B;">(${onNights}n)</span>
           </span>
-          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:#065F46;">
-            🏠 Direct Offline: ₹${offRev.toLocaleString('en-IN')} <span style="font-weight:500;color:#64748B;">(${offNights}n)</span>
+          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:3px 9px;font-size:10px;font-weight:700;color:#065F46;display:inline-flex;align-items:center;gap:4px;">
+            🏠 Direct: ₹${offRev.toLocaleString('en-IN')} <span style="font-weight:500;color:#64748B;">(${offNights}n)</span>
           </span>
           ${reviewRev > 0 ? `
-          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:#6D28D9;">
+          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:3px 9px;font-size:10px;font-weight:700;color:#6D28D9;display:inline-flex;align-items:center;gap:4px;">
             ⭐ Reviews: ₹${reviewRev.toLocaleString('en-IN')} <span style="font-weight:500;color:#64748B;">(${reviewNights}n)</span>
           </span>` : ''}
-          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:#DC2626;">
+          <span style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:3px 9px;font-size:10px;font-weight:700;color:#DC2626;display:inline-flex;align-items:center;gap:4px;">
             💸 Expenses: ₹${totalExp.toLocaleString('en-IN')}
           </span>
-          <span style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;color:#047857;">
+          <span style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:16px;padding:3px 9px;font-size:10px;font-weight:800;color:#047857;display:inline-flex;align-items:center;gap:4px;">
             🎯 Net Profit: ₹${profit.toLocaleString('en-IN')}
           </span>
         </div>
       </div>
 
       <!-- INVESTOR PAYOUT DUE HIGHLIGHT BANNER -->
-      <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);border:1.5px solid #93C5FD;border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);border:1.5px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-sizing:border-box;">
         <div>
-          <div style="font-size:10px;font-weight:800;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.8px;">
+          <div style="font-size:9.5px;font-weight:800;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.8px;">
             ${isMultiPerson ? 'TOTAL INVESTOR POOL (70%)' : 'NET PAYOUT DUE TO INVESTOR'}
           </div>
-          <div style="font-size:24px;font-weight:900;color:#1E3A8A;margin-top:2px;line-height:1.2;">
+          <div style="font-size:22px;font-weight:900;color:#1E3A8A;margin-top:2px;line-height:1.2;">
             ₹${investorPool.toLocaleString('en-IN')}
           </div>
-          <div style="font-size:10.5px;color:#334155;margin-top:3px;">
+          <div style="font-size:10px;color:#334155;margin-top:2px;">
             ${isMultiPerson 
               ? `Partnership Split: ${investorNames.map(n => `<strong>${n}</strong>: ₹${perPersonAmount.toLocaleString('en-IN')} (${(100/personCount).toFixed(0)}%)`).join(' &bull; ')}`
               : `Payable to <strong style="color:#0F172A;">${inv?.name || 'Investor'}</strong> &bull; 70% share of net operating profit`}
           </div>
         </div>
         <div style="text-align:right;">
-          <span style="background:#10B981;color:#FFFFFF;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:0.5px;display:inline-block;box-shadow:0 2px 4px rgba(16,185,129,0.2);">
+          <span style="background:#10B981;color:#FFFFFF;padding:4px 10px;border-radius:20px;font-size:9.5px;font-weight:800;letter-spacing:0.5px;display:inline-block;box-shadow:0 1px 3px rgba(16,185,129,0.2);">
             ✓ APPROVED FOR DISBURSEMENT
           </span>
-          <div style="font-size:9.5px;color:#475569;margin-top:4px;">
+          <div style="font-size:9px;color:#475569;margin-top:3px;">
             Bank Transfer via IMPS/NEFT
           </div>
         </div>
       </div>
 
       <!-- SECTION 1: MASTER CONTINUOUS GUEST BOOKINGS LEDGER -->
-      <div style="margin-bottom:18px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:11.5px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
             <span>🏨</span> Verified Guest Bookings Ledger
           </div>
-          <span style="font-size:10px;background:#F1F5F9;color:#334155;padding:2px 8px;border-radius:12px;border:1px solid #CBD5E1;font-weight:700;">
+          <span style="font-size:9.5px;background:#F1F5F9;color:#334155;padding:2px 8px;border-radius:12px;border:1px solid #CBD5E1;font-weight:700;">
             ${activeBookings.length} Total Bookings &bull; ${totalNights} Nights
           </span>
         </div>
 
-        <table style="width:100%;border-collapse:collapse;font-size:10.5px;">
+        <table style="width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #CBD5E1;">
-              <th style="padding:7px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:32px;">#</th>
-              <th style="padding:7px 10px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:150px;">Stay Dates</th>
-              <th style="padding:7px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:80px;">Channel</th>
-              <th style="padding:7px 10px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Reference</th>
-              <th style="padding:7px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:55px;">Nights</th>
-              <th style="padding:7px 8px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:85px;">Status</th>
-              <th style="padding:7px 10px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:95px;">Revenue (₹)</th>
+              <th style="padding:6px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:28px;">#</th>
+              <th style="padding:6px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:135px;">Stay Dates</th>
+              <th style="padding:6px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:72px;">Channel</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:left;color:#475569;">Guest Name / Reference</th>
+              <th style="padding:6px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:48px;">Nights</th>
+              <th style="padding:6px 6px;border:1px solid #CBD5E1;text-align:center;color:#475569;width:75px;">Status</th>
+              <th style="padding:6px 8px;border:1px solid #CBD5E1;text-align:right;color:#475569;width:88px;">Revenue (₹)</th>
             </tr>
           </thead>
           <tbody>
@@ -819,41 +821,41 @@ async function renderInvestorReport(investorId, roomId, month) {
               const isAir = isOnline(b) && !isRev;
               let channelBadge = '';
               if (isRev) {
-                channelBadge = '<span style="background:#F5F3FF;color:#6D28D9;padding:2px 7px;border-radius:10px;font-weight:700;font-size:9.5px;border:1px solid #DDD6FE;">⭐ Review</span>';
+                channelBadge = '<span style="background:#F5F3FF;color:#6D28D9;padding:2px 6px;border-radius:10px;font-weight:700;font-size:9px;border:1px solid #DDD6FE;">⭐ Review</span>';
               } else if (isAir) {
-                channelBadge = '<span style="background:#EFF6FF;color:#1D4ED8;padding:2px 7px;border-radius:10px;font-weight:700;font-size:9.5px;border:1px solid #BFDBFE;">🌐 Airbnb</span>';
+                channelBadge = '<span style="background:#EFF6FF;color:#1D4ED8;padding:2px 6px;border-radius:10px;font-weight:700;font-size:9px;border:1px solid #BFDBFE;">🌐 Airbnb</span>';
               } else {
-                channelBadge = '<span style="background:#ECFDF5;color:#047857;padding:2px 7px;border-radius:10px;font-weight:700;font-size:9.5px;border:1px solid #A7F3D0;">🏠 Direct</span>';
+                channelBadge = '<span style="background:#ECFDF5;color:#047857;padding:2px 6px;border-radius:10px;font-weight:700;font-size:9px;border:1px solid #A7F3D0;">🏠 Direct</span>';
               }
               const rowBg = idx % 2 === 1 ? 'background:#F8FAFC;' : 'background:#FFFFFF;';
               return `
                 <tr style="${rowBg}">
-                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;color:#64748B;font-weight:700;">${idx + 1}</td>
-                  <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:center;color:#334155;white-space:nowrap;font-size:10px;">
+                  <td style="padding:5px 6px;border:1px solid #CBD5E1;text-align:center;color:#64748B;font-weight:700;">${idx + 1}</td>
+                  <td style="padding:5px 6px;border:1px solid #CBD5E1;text-align:center;color:#334155;white-space:nowrap;font-size:9.5px;">
                     ${b.check_in || '-'} <span style="color:#94A3B8;">&rarr;</span> ${b.check_out || '-'}
                   </td>
-                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">${channelBadge}</td>
-                  <td style="padding:6px 10px;border:1px solid #CBD5E1;">
-                    <strong style="color:#0F172A;font-size:11px;">${b.guest_name || 'Direct Guest'}</strong>
+                  <td style="padding:5px 6px;border:1px solid #CBD5E1;text-align:center;">${channelBadge}</td>
+                  <td style="padding:5px 8px;border:1px solid #CBD5E1;overflow:hidden;text-overflow:ellipsis;">
+                    <strong style="color:#0F172A;font-size:10.5px;">${b.guest_name || 'Direct Guest'}</strong>
                     ${b.booking_id ? `<span style="font-size:8.5px;color:#64748B;display:block;">Ref: ${b.booking_id}</span>` : ''}
                   </td>
-                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;font-weight:800;color:#0F172A;">${p.nights}</td>
-                  <td style="padding:6px 8px;border:1px solid #CBD5E1;text-align:center;">
-                    <span style="background:#ECFDF5;color:#047857;padding:2px 6px;border-radius:4px;font-weight:800;font-size:9px;border:1px solid #A7F3D0;">✓ SETTLED</span>
+                  <td style="padding:5px 6px;border:1px solid #CBD5E1;text-align:center;font-weight:800;color:#0F172A;">${p.nights}</td>
+                  <td style="padding:5px 6px;border:1px solid #CBD5E1;text-align:center;">
+                    <span style="background:#ECFDF5;color:#047857;padding:2px 5px;border-radius:4px;font-weight:800;font-size:8.5px;border:1px solid #A7F3D0;">✓ SETTLED</span>
                   </td>
-                  <td style="padding:6px 10px;border:1px solid #CBD5E1;text-align:right;font-weight:800;color:#0F172A;font-size:11px;">
+                  <td style="padding:5px 8px;border:1px solid #CBD5E1;text-align:right;font-weight:800;color:#0F172A;font-size:10.5px;white-space:nowrap;">
                     ₹${p.rev.toLocaleString('en-IN')}
                   </td>
                 </tr>
               `;
             }).join('')}
             <tr style="background:#F0F9FF;font-weight:800;color:#0369A1;border-top:2px solid #0284C7;">
-              <td colspan="4" style="padding:7px 10px;border:1px solid #BAE6FD;text-align:right;text-transform:uppercase;font-size:10.5px;letter-spacing:0.5px;">
+              <td colspan="4" style="padding:6px 8px;border:1px solid #BAE6FD;text-align:right;text-transform:uppercase;font-size:10px;letter-spacing:0.5px;">
                 Total Booking Revenue:
               </td>
-              <td style="padding:7px 8px;border:1px solid #BAE6FD;text-align:center;font-size:11.5px;font-weight:900;">${totalNights}</td>
-              <td style="padding:7px 8px;border:1px solid #BAE6FD;text-align:center;font-size:10px;color:#047857;font-weight:700;">${activeBookings.length} Stays</td>
-              <td style="padding:7px 10px;border:1px solid #BAE6FD;text-align:right;font-size:12px;font-weight:900;color:#0284C7;">
+              <td style="padding:6px 6px;border:1px solid #BAE6FD;text-align:center;font-size:11px;font-weight:900;">${totalNights}</td>
+              <td style="padding:6px 6px;border:1px solid #BAE6FD;text-align:center;font-size:9.5px;color:#047857;font-weight:700;">${activeBookings.length} Stays</td>
+              <td style="padding:6px 8px;border:1px solid #BAE6FD;text-align:right;font-size:11.5px;font-weight:900;color:#0284C7;white-space:nowrap;">
                 ₹${totalRev.toLocaleString('en-IN')}
               </td>
             </tr>
@@ -1641,8 +1643,58 @@ function buildInvestorReportHTML(reportHTML, filename) {
 </html>`;
 }
 
-window.downloadInvestorReport = function(investorName, propertyName, monthYear) {
-  // Triggers clean Print / Save PDF flow with pre-populated filename across all devices
+window.downloadInvestorReport = async function(investorName, propertyName, monthYear) {
+  const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
+  const reportEl = document.getElementById('investorReportDoc') || document.querySelector('.report-doc');
+  if (!reportEl) {
+    if (window.fsn) fsn.error('Error', 'Report not found. Please refresh.');
+    else alert('Report not found. Please refresh.');
+    return;
+  }
+
+  // If html2pdf is available, generate true direct PDF file download with exact filename
+  if (typeof html2pdf === 'function') {
+    try {
+      if (window.fsn) fsn.info('Generating PDF', `Preparing ${filename}.pdf ...`);
+      
+      // Temporarily hide .no-print elements
+      const noPrints = reportEl.querySelectorAll('.no-print');
+      const prevDisplays = [];
+      noPrints.forEach((el, idx) => {
+        prevDisplays[idx] = el.style.display;
+        el.style.display = 'none';
+      });
+
+      const opt = {
+        margin: [8, 10, 8, 10],
+        filename: `${filename}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          windowWidth: 1024
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      await html2pdf().set(opt).from(reportEl).save();
+
+      // Restore .no-print elements
+      noPrints.forEach((el, idx) => {
+        el.style.display = prevDisplays[idx] || '';
+      });
+
+      if (window.fsn) fsn.success('Success', `✅ ${filename}.pdf downloaded!`);
+      return;
+    } catch (e) {
+      console.warn('html2pdf direct save failed, falling back to print dialog:', e);
+    }
+  }
+
+  // Graceful fallback across devices
   window.printInvestorReport(investorName, propertyName, monthYear);
 };
 
