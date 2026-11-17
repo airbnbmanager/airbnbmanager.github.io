@@ -26,7 +26,7 @@ async function renderManageInvestors() {
     <div class="card" style="padding:8px;margin-bottom:12px;">
       <div style="display:flex;gap:8px;">
         <button style="flex:1;">👥 Investors List</button>
-        <button onclick="renderMonthlyExpenses()" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
+        <button onclick="renderMonthlyExpenses(null, null, 'investors')" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
       </div>
     </div>
     <div class="card">
@@ -1145,7 +1145,7 @@ async function renderInvestorView(range = 'Month') {
     <div class="card" style="padding:8px;margin-bottom:12px;">
       <div style="display:flex;gap:8px;">
         <button style="flex:1;">👥 Investors List</button>
-        <button onclick="renderMonthlyExpenses()" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
+        <button onclick="renderMonthlyExpenses(null, null, 'investors')" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
       </div>
     </div>`;
 

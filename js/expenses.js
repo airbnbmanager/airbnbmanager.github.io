@@ -2268,12 +2268,22 @@ async function deleteDefaultExpense(id, name) {
   renderDefaultExpenses();
 }
 
-// ============ MONTHLY PROPERTY EXPENSE MANAGER ============
-async function renderMonthlyExpenses(roomId, month) {
+window.renderInvestors = function() {
+  if (typeof renderManageInvestors === 'function') renderManageInvestors();
+  else if (typeof window.renderManageInvestors === 'function') window.renderManageInvestors();
+};
 
-  renderShell(`<div class="card" style="padding:8px;margin-bottom:12px;"><div style="display:flex;gap:8px;"><button onclick="renderInvestors()" class="secondary" style="flex:1;">👥 Investors List</button><button style="flex:1;">📅 Monthly Expenses</button></div></div>
+// ============ MONTHLY PROPERTY EXPENSE MANAGER ============
+async function renderMonthlyExpenses(roomId, month, fromSource = 'investors') {
+  if (fromSource) window._monthlyExpFrom = fromSource;
+  const isFromInv = (window._monthlyExpFrom === 'investors' || window._monthlyExpFrom === 'investor' || !window._monthlyExpFrom);
+  const activeTab = isFromInv ? 'investors' : 'expenses';
+  const backAction = isFromInv ? 'renderManageInvestors()' : 'renderExpenses()';
+  const backLabel = isFromInv ? '← Back to Investors' : '← Back to Expenses';
+
+  renderShell(`<div class="card" style="padding:8px;margin-bottom:12px;"><div style="display:flex;gap:8px;"><button onclick="renderManageInvestors()" class="secondary" style="flex:1;">👥 Investors List</button><button style="flex:1;">📅 Monthly Expenses</button></div></div>
     ${window._investorTabsHtml || ""}
-    <div class="loading">Loading...</div>`, 'expenses');
+    <div class="loading">Loading...</div>`, activeTab);
 
   const now = new Date();
   const selMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -2382,7 +2392,7 @@ async function renderMonthlyExpenses(roomId, month) {
     <div class="card">
       <h1>📅 Monthly Property Expenses</h1>
       <div class="sub">Simple month-end expense entry per property</div>
-      <button class="secondary btn-sm" onclick="renderExpenses()">← Back to All</button>
+      <button class="secondary btn-sm" onclick="${backAction}">${backLabel}</button>
     </div>
 
     <div class="card">
@@ -2511,7 +2521,7 @@ async function renderMonthlyExpenses(roomId, month) {
         <p><strong>6.</strong> 💾 Save All — sab expenses ek saath save honge</p>
       </div>
     </div>
-  `, 'expenses');
+  `, activeTab);
 }
 
 async function copyPrevMonthExpenses() {
@@ -2598,7 +2608,7 @@ async function saveMonthlyExpenses() {
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save All Expenses'; }
   } else {
     fsn.success(`Success`, `✅ ${saved} expenses saved for ${d.monthLabel}`);
-    renderMonthlyExpenses(d.selRoom, d.selMonth);
+    renderMonthlyExpenses(d.selRoom, d.selMonth, window._monthlyExpFrom || 'investors');
   }
 }
 
@@ -2748,7 +2758,7 @@ async function renderManageCategories() {
         <p><strong>Delete:</strong> Agar expenses use kar rahi hain to delete nahi hoga. Pehle expenses delete/reassign karo.</p>
       </div>
     </div>
-  `, 'expenses');
+  `, activeTab);
 }
 
 function toggleAddCatForm() {
@@ -2826,7 +2836,7 @@ async function editCategoryInline(catId) {
         <p>Naam badalne se existing expenses me auto-update ho jayega (same ID hai).</p>
       </div>
     </div>
-  `, 'expenses');
+  `, activeTab);
 }
 
 async function updateCategory(catId) {
