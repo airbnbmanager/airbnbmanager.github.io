@@ -1019,14 +1019,14 @@ async function renderInvestorReport(investorId, roomId, month) {
             <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
           </div>
 
-          <!-- Signature 2: Co-Founder & Asset Operations -->
+          <!-- Signature 2: Partner - Operations -->
           <div style="text-align:left;">
             <div style="font-size:8.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
-              Operations &amp; Verified By:
+              Partner Approval &amp; Operations:
             </div>
             <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;line-height:1.1;">Shahanshah</div>
             <div style="font-weight:800;font-size:10px;color:#0F172A;letter-spacing:0.3px;">MR. SHAHANSHAH</div>
-            <div style="font-size:8.5px;color:#475569;font-weight:500;">Co-Founder &amp; Asset Operations</div>
+            <div style="font-size:8.5px;color:#475569;font-weight:600;">Managing Partner &amp; Co-Founder</div>
             <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
           </div>
 
@@ -1046,14 +1046,14 @@ async function renderInvestorReport(investorId, roomId, month) {
             </div>
           </div>
 
-          <!-- Signature 3: Managing Director & Disbursement Approval -->
+          <!-- Signature 3: Partner - Disbursement Approval -->
           <div style="text-align:right;">
             <div style="font-size:8.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
-              Approved for Disbursement:
+              Partner Approval &amp; Disbursement:
             </div>
             <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;line-height:1.1;">Firoz Khan</div>
             <div style="font-weight:800;font-size:10px;color:#0F172A;letter-spacing:0.3px;">FIROZ KHAN</div>
-            <div style="font-size:8.5px;color:#475569;font-weight:500;">Director &amp; Asset Operations</div>
+            <div style="font-size:8.5px;color:#475569;font-weight:600;">Managing Partner &amp; Director</div>
             <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
           </div>
         </div>
@@ -1726,9 +1726,9 @@ window.shareInvestorReportWA = async function(investorId, roomId, selMonth) {
       'Official audited earnings & settlement statement generated.' + NL +
       'PDF statement available via CRM portal.' + NL + NL +
       '━━━━━━━━━━━━━━━━━━━━━' + NL +
-      'Verified by: Nisha Khan (Accounts Controller)' + NL +
-      'Approved by: Firoz Khan (Director & Asset Operations)' + NL +
-      '📞 +91 9450055554 · 🌐 uniquehavenhomesstay.com';
+      'Audited by: Nisha Khan (Accounts Controller)' + NL +
+      'Approved by Partners: Mr. Shahanshah & Mr. Firoz Khan' + NL +
+      '📞 +91 9450055554 / +91 8299600709 · 🌐 uniquehavenhomesstay.com';
 
     if (finalPhone) {
       window.open('https://wa.me/' + finalPhone + '?text=' + encodeURIComponent(message), '_blank');

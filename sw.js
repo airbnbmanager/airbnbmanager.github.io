@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuhh-live-v472';
+const CACHE_NAME = 'tuhh-live-v473';
 const RUNTIME_CACHE = 'tuhh-runtime-v467';
 
 const CORE_ASSETS = [
@@ -60,7 +60,7 @@ const CORE_ASSETS = [
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS).catch(() => {}))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS).catch(() => { }))
   );
 });
 
@@ -99,7 +99,7 @@ self.addEventListener('fetch', event => {
           if (res && res.status === 200 && req.method === 'GET') {
             const clone = res.clone();
             caches.open(RUNTIME_CACHE).then(cache => {
-              try { cache.put(req, clone); } catch(e) {}
+              try { cache.put(req, clone); } catch (e) { }
             });
           }
           return res;
@@ -127,7 +127,7 @@ self.addEventListener('fetch', event => {
           if (res && res.status === 200) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then(cache => {
-              try { cache.put(req, clone); } catch(e) {}
+              try { cache.put(req, clone); } catch (e) { }
             });
           }
           return res;
@@ -146,7 +146,7 @@ self.addEventListener('fetch', event => {
           if (res && res.status === 200) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then(cache => {
-              try { cache.put(req, clone); } catch(e) {}
+              try { cache.put(req, clone); } catch (e) { }
             });
           }
           return res;
@@ -164,7 +164,7 @@ self.addEventListener('fetch', event => {
           if (res && res.status === 200) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then(cache => {
-              try { cache.put(req, clone); } catch(e) {}
+              try { cache.put(req, clone); } catch (e) { }
             });
           }
           return res;
@@ -184,7 +184,7 @@ self.addEventListener('push', event => {
   if (event.data) {
     try {
       data = event.data.json();
-    } catch(e) {
+    } catch (e) {
       data = { title: 'TUHH Alert', body: event.data.text() };
     }
   }
