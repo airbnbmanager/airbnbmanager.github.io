@@ -1005,43 +1005,56 @@ async function renderInvestorReport(investorId, roomId, month) {
         </p>
       </div>
 
-      <!-- SECTION 6: DUAL SIGNATORIES & OFFICIAL LEGAL SEAL -->
-      <div class="inv-keep-together" style="margin-bottom:16px;padding:12px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;">
-        <div style="display:grid;grid-template-columns:1fr 140px 1fr;gap:12px;align-items:center;text-align:center;">
+      <!-- SECTION 6: EXECUTIVE SIGNATORIES & OFFICIAL LEGAL SEAL -->
+      <div class="inv-keep-together" style="margin-bottom:16px;padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;">
+        <div class="inv-sign-grid" style="display:grid;grid-template-columns:1fr 1fr 125px 1fr;gap:10px;align-items:center;">
           <!-- Signature 1: Accounts Controller -->
           <div style="text-align:left;">
-            <div style="font-size:9px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">
+            <div style="font-size:8.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
               Prepared &amp; Audited By:
             </div>
-            <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:19px;color:#1E3A8A;margin-bottom:2px;">Nisha Khan</div>
-            <div style="font-weight:800;font-size:11px;color:#0F172A;">NISHA KHAN</div>
-            <div style="font-size:9px;color:#475569;">Accounts &amp; Audit Controller</div>
-            <div style="font-size:8px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
+            <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;line-height:1.1;">Nisha Khan</div>
+            <div style="font-weight:800;font-size:10px;color:#0F172A;letter-spacing:0.3px;">NISHA KHAN</div>
+            <div style="font-size:8.5px;color:#475569;font-weight:500;">Accounts &amp; Audit Controller</div>
+            <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
           </div>
 
-          <!-- Official Corporate Seal Stamp -->
+          <!-- Signature 2: Co-Founder & Asset Operations -->
+          <div style="text-align:left;">
+            <div style="font-size:8.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
+              Operations &amp; Verified By:
+            </div>
+            <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;line-height:1.1;">Shahanshah</div>
+            <div style="font-weight:800;font-size:10px;color:#0F172A;letter-spacing:0.3px;">MR. SHAHANSHAH</div>
+            <div style="font-size:8.5px;color:#475569;font-weight:500;">Co-Founder &amp; Asset Operations</div>
+            <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
+          </div>
+
+          <!-- Official Corporate Seal Stamp (Guaranteed 100% inside circular border) -->
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <div style="width:105px;height:105px;border:2px dashed #0284C7;border-radius:50%;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FFFFFF;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-              <div style="font-size:7.5px;font-weight:900;color:#0284C7;text-transform:uppercase;letter-spacing:0.5px;text-align:center;line-height:1.1;">
+            <div style="width:118px;height:118px;border:2px dashed #0284C7;border-radius:50%;padding:6px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FFFFFF;box-shadow:0 2px 8px rgba(2,132,199,0.06);overflow:hidden;text-align:center;">
+              <div style="font-size:6.8px;font-weight:900;color:#0284C7;text-transform:uppercase;letter-spacing:0.3px;text-align:center;line-height:1.15;max-width:96px;">
                 ★ THE UNIQUE HAVEN HOMES ★
               </div>
-              <div style="font-size:6.5px;color:#64748B;margin:2px 0;">PVT. LTD. &bull; LUCKNOW</div>
-              <div style="font-size:7px;font-weight:800;color:#059669;background:#ECFDF5;padding:1px 4px;border-radius:3px;margin:1px 0;border:0.5px solid #A7F3D0;">
+              <div style="font-size:5.8px;color:#64748B;font-weight:600;margin:1.5px 0 2px 0;letter-spacing:0.2px;">PVT. LTD. &bull; LUCKNOW</div>
+              <div style="font-size:6px;font-weight:800;color:#059669;background:#ECFDF5;padding:1.5px 5px;border-radius:3px;margin:1.5px 0;border:0.5px solid #A7F3D0;letter-spacing:0.3px;white-space:nowrap;">
                 AUDITED &amp; VERIFIED
               </div>
-              <div style="font-size:6.5px;color:#475569;font-weight:700;">CIN: U55101UP2026PTC244637</div>
+              <div style="font-size:5.5px;color:#475569;font-weight:700;letter-spacing:0.2px;line-height:1.2;margin-top:1px;">
+                CIN: U55101UP2026PTC244637
+              </div>
             </div>
           </div>
 
-          <!-- Signature 2: Director & Operations -->
+          <!-- Signature 3: Managing Director & Disbursement Approval -->
           <div style="text-align:right;">
-            <div style="font-size:9px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">
+            <div style="font-size:8.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">
               Approved for Disbursement:
             </div>
-            <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:19px;color:#1E3A8A;margin-bottom:2px;">Firoz Khan</div>
-            <div style="font-weight:800;font-size:11px;color:#0F172A;">FIROZ KHAN</div>
-            <div style="font-size:9px;color:#475569;">Director &amp; Asset Operations</div>
-            <div style="font-size:8px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
+            <div style="font-family:'Brush Script MT', cursive, sans-serif;font-size:18px;color:#1E3A8A;margin-bottom:2px;line-height:1.1;">Firoz Khan</div>
+            <div style="font-weight:800;font-size:10px;color:#0F172A;letter-spacing:0.3px;">FIROZ KHAN</div>
+            <div style="font-size:8.5px;color:#475569;font-weight:500;">Director &amp; Asset Operations</div>
+            <div style="font-size:7.5px;color:#64748B;">The Unique Haven Homes Pvt. Ltd.</div>
           </div>
         </div>
       </div>
@@ -1077,6 +1090,12 @@ async function renderInvestorReport(investorId, roomId, month) {
       .inv-keep-together {
         page-break-inside: avoid !important;
         break-inside: avoid-page !important;
+      }
+      @media screen and (max-width: 720px) {
+        .inv-sign-grid {
+          grid-template-columns: 1fr 1fr !important;
+          gap: 16px 12px !important;
+        }
       }
 
       @media print {
