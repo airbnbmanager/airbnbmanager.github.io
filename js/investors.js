@@ -1073,8 +1073,8 @@ async function renderInvestorReport(investorId, roomId, month) {
         <div style="color:#94A3B8;font-size:8.5px;margin-top:2px;">
           Official Portal: <span style="color:#38BDF8;">uniquehavenhomesstay.com</span> &bull; Direct Phone / WhatsApp: <span style="color:#FFFFFF;">+91 9450055554</span>
         </div>
-        <div style="color:#64748B;font-size:8px;margin-top:3px;border-top:1px solid #1E293B;padding-top:3px;">
-          ⚡ System Architecture &amp; Core Automation Developed by Praveen Singh
+        <div style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;font-size:9.5px;color:#CBD5E1;">
+          System Architecture &amp; Core Automation Developed by <strong style="color:#38BDF8;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;background:rgba(56,189,248,0.12);padding:2px 8px;border-radius:4px;border:0.5px solid rgba(56,189,248,0.35);display:inline-block;">PRAVEEN SINGH</strong>
         </div>
       </div>
 
@@ -1437,7 +1437,7 @@ window.whatsappInvestorReport = async function(investorId, roomId, monthYear) {
       '━━━━━━━━━━━━━━━━━━━━' + NL +
       'THE UNIQUE HAVEN HOMES PRIVATE LIMITED' + NL +
       'uniquehavenhomesstay.com' + NL +
-      '⚡ Developed by Praveen Singh';
+      'Developed by Praveen Singh';
 
     const phone = (inv.phone || '').replace(/[^0-9]/g, '');
     const shareModal = document.createElement('div');
