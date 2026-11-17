@@ -1109,9 +1109,9 @@ window.showUhhsStatementModal = async function () {
           <!-- KPI SUMMARY ROW (Transparent Opening Bal + Inflow - Outflow = Net Balance) -->
           <div class="uhhs-od-kpi-row" style="display:flex;flex-direction:row;gap:6px;margin-bottom:12px;width:100%;flex-wrap:wrap;">
             ${openingBalance !== 0 ? `
-              <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;text-align:center;">
-                <div class="kpi-label" style="font-size:9.5px;color:#1D4ED8;font-weight:700;">OPENING BAL (B/F)</div>
-                <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:#2563EB;margin-top:2px;">₹${openingBalance.toLocaleString('en-IN')}</div>
+              <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:${openingBalance >= 0 ? '#EFF6FF' : '#FFF1F2'};border:1px solid ${openingBalance >= 0 ? '#BFDBFE' : '#FECDD3'};border-radius:8px;text-align:center;">
+                <div class="kpi-label" style="font-size:9.5px;color:${openingBalance >= 0 ? '#1D4ED8' : '#991B1B'};font-weight:700;">OPENING BAL (B/F)</div>
+                <div class="kpi-val" style="font-size:14.5px;font-weight:800;color:${openingBalance >= 0 ? '#2563EB' : '#DC2626'};margin-top:2px;">${openingBalance < 0 ? '-₹' : '₹'}${Math.abs(openingBalance).toLocaleString('en-IN')}</div>
               </div>
             ` : ''}
             <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;text-align:center;">
@@ -1124,7 +1124,7 @@ window.showUhhsStatementModal = async function () {
             </div>
             <div class="uhhs-od-kpi-card" style="flex:1 1 120px;min-width:0;padding:8px 6px;background:${netBalance >= 0 ? '#ECFDF5' : '#FFF1F2'};border:1.5px solid ${netBalance >= 0 ? '#10B981' : '#EF4444'};border-radius:8px;text-align:center;">
               <div class="kpi-label" style="font-size:9.5px;color:${netBalance >= 0 ? '#065F46' : '#9F1239'};font-weight:800;">NET RUNNING BAL</div>
-              <div class="kpi-val" style="font-size:15px;font-weight:900;color:${netBalance >= 0 ? '#059669' : '#DC2626'};margin-top:2px;">₹${netBalance.toLocaleString('en-IN')}</div>
+              <div class="kpi-val" style="font-size:15px;font-weight:900;color:${netBalance >= 0 ? '#059669' : '#DC2626'};margin-top:2px;">${netBalance < 0 ? '-₹' : '₹'}${Math.abs(netBalance).toLocaleString('en-IN')}</div>
             </div>
           </div>
 
@@ -1169,7 +1169,7 @@ window.showUhhsStatementModal = async function () {
         <!-- STICKY FOOTER -->
         <div style="padding:10px 16px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="font-size:12px;color:#64748B;">
-            Period Net Balance: <strong style="color:${netBalance >= 0 ? '#059669' : '#DC2626'};font-size:13px;">₹${netBalance.toLocaleString('en-IN')}</strong>
+            Period Net Balance: <strong style="color:${netBalance >= 0 ? '#059669' : '#DC2626'};font-size:13px;">${netBalance < 0 ? '-₹' : '₹'}${Math.abs(netBalance).toLocaleString('en-IN')}</strong>
           </div>
           <button type="button" class="modal-close" onclick="window.closeUhhsStatementModal()" style="background:#64748B;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;">
             ✕ Close Ledger
@@ -1658,7 +1658,7 @@ window.exportUhhsLedgerPDF = function (fDate, tDate, totalInflow, totalOutflow, 
         </div>
         <div class="card card-bal">
           <div class="lbl" style="color:${safeBalance >= 0 ? '#065f46' : '#9f1239'};">NET RUNNING BALANCE</div>
-          <div class="val" style="color:${safeBalance >= 0 ? '#059669' : '#dc2626'};">₹${safeBalance.toLocaleString('en-IN')}</div>
+          <div class="val" style="color:${safeBalance >= 0 ? '#059669' : '#dc2626'};">${safeBalance < 0 ? '-₹' : '₹'}${Math.abs(safeBalance).toLocaleString('en-IN')}</div>
         </div>
       </div>
 
@@ -2210,10 +2210,16 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
     const rangeFmt = state.rangeFmt || (isRange ? `${startDateFmt} → ${endDateFmt}` : state.dateFmt);
 
     const closeBalNum = (state.closingBalance !== undefined) ? state.closingBalance : (state.netBalance !== undefined ? state.netBalance : 19739.54);
-    const closeBalStr = (closeBalNum < 0 ? '-₹' : '₹') + Math.abs(closeBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isCloseBalNeg = closeBalNum < 0;
+    const closeBalStr = (isCloseBalNeg ? '-₹' : '₹') + Math.abs(closeBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const closeBalColor = isCloseBalNeg ? '#f87171' : '#4ade80';
+    const heroBg = isCloseBalNeg ? 'linear-gradient(135deg,#1f1315 0%,#2d1518 100%)' : 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)';
+    const heroBorder = isCloseBalNeg ? '1.5px solid #ef4444' : '1.5px solid #334155';
+    const heroShadow = isCloseBalNeg ? '0 6px 22px rgba(239,68,68,0.28)' : '0 6px 18px rgba(15,23,42,0.25)';
 
     const openBalNum = (state.openingBalance !== undefined) ? state.openingBalance : 0;
-    const openBalStr = (openBalNum < 0 ? '-₹' : '₹') + Math.abs(openBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isOpenBalNeg = openBalNum < 0;
+    const openBalStr = (isOpenBalNeg ? '-₹' : '₹') + Math.abs(openBalNum).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const inAmt = state.todayInflowAmt || 0;
     const inCnt = state.todayInflowsCount || 0;
@@ -2224,7 +2230,9 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
     const outStr = '₹' + Math.abs(outAmt).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const netAmt = state.todayNetAmt || (inAmt - outAmt);
-    const netStr = (netAmt > 0 ? '+₹' : (netAmt < 0 ? '-₹' : '₹')) + Math.abs(netAmt).toLocaleString('en-IN');
+    const isNetNeg = netAmt < 0;
+    const netColor = netAmt > 0 ? '#15803d' : (isNetNeg ? '#dc2626' : '#0f172a');
+    const netStr = (netAmt > 0 ? '+₹' : (isNetNeg ? '-₹' : '₹')) + Math.abs(netAmt).toLocaleString('en-IN');
 
     const totalInflowNum = state.totalInflow || 252200;
     const totalInflowStr = '₹' + Math.abs(totalInflowNum).toLocaleString('en-IN');
@@ -2265,8 +2273,8 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
           </div>
         </div>
         <div style="text-align:right;">
-          <span style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;gap:3px;">
-            ✓ Live Verified
+          <span style="background:${isCloseBalNeg ? '#fee2e2' : '#dcfce7'};color:${isCloseBalNeg ? '#991b1b' : '#166534'};border:1px solid ${isCloseBalNeg ? '#fecaca' : '#86efac'};padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;gap:3px;">
+            ${isCloseBalNeg ? '⚠️ Live Reconciled' : '✓ Live Verified'}
           </span>
           <div style="font-size:10px;color:#64748b;margin-top:3px;font-weight:600;">
             ${isRange ? rangeFmt : state.dateFmt} · ${timeFmt}
@@ -2275,15 +2283,17 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
       </div>
 
       <!-- Primary Hero Closing Balance Card -->
-      <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#ffffff;border-radius:14px;padding:20px;text-align:center;border:1.5px solid #334155;box-shadow:0 6px 18px rgba(15,23,42,0.25);margin-bottom:16px;">
-        <div style="font-size:11.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;">
-          💰 ${isRange ? `CLOSING BALANCE AS OF ${endDateFmt}` : 'TUHH-OD CLOSING BALANCE'}
+      <div style="background:${heroBg};color:#ffffff;border-radius:14px;padding:20px;text-align:center;border:${heroBorder};box-shadow:${heroShadow};margin-bottom:16px;">
+        <div style="font-size:11.5px;font-weight:800;color:${isCloseBalNeg ? '#fca5a5' : '#94a3b8'};text-transform:uppercase;letter-spacing:0.8px;">
+          ${isCloseBalNeg ? '⚠️ ' : '💰 '}${isRange ? `CLOSING BALANCE AS OF ${endDateFmt}` : 'TUHH-OD CLOSING BALANCE'}
         </div>
-        <div style="font-size:34px;font-weight:900;color:#4ade80;margin:6px 0;letter-spacing:-0.5px;">
+        <div style="font-size:34px;font-weight:900;color:${closeBalColor};margin:6px 0;letter-spacing:-0.5px;">
           ${closeBalStr}
         </div>
-        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);padding:4px 12px;border-radius:999px;font-size:10.5px;color:#e2e8f0;font-weight:600;">
-          ${isRange ? `🛡️ Opening Balance: ${openBalStr} · Audit Verified` : '🛡️ Verified by TUHH Engine · Zero Manual Adjustments'}
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${isCloseBalNeg ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)'};border:${isCloseBalNeg ? '1px solid rgba(248,113,113,0.45)' : 'none'};padding:4px 12px;border-radius:999px;font-size:10.5px;color:${isCloseBalNeg ? '#fca5a5' : '#e2e8f0'};font-weight:${isCloseBalNeg ? '700' : '600'};">
+          ${isCloseBalNeg 
+            ? '⚠️ Outstanding Overdraft Deficit · Verified by TUHH Engine' 
+            : (isRange ? `🛡️ Opening Balance: ${openBalStr} · Audit Verified` : '🛡️ Verified by TUHH Engine · Zero Manual Adjustments')}
         </div>
       </div>
 
@@ -2344,7 +2354,7 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
           </div>
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 4px;">
             <div style="font-size:9.5px;color:#64748b;font-weight:700;">NET DELTA</div>
-            <div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;">${netStr}</div>
+            <div style="font-size:14px;font-weight:800;color:${netColor};margin-top:2px;">${netStr}</div>
             <div style="font-size:9.5px;color:#94a3b8;">${isRange ? 'Period net' : 'Daily net'}</div>
           </div>
         </div>
@@ -2352,7 +2362,7 @@ window.downloadTodayBalanceScreenshot = async function (evt) {
         ${isRange ? `
           <div style="font-size:10px;color:#475569;margin-top:10px;padding:6px 10px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
             <span>🏁 <strong>All-Time Position:</strong> In: ${totalInflowStr} | Out: ${totalOutflowStr}</span>
-            <span style="font-weight:700;color:#0284c7;">Net OD: ${closeBalStr}</span>
+            <span style="font-weight:700;color:${isCloseBalNeg ? '#dc2626' : '#0284c7'};">Net OD: ${closeBalStr}</span>
           </div>
         ` : (inAmt === 0 && outAmt === 0) ? `
           <div style="font-size:10.5px;color:#64748b;margin-top:8px;text-align:center;background:rgba(2,132,199,0.06);padding:5px 8px;border-radius:6px;line-height:1.4;">
@@ -2425,6 +2435,9 @@ window.shareTodayBalanceWhatsApp = function () {
   const endDateFmt = state.endDateFmt || state.dateFmt || 'Today';
   const dateRangeFmt = state.rangeFmt || (isRange ? `${startDateFmt} → ${endDateFmt}` : state.dateFmt);
 
+  const closeBalNum = (state.closingBalance !== undefined) ? state.closingBalance : (state.netBalance !== undefined ? state.netBalance : 0);
+  const isCloseBalNeg = closeBalNum < 0;
+
   const closeBal = (state.closingBalance !== undefined)
     ? ((state.closingBalance < 0 ? '-₹' : '₹') + Math.abs(state.closingBalance).toLocaleString('en-IN'))
     : (document.getElementById('today-proof-closing-bal')?.innerText || '₹0');
@@ -2448,7 +2461,7 @@ window.shareTodayBalanceWhatsApp = function () {
     `📅 *Statement Period:* ${dateRangeFmt}`,
     `🕒 *Refreshed:* ${timeStr}`,
     '────────────────────────────',
-    `💰 *CLOSING BALANCE AS OF ${endDateFmt}:* *${closeBal}*`,
+    `💰 *CLOSING BALANCE AS OF ${endDateFmt}:* *${closeBal}*${isCloseBalNeg ? ' ⚠️ *(Overdraft / Deficit)*' : ''}`,
     `💼 *Opening Balance (${startDateFmt}):* ${openBal}`,
     '────────────────────────────',
     `📥 *Period Deposited (Inflow):* ${inVal} (${inCnt})`,
@@ -2458,7 +2471,7 @@ window.shareTodayBalanceWhatsApp = function () {
     '📈 *ALL-TIME LEDGER (Post-Checkpoint 17-Sep Onwards):*',
     `• Total Inflow: ${totalIn} (from Firoz)`,
     `• Total Outflow: ${totalOut} (claims & spends)`,
-    `• Running OD Balance: ${closeBal}`,
+    `• Running OD Balance: ${closeBal}${isCloseBalNeg ? ' (Deficit)' : ''}`,
     '────────────────────────────',
     '_🛡️ Owner Assurance: Automatically compiled from verified TUHH-OD bank receipts & claims._',
     '_Generated by TUHH Financial Engine_'
@@ -2467,13 +2480,13 @@ window.shareTodayBalanceWhatsApp = function () {
     '📊 *DAILY TUHH-OD CLOSING & BALANCE STATEMENT*',
     `📅 *Statement Day:* ${state.dateFmt} | ${timeStr}`,
     '────────────────────────────',
-    `💰 *CURRENT TUHH-OD CLOSING BALANCE:* *${closeBal}*`,
-    '🛡️ *Status:* Verified & Reconciled (Zero Discrepancy)',
+    `💰 *CURRENT TUHH-OD CLOSING BALANCE:* *${closeBal}*${isCloseBalNeg ? ' ⚠️ *(Overdraft / Deficit)*' : ''}`,
+    `🛡️ *Status:* ${isCloseBalNeg ? '⚠️ Overdraft Deficit Position · Reconciled by TUHH Engine' : 'Verified & Reconciled (Zero Discrepancy)'}`,
     '────────────────────────────',
     '📈 *ALL-TIME LEDGER (Post-Checkpoint 17-Sep):*',
     `📥 *Total Deposited (Inflow):* ${totalIn} (from Firoz)`,
     `📤 *Total Utilized (Outflow):* ${totalOut} (claims & spends)`,
-    `⚖️ *Net Balance:* ${closeBal}`,
+    `⚖️ *Net Balance:* ${closeBal}${isCloseBalNeg ? ' (Deficit)' : ''}`,
     '────────────────────────────',
     `📅 *DAY\'S ACTIVITY (${state.dateFmt}):*`,
     `• Deposits: ${inVal} (${inCnt})`,

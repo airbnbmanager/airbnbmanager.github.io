@@ -706,9 +706,23 @@ window.renderClosingStatementForDate = function(startDate, endDate) {
     // Update DOM - Closing Balance
     const tCloseEl = document.getElementById('today-proof-closing-bal');
     if (tCloseEl) {
-        const prefix = periodClosingBal < 0 ? '-₹' : '₹';
+        const isCloseNeg = periodClosingBal < 0;
+        const prefix = isCloseNeg ? '-₹' : '₹';
         tCloseEl.innerText = `${prefix}${Math.abs(periodClosingBal).toLocaleString('en-IN')}`;
-        tCloseEl.style.color = periodClosingBal >= 0 ? '#4ADE80' : '#F87171';
+        tCloseEl.style.color = isCloseNeg ? '#F87171' : '#4ADE80';
+
+        const tCloseCol = tCloseEl.closest('.today-proof-closing-col');
+        if (tCloseCol) {
+            tCloseCol.style.background = isCloseNeg ? 'linear-gradient(135deg,#1f1315,#2d1518)' : 'linear-gradient(135deg,#0F172A,#1E293B)';
+            tCloseCol.style.borderColor = isCloseNeg ? '#EF4444' : '#334155';
+            tCloseCol.style.boxShadow = isCloseNeg ? '0 4px 14px rgba(239,68,68,0.25)' : 'none';
+        }
+
+        const tStatusEl = document.getElementById('today-proof-status-label');
+        if (tStatusEl) {
+            tStatusEl.innerHTML = isCloseNeg ? '⚠️ Overdraft (Due) · Verified' : '🛡️ Verified by TUHH Engine';
+            tStatusEl.style.color = isCloseNeg ? '#FCA5A5' : '#CBD5E1';
+        }
     }
     const tCloseTitle = document.getElementById('today-proof-closing-title');
     if (tCloseTitle) tCloseTitle.innerText = isRange ? `💰 Closing Balance (${fmtShort(endD)})` : '💰 TUHH-OD Closing Balance';
@@ -726,22 +740,27 @@ window.renderClosingStatementForDate = function(startDate, endDate) {
     if (tNoteEl) {
         tNoteEl.style.display = 'block';
         if (isRange) {
-            tNoteEl.style.background = '#ECFDF5';
-            tNoteEl.style.color = '#065F46';
-            tNoteEl.style.borderColor = '#A7F3D0';
-            tNoteEl.innerHTML = `✅ <strong>Period Statement (${fmtShort(startD)} → ${fmtShort(endD)}):</strong> ₹${periodInflowAmt.toLocaleString('en-IN')} Deposited, ₹${periodOutflowAmt.toLocaleString('en-IN')} Utilized. Net Movement: <strong>${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}</strong>. Closing Balance on ${fmtShort(endD)}: <strong>₹${Math.abs(periodClosingBal).toLocaleString('en-IN')}</strong>.`;
+            const isRangeCloseNeg = periodClosingBal < 0;
+            tNoteEl.style.background = isRangeCloseNeg ? '#FEF2F2' : '#ECFDF5';
+            tNoteEl.style.color = isRangeCloseNeg ? '#991B1B' : '#065F46';
+            tNoteEl.style.borderColor = isRangeCloseNeg ? '#FECACA' : '#A7F3D0';
+            tNoteEl.innerHTML = `✅ <strong>Period Statement (${fmtShort(startD)} → ${fmtShort(endD)}):</strong> ₹${periodInflowAmt.toLocaleString('en-IN')} Deposited, ₹${periodOutflowAmt.toLocaleString('en-IN')} Utilized. Net Movement: <strong style="color:${periodNetAmt >= 0 ? '#15803D' : '#DC2626'}">${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}</strong>. Closing Balance on ${fmtShort(endD)}: <strong style="color:${isRangeCloseNeg ? '#DC2626' : '#15803D'}">${isRangeCloseNeg ? '-₹' : '₹'}${Math.abs(periodClosingBal).toLocaleString('en-IN')}</strong>.`;
         } else if (periodInflowAmt === 0 && periodOutflowAmt === 0) {
-            tNoteEl.style.background = '#F1F5F9';
-            tNoteEl.style.color = '#475569';
-            tNoteEl.style.borderColor = '#E2E8F0';
-            tNoteEl.innerText = isToday
-                ? `ℹ️ Today (${startFmt}) is in-progress. No entries recorded yet today. Running balance of ₹${Math.abs(periodClosingBal).toLocaleString('en-IN')} fully intact.`
-                : `ℹ️ No transactions were recorded on ${startFmt}. Running balance was ₹${Math.abs(periodClosingBal).toLocaleString('en-IN')}.`;
+            const isTodayCloseNeg = periodClosingBal < 0;
+            tNoteEl.style.background = isTodayCloseNeg ? '#FFF1F2' : '#F1F5F9';
+            tNoteEl.style.color = isTodayCloseNeg ? '#9F1239' : '#475569';
+            tNoteEl.style.borderColor = isTodayCloseNeg ? '#FECDD3' : '#E2E8F0';
+            const balFmt = `${isTodayCloseNeg ? '-₹' : '₹'}${Math.abs(periodClosingBal).toLocaleString('en-IN')}`;
+            tNoteEl.innerHTML = isToday
+                ? `ℹ️ Today (${startFmt}) is in-progress. No entries recorded yet today. Running balance of <strong style="color:${isTodayCloseNeg ? '#DC2626' : '#15803D'}">${balFmt}</strong> carried forward safely.`
+                : `ℹ️ No transactions were recorded on ${startFmt}. Running balance was <strong style="color:${isTodayCloseNeg ? '#DC2626' : '#15803D'}">${balFmt}</strong>.`;
         } else {
-            tNoteEl.style.background = '#ECFDF5';
-            tNoteEl.style.color = '#065F46';
-            tNoteEl.style.borderColor = '#A7F3D0';
-            tNoteEl.innerText = `✅ Active Statement for ${startFmt}: ₹${periodInflowAmt.toLocaleString('en-IN')} Inflow, ₹${periodOutflowAmt.toLocaleString('en-IN')} Outflow. Net Movement: ${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}.`;
+            const isSingleCloseNeg = periodClosingBal < 0;
+            tNoteEl.style.background = isSingleCloseNeg ? '#FEF2F2' : '#ECFDF5';
+            tNoteEl.style.color = isSingleCloseNeg ? '#991B1B' : '#065F46';
+            tNoteEl.style.borderColor = isSingleCloseNeg ? '#FECACA' : '#A7F3D0';
+            const balFmt = `${isSingleCloseNeg ? '-₹' : '₹'}${Math.abs(periodClosingBal).toLocaleString('en-IN')}`;
+            tNoteEl.innerHTML = `✅ Active Statement for ${startFmt}: ₹${periodInflowAmt.toLocaleString('en-IN')} Inflow, ₹${periodOutflowAmt.toLocaleString('en-IN')} Outflow. Net Movement: <strong style="color:${periodNetAmt >= 0 ? '#15803D' : '#DC2626'}">${periodNetAmt >= 0 ? '+' : '-'}₹${Math.abs(periodNetAmt).toLocaleString('en-IN')}</strong>. Closing Balance: <strong style="color:${isSingleCloseNeg ? '#DC2626' : '#15803D'}">${balFmt}</strong>.`;
         }
     }
 
@@ -823,6 +842,17 @@ async function calculateLiveODBalance(supabaseClient) {
         if (inEl) inEl.innerText = `₹${totalInflow.toLocaleString('en-IN')}`;
         const outEl = document.getElementById('claims-od-outflow');
         if (outEl) outEl.innerText = `₹${totalOutflow.toLocaleString('en-IN')}`;
+
+        const bannerCard = document.querySelector('.claims-od-banner');
+        if (bannerCard) {
+            if (netBalance < 0) {
+                bannerCard.style.background = '#FFF5F5';
+                bannerCard.style.borderColor = '#FECACA';
+            } else {
+                bannerCard.style.background = '#F0FDF4';
+                bannerCard.style.borderColor = '#86EFAC';
+            }
+        }
 
         // Store ledger state globally for daily statement & export
         window._tuhhAllTxns = txns;
