@@ -5756,6 +5756,13 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
 
 // ============ SECURE ARCHIVE & SOFT DELETE BOOKING ============
 async function delBooking(bkId, guestName, roomId) {
+  // 🔒 STRICT ROLE PROTECTION: Caretakers CANNOT delete bookings under any circumstance
+  if (window.SESSION?.role === 'caretaker') {
+    if (window.fsn) fsn.error('Permission Denied', '⚠️ Caretakers are not allowed to delete bookings.');
+    else alert('Permission Denied: Caretakers are not allowed to delete bookings.');
+    return false;
+  }
+
   if (!confirm(`Delete "${guestName || 'this'}" booking?\n(Booking will be safely archived to Praveen's recovery vault)`)) return false;
   try {
     // 1. Fetch entire active booking row

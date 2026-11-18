@@ -1258,6 +1258,12 @@ window.calOpenWhatsApp = function(bkId, btn) {
 };
 
 window.calDeleteBooking = async function(bkId, guestName, roomId) {
+  // 🔒 STRICT ROLE PROTECTION: Caretakers CANNOT delete bookings
+  if (window.SESSION?.role === 'caretaker') {
+    if (window.fsn) fsn.error('Permission Denied', '⚠️ Caretakers booking delete nahi kar sakte.');
+    else alert('Permission Denied: Caretakers booking delete nahi kar sakte.');
+    return;
+  }
   if (typeof window.archiveAndSoftDeleteBooking === 'function') {
     const ok = await window.archiveAndSoftDeleteBooking(bkId, guestName, roomId);
     if (ok) {
@@ -1438,7 +1444,7 @@ async function showMultiBookingList(bookings, roomId, dateStr) {
           <button class="btn-sm" style="background:#0284C7;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}');" title="Manage Security Deposit">🛡️ Deposit</button>
           <button class="btn-sm" style="background:#7C3AED;color:#fff;flex:1;" onclick="this.closest('.modal-overlay').remove(); openExtractBookingModal('${b.booking_id}', '${dateStr}');">✂️ Shift</button>
           <button class="btn-sm" style="background:#25D366;color:#fff;flex:1;" onclick="calOpenWhatsApp('${b.booking_id}', this);">📱 WA</button>
-          <button class="btn-sm danger" onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name || 'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="background:#DC2626;color:#fff;flex:1;">🗑️ Del</button>
+          ${window.SESSION?.role !== 'caretaker' ? `<button class="btn-sm danger" onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name || 'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="background:#DC2626;color:#fff;flex:1;">🗑️ Del</button>` : ''}
         </div>
       </div>
     `;
@@ -1725,9 +1731,11 @@ window.openBookingDetails = async function(bId) {
             📱 WhatsApp
           </button>
         `}
-        <button onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="padding:10px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;margin-top:2px;">
-          🗑️ Delete Booking / Block
-        </button>
+        ${window.SESSION?.role !== 'caretaker' ? `
+          <button onclick="calDeleteBooking('${b.booking_id}', '${(b.guest_name||'Booking').replace(/'/g, "\\'")}', '${b.room_id}');" style="padding:10px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;grid-column:span 2;margin-top:2px;">
+            🗑️ Delete Booking / Block
+          </button>
+        ` : ''}
       </div>
 
     </div>

@@ -985,7 +985,7 @@ function renderSingleAirbnbResCard(b, paidMap, canM, today) {
             ⚡
           </button>
 
-          ${canM ? `
+          ${(canM && SESSION.role !== 'caretaker') ? `
             <button class="airbnb-action-circle delete" onclick="event.stopPropagation();if(window.delBooking) window.delBooking('${b.booking_id}','${escapeHtml(b.guest_name || 'Guest').replace(/'/g, "\\'")}','${b.room_id || ''}');" title="Delete Booking" style="background:#FEF2F2;border:1px solid #FECACA;font-size:12px;color:#DC2626;cursor:pointer;">
               🗑️
             </button>
@@ -1878,7 +1878,7 @@ window.openBookingDrawer = async function(bookingId) {
               🧾 GST Tax Invoice
             </button>
 
-            ${canM ? `
+            ${(canM && SESSION.role !== 'caretaker') ? `
               <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
                 🗑️ Delete Booking
               </button>
@@ -2001,6 +2001,11 @@ window.quickEditGuestCount = async function(bookingId, currentGuests) {
 };
 
 window.drawerDeleteBooking = async function() {
+  if (window.SESSION?.role === 'caretaker') {
+    if (window.fsn) fsn.error('Permission Denied', '⚠️ Caretakers are not allowed to delete bookings.');
+    else alert('Permission Denied: Caretakers are not allowed to delete bookings.');
+    return;
+  }
   const b = window._currentDrawerBooking;
   if (!b) return;
   const bookingId = b.booking_id;
