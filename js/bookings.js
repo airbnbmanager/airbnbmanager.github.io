@@ -2439,12 +2439,19 @@ async function renderManageBookings() {
   if (typeof preloadGuestStays === 'function') await preloadGuestStays();
 
   // For caretaker/checkin_manager - filter to only their properties
-  if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
-    const { data: emp } = await sb.from('employees')
-      .select('assigned_rooms')
-      .eq('emp_id', SESSION.empId).single();
-    if (emp?.assigned_rooms) {
-      window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+  if (['caretaker', 'checkin_manager'].includes(SESSION.role)) {
+    if (!window._myAssignedRooms || !window._myAssignedRooms.length) {
+      if (typeof window.resolveCaretakerRooms === 'function') {
+        await window.resolveCaretakerRooms();
+      }
+    }
+    if ((!window._myAssignedRooms || !window._myAssignedRooms.length) && SESSION.empId) {
+      try {
+        const { data: emp } = await sb.from('employees').select('assigned_rooms').eq('emp_id', SESSION.empId).single();
+        if (emp?.assigned_rooms) {
+          window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+        }
+      } catch(e) {}
     }
   }
 
@@ -2659,7 +2666,7 @@ async function renderManageBookings() {
 
   const overlaps = findOverlappingBookings(all || []);
   const pm = await getPaidMap(f.map(b => b.booking_id));
-  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const canM = ['owner','admin','manager','moderator','developer','caretaker'].includes(SESSION.role);
   const canD = ['developer','owner','admin','manager'].includes(SESSION.role);
 
   renderShell(`
@@ -2729,8 +2736,8 @@ async function renderManageBookings() {
           <option value="Offline" ${mf === 'Offline' ? 'selected' : ''}>Offline</option>
         </select></div>
         <div class="filter-item"><label>Property</label><select id="fProp">
-          <option value="">All</option>
-          ${(rooms || []).map(r => `<option value="${r.room_id}" ${pf === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
+          <option value="">${SESSION.role === 'caretaker' ? 'All Assigned' : 'All'}</option>
+          ${(rooms || []).filter(r => (SESSION.role !== 'caretaker' || !window._myAssignedRooms?.length || window._myAssignedRooms.includes(r.room_id))).map(r => `<option value="${r.room_id}" ${pf === r.room_id ? 'selected' : ''}>${propLabel(r)}</option>`).join('')}
         </select></div>
         <div class="filter-item"><label>Date</label><input type="date" id="fDate" value="${df}" /></div>
         <div class="filter-item"><label>From</label><input type="date" id="fFrom" value="${d1}" /></div>
@@ -3092,9 +3099,17 @@ async function renderAddBooking(prefillOpts) {
   const today_iso = new Date().toISOString().slice(0,10);
   const { data: recentBookings } = await sb.from('guest_register').select('booking_id, guest_name, room_id, check_in, check_out, rooms(nickname)').gte('check_out', today_iso).eq('is_review_booking', false).order('check_in', {ascending: true}).limit(100);
   const pre = window._bookingPrefill || {};
-  const {data:rooms} = await sb.from('rooms')
+  let {data:rooms} = await sb.from('rooms')
     .select('room_id, unit_no, nickname, property_name, bookable, checkin_manager, caretaker_phone, map_link, rent_per_night')
     .order('room_id');
+  if (SESSION.role === 'caretaker') {
+    if (!window._myAssignedRooms || !window._myAssignedRooms.length) {
+      if (typeof window.resolveCaretakerRooms === 'function') await window.resolveCaretakerRooms();
+    }
+    if (window._myAssignedRooms?.length) {
+      rooms = (rooms || []).filter(r => window._myAssignedRooms.includes(r.room_id));
+    }
+  }
   window._roomsCache = rooms || [];
 
   let idSlots = '';

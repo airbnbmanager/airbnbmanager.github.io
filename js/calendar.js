@@ -44,6 +44,21 @@ async function renderReports() {
     .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
     .neq('is_cancelled', true).neq('verification_status', 'rejected');
 
+  // 🏠 CARETAKER PROPERTY ENFORCEMENT: Filter rooms and bookings strictly to assigned properties
+  if (window.SESSION?.role === 'caretaker') {
+    if (!window._myAssignedRooms || !window._myAssignedRooms.length) {
+      if (typeof window.resolveCaretakerRooms === 'function') {
+        await window.resolveCaretakerRooms();
+      }
+    }
+    if (window._myAssignedRooms && window._myAssignedRooms.length) {
+      roomsData = (roomsData || []).filter(r => window._myAssignedRooms.includes(r.room_id));
+      if (bookings && bookings.data) {
+        bookings.data = bookings.data.filter(b => window._myAssignedRooms.includes(b.room_id));
+      }
+    }
+  }
+
   const LOCATION_ORDER = [
     // 1. 9 properties Vikalp Khand (Flat 402 / GOM-402 directly beside Nawabi Flat 401)
     'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501',
@@ -165,9 +180,13 @@ async function renderReports() {
     { label: '📍 Madhav Kunj (4 Properties)', ids: ['VIL-107', 'VIL-106', 'VIL-108', 'LUL-101'] }
   ];
 
-  let propOptions = '<option value="all">🏘️ All Properties (' + allRooms.length + ')</option>';
+  const allLabel = (window.SESSION?.role === 'caretaker') ? '🏘️ My Assigned Properties (' + allRooms.length + ')' : '🏘️ All Properties (' + allRooms.length + ')';
+  let propOptions = '<option value="all">' + allLabel + '</option>';
   CAL_LOCATION_GROUPS.forEach(grp => {
-    const grpRooms = allRooms.filter(r => grp.ids.includes(r.room_id));
+    let grpRooms = allRooms.filter(r => grp.ids.includes(r.room_id));
+    if (window.SESSION?.role === 'caretaker' && window._myAssignedRooms?.length) {
+      grpRooms = grpRooms.filter(r => window._myAssignedRooms.includes(r.room_id));
+    }
     if (grpRooms.length > 0) {
       propOptions += `<optgroup label="${grp.label}">`;
       grpRooms.forEach(r => {

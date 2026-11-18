@@ -185,9 +185,13 @@ window.loadGlobalRoomsCache = async function() {
 window.syncTopbarPropertySelect = function() {
   const sel = document.getElementById('topbarPropertySelect');
   if (!sel) return;
-  const data = window._globalRoomsList || [];
+  let data = window._globalRoomsList || [];
+  if (window.SESSION?.role === 'caretaker' && window._myAssignedRooms && window._myAssignedRooms.length) {
+    data = data.filter(r => window._myAssignedRooms.includes(r.room_id));
+  }
   const selected = (window.getGlobalSelectedProperty() || '').trim().toUpperCase();
-  sel.innerHTML = `<option value="">All Properties (${data.length || 18})</option>` +
+  const allLabel = (window.SESSION?.role === 'caretaker') ? `My Assigned Properties (${data.length})` : `All Properties (${data.length || 18})`;
+  sel.innerHTML = `<option value="">${allLabel}</option>` +
     data.map(r => {
       const isSel = (r.room_id || '').trim().toUpperCase() === selected;
       return `<option value="${r.room_id}" ${isSel ? 'selected' : ''}>${escapeHtml(r.nickname || r.room_id)} (${r.unit_no || '-'})</option>`;
@@ -226,7 +230,7 @@ window.canEdit = function() {
 };
 
 window.canView = function() {
-  return ['developer', 'owner', 'admin', 'moderator', 'subowner', 'booking_staff', 'viewer'].includes(SESSION.role);
+  return ['developer', 'owner', 'admin', 'moderator', 'subowner', 'booking_staff', 'viewer', 'caretaker'].includes(SESSION.role);
 };
 
 window.isReadOnly = function() {
@@ -235,7 +239,7 @@ window.isReadOnly = function() {
 
 window.canModerate = function() {
   // Booking, ID upload, attendance, WhatsApp
-  return ['developer', 'admin', 'moderator'].includes(SESSION.role);
+  return ['developer', 'admin', 'moderator', 'caretaker'].includes(SESSION.role);
 };
 
 window.canManageUsers = function() {
@@ -248,6 +252,67 @@ window.canManageFinance = function() {
 
 window.canManageStaff = function() {
   return ['developer', 'owner', 'admin'].includes(SESSION.role);
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🏠 CARETAKER PROPERTY SCOPE ENGINE (Strict Location Binding)
+// 1. Arman & Shuaib: Vikalpkhand (Chinhat 9 flats)
+// 2. Sarvan: Madhavkunj (4 properties) & Celebrity Garden
+// 3. Aniket: Visheshkhand (3 properties)
+// ═══════════════════════════════════════════════════════════
+window.CARETAKER_PROPERTY_GROUPS = {
+  vikalpkhand: {
+    label: '📍 Vikalp Khand (9 Flats)',
+    names: ['arman', 'shuaib', 'shoaib'],
+    roomIds: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501', 'Flat 402']
+  },
+  madhavkunj_celebrity: {
+    label: '📍 Madhav Kunj & Celebrity Garden (5 Properties)',
+    names: ['sarvan', 'sharwan', 'shravan'],
+    roomIds: ['VIL-107', 'VIL-106', 'VIL-108', 'LUL-101', 'LUL-402']
+  },
+  visheshkhand: {
+    label: '📍 Vishesh Khand (3 Properties)',
+    names: ['aniket'],
+    roomIds: ['VIL-103', 'VIL-104', 'VIL-105']
+  }
+};
+
+window.resolveCaretakerRooms = async function() {
+  if (!window.SESSION || window.SESSION.role !== 'caretaker') return null;
+
+  let rooms = (window._myAssignedRooms && window._myAssignedRooms.length) ? [...window._myAssignedRooms] : [];
+
+  // 1. Try to fetch from employee profile assigned_rooms if linked
+  if ((!rooms || !rooms.length) && window.SESSION.empId && window.sb) {
+    try {
+      const { data: emp } = await window.sb.from('employees').select('assigned_rooms').eq('emp_id', window.SESSION.empId).single();
+      if (emp?.assigned_rooms) {
+        rooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+      }
+    } catch(e) {}
+  }
+
+  // 2. Auto-detect by Caretaker name / email / display name
+  if (!rooms || !rooms.length) {
+    const uStr = `${window.SESSION.displayName || ''} ${window.SESSION.email || ''}`.toLowerCase();
+    if (uStr.includes('arman') || uStr.includes('shuaib') || uStr.includes('shoaib')) {
+      rooms = [...window.CARETAKER_PROPERTY_GROUPS.vikalpkhand.roomIds];
+    } else if (uStr.includes('sarvan') || uStr.includes('sharwan') || uStr.includes('shravan')) {
+      rooms = [...window.CARETAKER_PROPERTY_GROUPS.madhavkunj_celebrity.roomIds];
+    } else if (uStr.includes('aniket')) {
+      rooms = [...window.CARETAKER_PROPERTY_GROUPS.visheshkhand.roomIds];
+    }
+  }
+
+  // 3. Safe fallback if still empty: Vikalp Khand 9 flats
+  if (!rooms || !rooms.length) {
+    rooms = [...window.CARETAKER_PROPERTY_GROUPS.vikalpkhand.roomIds];
+  }
+
+  window._myAssignedRooms = rooms;
+  window.SESSION.assignedRooms = rooms;
+  return rooms;
 };
 
 // 👑 IDENTIFY DEVELOPER (Developer Group / Master System Recipient)
@@ -913,7 +978,11 @@ async function loadProfile(userId) {
   } else if (p.role === 'ca') {
     renderFYSummary();
     try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'ca-audit'); } catch(e) {}
-  } else if (p.role === 'checkin_manager' || p.role === 'caretaker') {
+  } else if (p.role === 'caretaker') {
+    if (typeof window.resolveCaretakerRooms === 'function') await window.resolveCaretakerRooms();
+    navigate('calendar');
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'calendar'); } catch(e) {}
+  } else if (p.role === 'checkin_manager') {
     renderCheckinManagerViewNew();
     try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'checkin'); } catch(e) {}
   } else {
@@ -1662,6 +1731,17 @@ function renderShell(content, activePage = 'dashboard') {
     if (expHub) expHub.tabs = expHub.tabs.filter(t => t.id !== 'laundry');
   }
 
+  // 🏠 CARETAKER ROLE: Only show Calendar and Bookings tabs
+  if (SESSION.role === 'caretaker') {
+    const bkHub = UHHS_HUBS.find(h => h.id === 'bookings');
+    if (bkHub) {
+      bkHub.tabs = [
+        { id: 'calendar', label: '🗓️ Calendar' },
+        { id: 'bookings', label: '📅 Stays' }
+      ];
+    }
+  }
+
   // Minimal, uncluttered left drawer list as requested by user
   if (isPureOwner) {
     // 👑 OWNER ROLE (Firoz, Shanshah) — Full business access, restricted admin pages
@@ -1696,6 +1776,12 @@ function renderShell(content, activePage = 'dashboard') {
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
       ['help', 'Help & Guide'],
+    ];
+  } else if (SESSION.role === 'caretaker') {
+    // 🏠 Caretaker: Only Calendar & Bookings for assigned properties
+    nav = [
+      ['calendar', '🗓️ Calendar'],
+      ['bookings', '📅 Bookings / Stays'],
     ];
   } else if (isCheckinMgr || isCheckin) {
     nav = [
@@ -2157,6 +2243,27 @@ function renderShell(content, activePage = 'dashboard') {
     botNavFull.style.removeProperty('display');
     botNavFull.style.removeProperty('visibility');
     botNavFull.style.removeProperty('pointer-events');
+
+    if (SESSION.role === 'caretaker') {
+      botNavFull.innerHTML = `
+        <button type="button" class="pwa-nav-item ${activePage === 'calendar' ? 'active' : ''}" data-page="calendar" onclick="navigate('calendar')">
+          <span class="pwa-nav-icon"><i class="ti ti-calendar"></i></span>
+          <span class="pwa-nav-label">Calendar</span>
+        </button>
+        <button type="button" class="pwa-nav-item ${activePage === 'bookings' ? 'active' : ''}" data-page="bookings" onclick="navigate('bookings')">
+          <span class="pwa-nav-icon"><i class="ti ti-calendar-check"></i></span>
+          <span class="pwa-nav-label">Stays</span>
+        </button>
+        <button type="button" class="pwa-nav-item" onclick="if(window.renderSmartAddBooking) window.renderSmartAddBooking(); else showAddBookingModal();">
+          <span class="pwa-nav-icon" style="background:#E11D48;color:#fff;border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;margin-top:-6px;box-shadow:0 3px 8px rgba(225,29,72,0.4);"><i class="ti ti-plus" style="font-size:18px;"></i></span>
+          <span class="pwa-nav-label" style="font-weight:700;color:#E11D48;">New Book</span>
+        </button>
+        <button type="button" class="pwa-nav-item" onclick="if(confirm('Logout karein?')) logout();">
+          <span class="pwa-nav-icon"><i class="ti ti-logout"></i></span>
+          <span class="pwa-nav-label">Logout</span>
+        </button>
+      `;
+    }
   }
   document.querySelectorAll('.bottom-nav a[data-page]').forEach(a => {
     a.onclick = e => {
@@ -2500,6 +2607,17 @@ function navigate(page) {
     if (OWNER_BLOCKED.includes(page)) {
       if (window.fsn) fsn.error('Access Restricted', 'This page is not available for your role.');
       else alert('Access Restricted: This page is not available for your role.');
+      return;
+    }
+  }
+
+  // 🔒 CARETAKER ROLE PAGE GUARD — Caretakers can ONLY access Calendar & Bookings for their assigned properties
+  if (SESSION.role === 'caretaker') {
+    const CARETAKER_ALLOWED = ['calendar', 'bookings', 'smart-bookings'];
+    if (!CARETAKER_ALLOWED.includes(page)) {
+      if (window.fsn) fsn.warning('Access Restricted', 'Caretakers can only view Calendar & Bookings for their assigned properties.');
+      else alert('Access Restricted: Caretakers can only view Calendar & Bookings for their assigned properties.');
+      navigate('calendar');
       return;
     }
   }
@@ -3786,12 +3904,21 @@ function showRolePickerModal(userId, name, callback) {
           <option value="manager">👔 Manager (Operations, Turnarounds & Bookings)</option>
           <option value="moderator">🟡 Moderator (Bookings, ID Proofs & WhatsApp)</option>
           <option value="booking_staff">📋 Booking Staff (Guest Register & Check-ins)</option>
-          <option value="caretaker">🏠 Caretaker (Housekeeping & Assigned Flats)</option>
+          <option value="caretaker">🏠 Caretaker (Assigned Properties, Bookings & Calendar Only)</option>
           <option value="investor">📈 Investor (Assigned Property Occupancy & Share)</option>
           <option value="employee">👷 Employee (Tasks, Attendance & Salary)</option>
           <option value="ca">📑 CA / Auditor (Financial Reports & Statements)</option>
           <option value="viewer">👁️ Viewer (View-Only Restricted Access)</option>
         </select>
+      </div>
+      <div id="ctLocGroup" style="display:none;margin-top:10px;padding:10px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:8px;">
+        <label style="font-weight:700;font-size:12.5px;color:#166534;display:block;margin-bottom:4px;">📍 Caretaker Assigned Place *</label>
+        <select id="ctLocSel" style="width:100%;font-size:13px;padding:8px;border:1px solid #86EFAC;border-radius:6px;background:#fff;font-weight:600;">
+          <option value="vikalpkhand">📍 Vikalp Khand (Chinhat 9 Flats) — Arman &amp; Shuaib</option>
+          <option value="madhavkunj_celebrity">📍 Madhav Kunj &amp; Celebrity Garden (5 Properties) — Sarvan</option>
+          <option value="visheshkhand">📍 Vishesh Khand (3 Properties) — Aniket</option>
+        </select>
+        <div style="font-size:11px;color:#15803D;margin-top:4px;">Is caretaker ko bas inhi properties ka calender, booking aur guest ID upload dikhega.</div>
       </div>
       <div style="font-size:12px;color:#4B5563;margin-top:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;line-height:1.4;" id="roleDesc">
         Role select karein to see exact permissions and accessible pages.
@@ -3806,6 +3933,10 @@ function showRolePickerModal(userId, name, callback) {
   window[`callback_${userId.replace(/-/g,'_')}`] = callback;
 
   document.getElementById('rolePickerSel').onchange = function() {
+    const isCt = this.value === 'caretaker';
+    const ctBox = document.getElementById('ctLocGroup');
+    if (ctBox) ctBox.style.display = isCt ? 'block' : 'none';
+
     const desc = {
       developer: '🔴 Developer: Master super-admin privileges including database record deletion, user management, and raw data access.',
       admin: '🔵 Admin: Complete management permissions across bookings, calendars, flats status, staff, expenses, and system settings.',
@@ -3813,7 +3944,7 @@ function showRolePickerModal(userId, name, callback) {
       manager: '👔 Manager: Daily operational lead: housekeeping turnarounds, booking verification, staff tasks, and guest communications.',
       moderator: '🟡 Moderator: Bookings management, guest verification, ID proof uploads, and automated WhatsApp messaging.',
       booking_staff: '📋 Booking Staff: Front-desk operations, adding new bookings, check-in flow, and collecting advance payments.',
-      caretaker: '🏠 Caretaker: Mobile housekeeping dashboard for assigned flats, cleaning checklist, and turnaround scheduling.',
+      caretaker: '🏠 Caretaker: Assigned properties only — Bookings, Calendar & Guest ID upload. Strictly blocked from financial, employee & expense pages.',
       investor: '📈 Investor: Restricted portal viewing only their designated investor flats, occupancy stats, and monthly statements.',
       employee: '👷 Employee: Staff self-service portal for attendance, task logging, and salary advance records.',
       ca: '📑 CA / Auditor: Read-only access to ledger statements, cashbook reconciliations, and financial CSV exports.',
@@ -3829,6 +3960,23 @@ async function confirmRolePicker(userId, name, callbackFn) {
     document.getElementById('rolePickerErr').innerHTML = '<div class="error" style="color:#DC2626;font-size:12px;font-weight:700;margin-top:4px;">⚠️ Please select a role</div>';
     return;
   }
+  
+  if (role === 'caretaker') {
+    const locKey = document.getElementById('ctLocSel')?.value || 'vikalpkhand';
+    const assignedRooms = (window.CARETAKER_PROPERTY_GROUPS && window.CARETAKER_PROPERTY_GROUPS[locKey]?.roomIds?.join(',')) || '';
+    try {
+      if (assignedRooms) {
+        await sb.from('profiles').update({ role, assigned_rooms: assignedRooms }).eq('user_id', userId);
+        const { data: prof } = await sb.from('profiles').select('emp_id').eq('user_id', userId).single();
+        if (prof?.emp_id) {
+          await sb.from('employees').update({ assigned_rooms: assignedRooms }).eq('emp_id', prof.emp_id);
+        }
+      }
+    } catch(e) {
+      console.warn('Caretaker room sync error:', e);
+    }
+  }
+
   document.querySelector('.modal-overlay')?.remove();
   if (typeof callbackFn === 'function') callbackFn(role);
 }

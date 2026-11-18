@@ -256,10 +256,17 @@ async function renderSmartManageBookings(forceRefresh = false) {
     if (typeof preloadGuestStays === 'function') await preloadGuestStays();
 
     // Role assigned rooms for caretaker
-    if (['caretaker', 'checkin_manager'].includes(SESSION.role) && SESSION.empId) {
-      const { data: emp } = await sb.from('employees').select('assigned_rooms').eq('emp_id', SESSION.empId).single();
-      if (emp?.assigned_rooms) {
-        window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+    if (['caretaker', 'checkin_manager'].includes(SESSION.role)) {
+      if (!window._myAssignedRooms || !window._myAssignedRooms.length) {
+        if (typeof window.resolveCaretakerRooms === 'function') await window.resolveCaretakerRooms();
+      }
+      if ((!window._myAssignedRooms || !window._myAssignedRooms.length) && SESSION.empId) {
+        try {
+          const { data: emp } = await sb.from('employees').select('assigned_rooms').eq('emp_id', SESSION.empId).single();
+          if (emp?.assigned_rooms) {
+            window._myAssignedRooms = emp.assigned_rooms.split(',').map(r => r.trim()).filter(Boolean);
+          }
+        } catch(e) {}
       }
     }
 
@@ -420,7 +427,7 @@ async function renderSmartManageBookings(forceRefresh = false) {
   // Apply filters via shared fast compute function
   const filtered = window.computeFilteredBookings(all, paidMap, today);
 
-  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const canM = ['owner','admin','manager','moderator','developer','caretaker'].includes(SESSION.role);
 
   // Active filter count for badge
   let activeFilterCount = 0;
@@ -1526,7 +1533,7 @@ window.openBookingDrawer = async function(bookingId) {
   const bal = tot - pd;
   const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
   const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
-  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const canM = ['owner','admin','manager','moderator','developer','caretaker'].includes(SESSION.role);
   const canD = ['developer','owner','admin'].includes(SESSION.role);
 
   let container = document.getElementById('sbkDrawerContainer');
@@ -2072,7 +2079,7 @@ window.renderSmartBookingsResultsOnly = function() {
   const rooms = window._sbkState.cachedRooms || [];
   const paidMap = window._sbkState.cachedPaidMap || window._bkPaidMap || {};
   const today = new Date().toISOString().slice(0, 10);
-  const canM = ['owner','admin','manager','moderator','developer'].includes(SESSION.role);
+  const canM = ['owner','admin','manager','moderator','developer','caretaker'].includes(SESSION.role);
   const tab = window._sbkState.activeTab || 'today';
   const sq = (window._sbkState.searchQuery || '').trim().toLowerCase();
 
@@ -2296,10 +2303,20 @@ async function renderSmartAddBooking(prefillOpts) {
   renderShell(`<div class="loading" style="padding:40px;text-align:center;"><div class="spinner"></div><div style="margin-top:10px;font-weight:600;color:var(--muted);">Loading Instant Booking Wizard...</div></div>`, 'bookings');
 
   // Load rooms and recent bookings for conflict checking
-  const [{ data: rooms }, { data: existingBookings }] = await Promise.all([
+  const [{ data: rawRooms }, { data: existingBookings }] = await Promise.all([
     sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night, bookable').order('unit_no'),
     sb.from('guest_register').select('booking_id, room_id, check_in, check_out, guest_name, is_cancelled').gte('check_out', today).order('check_in', { ascending: true })
   ]);
+
+  let rooms = rawRooms || [];
+  if (SESSION.role === 'caretaker') {
+    if (!window._myAssignedRooms || !window._myAssignedRooms.length) {
+      if (typeof window.resolveCaretakerRooms === 'function') await window.resolveCaretakerRooms();
+    }
+    if (window._myAssignedRooms?.length) {
+      rooms = (rooms || []).filter(r => window._myAssignedRooms.includes(r.room_id));
+    }
+  }
 
   window._roomsCache = rooms || [];
   window._cachedRooms = rooms || [];
