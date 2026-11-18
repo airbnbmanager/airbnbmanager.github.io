@@ -1632,7 +1632,7 @@ function renderShell(content, activePage = 'dashboard') {
         { id: 'attendance', label: '📋 Attendance' },
         { id: 'tasks', label: '🧰 Tasks' },
         { id: 'employee-pay-report', label: '💰 Employee Pay Report' },
-        { id: 'employee-ledger', label: '📒 Ledgers & Advance' }
+        { id: 'advance', label: '💵 Staff Advances' }
       ]
     },
     {
@@ -2738,7 +2738,7 @@ function navigate(page) {
     'company-advances': () => (window.renderCompanyAdvances || renderCompanyAdvances)(),
     cashbook: () => navigate('claims'),
     'my-ledger': () => (window.renderMyLedger || renderMyLedger)(),
-    'employee-ledger': () => (window.renderEmployeeLedger || renderEmployeeLedger)(),
+    'employee-ledger': () => navigate('advance'),
     'employee-pay-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
     'cleaner-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
     analytics: () => (window.renderFullDashboardAnalytics || window.renderAnalytics || renderAnalytics)(),
