@@ -872,7 +872,7 @@
     if (/photo|photos|video|tasveer|image|pic|pics|dekhna/i.test(msg)) {
       return {
         text: `📸 **Property Photos & Walkthrough Videos:**\n\n` +
-              `• Aap website par sabhi **19 properties ki HD photo galleries** explore kar sakte hain.\n` +
+              `• Aap website par sabhi **20 properties ki HD photo galleries** explore kar sakte hain.\n` +
               `• Agar aapko kisi specific property ka detailed video tour ya bathroom/kitchen photos chahiye, to WhatsApp par hum instant album bhej denge!`,
         actions: [{ label: '📲 Get HD Photos on WhatsApp', url: `https://wa.me/${ADMIN_WA}?text=Namaste! Please share HD photos and video tour of available properties.` }],
         quickReplies: ['Gomti Grand Villa photos', '3BHK Flat photos', 'Rates list']

@@ -16,13 +16,13 @@
     const SHORTCUTS_DATA = [
       { key: `${cmdSymbol}K`, single: '/', title: 'Command Palette / Universal Search', desc: 'Poore system me koi bhi guest name, phone, flat number, task ya screen 1 second me dhoondhein.', action: 'window.openCommandPalette()' },
       { key: `${altSymbol}O`, single: 'O', title: 'Today · Operations Hub', desc: 'Aaj ke check-ins, check-outs, in-house guests aur frontdesk execution queue.', action: 'window.openOperationsShortcut()' },
-      { key: `${altSymbol}H`, single: 'H', title: 'Executive Financial Dashboard', desc: 'Real-time Net Revenue, ADR, RevPAR, NOI, channels aur 19 properties leaderboard.', action: 'window.openDashboardShortcut()' },
+      { key: `${altSymbol}H`, single: 'H', title: 'Executive Financial Dashboard', desc: 'Real-time Net Revenue, ADR, RevPAR, NOI, channels aur 20 properties leaderboard.', action: 'window.openDashboardShortcut()' },
       { key: `${altSymbol}N`, single: 'N', title: 'New Booking Create Karein', desc: 'Naya reservation wizard kholein aur guest details enter karein.', action: 'window.openNewBookingShortcut()' },
       { key: `${cmdSymbol}S`, single: 'S', title: 'Save Booking / Form Instantly', desc: 'Booking form ya wizard open hone par turant save karein.', action: 'if(window.triggerSaveBookingShortcut) window.triggerSaveBookingShortcut()' },
       { key: 'E', single: 'E', title: 'Edit Selected Booking / Expenses', desc: 'Booking card ya drawer open hone par direct E dabakar edit karein.', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
       { key: `${altSymbol}P`, single: 'P', title: 'Quick Payment / Add Payment', desc: 'Active booking ka payment add karein ya pending dues picker kholein.', action: 'window.openQuickPaymentShortcut()' },
       { key: `${altSymbol}D`, single: 'D', title: 'Duplicate Booking / Rebook', desc: 'Purane guest ki details clone karke nayi date par re-book karein.', action: 'window.duplicateExistingBookingShortcut()' },
-      { key: `${altSymbol}C`, single: 'C', title: 'Reservations Calendar', desc: 'Sabhi 19 properties ka multi-unit occupancy timeline grid dekhein.', action: 'window.openCalendarShortcut()' },
+      { key: `${altSymbol}C`, single: 'C', title: 'Reservations Calendar', desc: 'Sabhi 20 properties ka multi-unit occupancy timeline grid dekhein.', action: 'window.openCalendarShortcut()' },
       { key: `${altSymbol}B`, single: 'B', title: 'Bookings Management Hub', desc: 'All confirmed, active, check-in aur check-out bookings ki complete register.', action: 'window.openBookingsShortcut()' },
       { key: `${altSymbol}F`, single: 'F', title: 'Flats Status & Turnaround', desc: 'Real-time room cleanliness, dirty status aur turnaround Kanban board.', action: 'window.openFlatsShortcut()' },
       { key: `${altSymbol}U`, single: 'U', title: 'Units & Master Pricing', desc: '19 units ki live inventory, nightly rates, caretaker & manager contacts.', action: 'window.openUnitsShortcut()' },
@@ -124,7 +124,7 @@
               <div class="tuhh-section-icon" style="background:#EFF6FF;color:#0284C7;"><i class="ti ti-rocket"></i></div>
               <div>
                 <h2 class="tuhh-section-title">1. Daily Manager Routine (5-Minute Quick Start)</h2>
-                <p class="tuhh-section-subtitle">Rozana subah CRM open karke sabse pehle ye 4 steps follow karein across 19 properties:</p>
+                <p class="tuhh-section-subtitle">Rozana subah CRM open karke sabse pehle ye 4 steps follow karein across 20 properties:</p>
               </div>
             </div>
 
@@ -324,7 +324,7 @@
             <div style="margin-top:16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;">
               <h4 style="margin:0 0 8px 0;font-size:14px;color:#0F172A;"><i class="ti ti-file-spreadsheet" style="color:#16A34A;"></i> Property Rankings &amp; Excel Download</h4>
               <p style="font-size:12.5px;color:#475569;margin:0 0 10px 0;">
-                Dashboard ke bottom me sabhi 19 properties ka real-time performance table hai. Aap ise <strong>By revenue</strong> ya <strong>By profit</strong> sort kar sakte hain aur top bar me <strong>⬇ Excel</strong> button par click karke complete report download kar sakte hain.
+                Dashboard ke bottom me sabhi 20 properties ka real-time performance table hai. Aap ise <strong>By revenue</strong> ya <strong>By profit</strong> sort kar sakte hain aur top bar me <strong>⬇ Excel</strong> button par click karke complete report download kar sakte hain.
               </p>
               <button type="button" class="tuhh-action-inline-btn" onclick="navigate('analytics')"><i class="ti ti-chart-bar"></i> Open Executive Dashboard (${altSymbol}H)</button>
             </div>
@@ -421,7 +421,7 @@
               <div class="tuhh-card-compact">
                 <div class="tuhh-card-icon" style="background:#F0FDF4;color:#16A34A;"><i class="ti ti-wifi"></i></div>
                 <h4>Wi-Fi Plans &amp; Recharges</h4>
-                <p>Sabhi 19 properties ke Wi-Fi plan expiry dates aur bill payments <strong>Expenses &gt; Wi-Fi</strong> me track hote hain taaki guest stay me internet active rahe.</p>
+                <p>Sabhi 20 properties ke Wi-Fi plan expiry dates aur bill payments <strong>Expenses &gt; Wi-Fi</strong> me track hote hain taaki guest stay me internet active rahe.</p>
                 <div class="tuhh-card-link"><kbd>${altSymbol}X</kbd> Expenses & P&L</div>
               </div>
 

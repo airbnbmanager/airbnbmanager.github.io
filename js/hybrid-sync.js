@@ -22,7 +22,8 @@ window.HYBRID_SYNC = {
     'GOM-201': { name: 'The Dark Blue', ical_url: 'https://www.airbnb.co.in/calendar/ical/1655969170448425308.ics?s=f706b4312eaf30553e047c4cd74b8128' },
     'GOM-101': { name: 'RedRose Palace', ical_url: 'https://www.airbnb.co.in/calendar/ical/1654261872286835347.ics?s=dd04cdcc476495684a1e2c6a33040799' },
     'LUL-101': { name: 'The Luxe Haven (1BHK)', ical_url: 'https://www.airbnb.co.in/calendar/ical/1798067011361845302.ics?t=b561f047fb10494aa2ac406aa6161f3c' },
-    'Flat 402': { name: 'The Tehzeeb Nest', ical_url: 'https://www.airbnb.co.in/calendar/ical/1814548211970648885.ics?t=687d27eb922a4e7c97c6c9581f57a2a4' }
+    'Flat 402': { name: 'The Tehzeeb Nest', ical_url: 'https://www.airbnb.co.in/calendar/ical/1814548211970648885.ics?t=687d27eb922a4e7c97c6c9581f57a2a4' },
+    'GOM-502': { name: 'Sukoon Stay', ical_url: 'https://www.airbnb.co.in/calendar/ical/1753628051023751271.ics?t=d63a56339aa94a5ca27af27f2f79ef5a' }
   },
   mergedBookings: [],
   timerId: null,

@@ -60,8 +60,8 @@ async function renderReports() {
   }
 
   const LOCATION_ORDER = [
-    // 1. 9 properties Vikalp Khand (Flat 402 / GOM-402 directly beside Nawabi Flat 401)
-    'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501',
+    // 1. 10 properties Vikalp Khand (Chinhat 10 Flats)
+    'GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501', 'GOM-502',
     // 2. 3 properties Vishesh Khand
     'VIL-103', 'VIL-104', 'VIL-105',
     // 3. Gomti Grand Villa
@@ -172,7 +172,7 @@ async function renderReports() {
 
   // ─── Property selector (Grouped strictly location-wise) ───
   const CAL_LOCATION_GROUPS = [
-    { label: '📍 Vikalp Khand (9 Properties)', ids: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501'] },
+    { label: '📍 Vikalp Khand (10 Properties)', ids: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501', 'GOM-502'] },
     { label: '📍 Vishesh Khand (3 Properties)', ids: ['VIL-103', 'VIL-104', 'VIL-105'] },
     { label: '📍 Gomti Grand Villa', ids: ['VIL-101'] },
     { label: '📍 Whitehouse', ids: ['VIL-102'] },
@@ -241,6 +241,7 @@ async function renderReports() {
     'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
     'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
     'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+    'GOM-502': 'sukoon-stay',
     'GOM-402': 'the-tehzeeb-nest', 'Flat 402': 'the-tehzeeb-nest',
     'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
     'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
@@ -914,6 +915,7 @@ async function renderReports() {
       'GOM-201': 'the-dark-blue',  'GOM-202': 'the-brown',
       'GOM-301': 'the-light-green','GOM-401': 'the-nawabi-stay',
       'GOM-501': 'starlight-blue', 'GOM-302': 'the-unique',
+      'GOM-502': 'sukoon-stay',
       'GOM-402': 'the-tehzeeb-nest', 'Flat 402': 'the-tehzeeb-nest',
       'VIL-104': 'the-green-house','VIL-103': 'the-pink-house',
       'VIL-105': 'the-yellow-house','VIL-106': 'green-forest',
@@ -1521,6 +1523,8 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
     roomAliases.push('GOM-401', 'FLAT401', 'Flat 401', '401');
   } else if (cleanRid.includes('501')) {
     roomAliases.push('GOM-501', 'FLAT501', 'Flat 501', '501');
+  } else if (cleanRid.includes('502') || cleanRid.includes('SUKOON')) {
+    roomAliases.push('GOM-502', 'FLAT502', 'Flat 502', '502');
   }
 
   // 1. Fetch standard overnight stays active on dateStr

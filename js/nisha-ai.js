@@ -5,7 +5,7 @@
 
    Features:
    ✅ 100% Free 24/7 Voice & Chat — Works with OR without Gemini API Key!
-   ✅ Instant Knowledge Base for all 19 properties, rates, amenities, rules & locations
+   ✅ Instant Knowledge Base for all 20 properties, rates, amenities, rules & locations
    ✅ Google Gemini 1.5/2.0 Flash integration when API key is provided
    ✅ Automatic Fallback: Never fails or blocks the user
    ✅ Mobile/Safari Audio Unlock: SpeechSynthesis works reliably across devices

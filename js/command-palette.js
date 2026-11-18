@@ -1281,7 +1281,7 @@
             { key: 'E', single: 'E', label: '✏️ Edit Selected Booking', desc: 'Edit active booking card or drawer immediately', action: 'if(window.editCurrentSelectedBooking) window.editCurrentSelectedBooking()' },
             { key: `${altSymbol}P`, single: 'P', label: '💵 Add Payment / Quick Pay', desc: 'Open payment popup for active booking or dues picker', action: 'window.openQuickPaymentShortcut()' },
             { key: `${altSymbol}D`, single: 'D', label: '📋 Duplicate Booking', desc: 'Clone active booking or pick recent guest to rebook', action: 'window.duplicateExistingBookingShortcut()' },
-            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy timeline grid (19 properties)', action: 'window.openCalendarShortcut()' },
+            { key: `${altSymbol}C`, single: 'C', label: '📅 Calendar View', desc: 'Open multi-property occupancy timeline grid (20 properties)', action: 'window.openCalendarShortcut()' },
             { key: `${altSymbol}B`, single: 'B', label: '📑 Smart Bookings', desc: 'View all reservations & guests register', action: 'window.openBookingsShortcut()' },
             { key: `${altSymbol}F`, single: 'F', label: '🛏️ Flats & Turnaround', desc: 'Realtime room turnaround Kanban board', action: 'window.openFlatsShortcut()' },
             { key: `${altSymbol}U`, single: 'U', label: '🏢 Units & Nightly Pricing', desc: 'Master inventory, live nightly rates, caretaker & manager contacts', action: 'window.openUnitsShortcut()' },

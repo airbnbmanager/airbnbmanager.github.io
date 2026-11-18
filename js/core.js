@@ -265,11 +265,11 @@ window.canManageStaff = function() {
 window.CARETAKER_PROPERTY_GROUPS = {
   vikalpkhand: {
     key: 'vikalpkhand',
-    label: '📍 Vikalp Khand (Chinhat 9 Flats)',
+    label: '📍 Vikalp Khand (Chinhat 10 Flats)',
     shortLabel: 'Vikalp Khand',
     staff: 'Arman & Shuaib',
     names: ['arman', 'shuaib', 'shoaib'],
-    roomIds: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501', 'Flat 402']
+    roomIds: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-402', 'Flat 402', 'GOM-501', 'GOM-502']
   },
   visheshkhand: {
     key: 'visheshkhand',
@@ -4039,8 +4039,8 @@ async function showRolePickerModal(userId, name, callback) {
           <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
             <input type="checkbox" class="ct-loc-cb" value="vikalpkhand" ${selectedLocs.includes('vikalpkhand') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
             <div>
-              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Vikalp Khand (Chinhat 9 Flats)</div>
-              <div style="font-size:11px;color:#64748B;">Flats 101–501 · Caretakers: Arman &amp; Shuaib (9 Units)</div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Vikalp Khand (Chinhat 10 Flats)</div>
+              <div style="font-size:11px;color:#64748B;">Flats 101–502 · Caretakers: Arman &amp; Shuaib (10 Units)</div>
             </div>
           </label>
 

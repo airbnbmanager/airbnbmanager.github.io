@@ -3145,11 +3145,154 @@
       amenities: ['AC in all 3 Bedrooms', 'High-Speed Wi-Fi', 'Modular Kitchen with Utensils', 'Balcony with Skyline View', 'Geyser Hot Water', 'Elevator Access', 'Dedicated Car Parking', '24/7 Host Concierge', 'Power Backup'],
       landmarks: [{ name: 'Blossom Skyline', time: 'On-site' }, { name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall & Shaheed Path', time: '14 min' }],
       description: 'Luxe 3BHK serviced residence at Blossom Skyline, Gomti Nagar. Features royal Tehzeeb decor, modern amenities, elevator, high-speed WiFi and direct hospitality by Superhosts Firoz & Shahanshah.'
+    },
+
+    'GOM-502': {
+      id: 'GOM-502',
+      slug: 'sukoon-stay',
+      name: 'Sukoon Stay | 3BHK Blossom Skyline',
+      type: '3BHK Luxury Flat',
+      category: 'flat',
+      area: 'vikalp',
+      area_name: 'Vikalp Khand, Gomti Nagar',
+      address: 'Flat 502, 5th Floor, Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
+      rating: 4.88,
+      reviews: 8,
+      max_guests: 10,
+      bedrooms: 3,
+      bathrooms: 3,
+      beds: '3 King Beds + Living Sofa Beds (4 Beds Total)',
+      base_price: 5200,
+      airbnb_price: 6136,
+      cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg?im_w=720&width=720&quality=70&auto=webp',
+      video_url: '',
+      map_link: 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA',
+      map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
+      photos: {
+        bedrooms: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3c34ceb3-4be9-4482-a8b2-c8d1d30dde1e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/9a070783-c761-4761-8996-868dbf0ad056.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a26786bc-40d1-4f7b-ace2-3d520470100b.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/bc29b9a1-db2d-4917-9e5f-47c73e59d7f4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/02b94c28-7551-4672-8c5e-b0c28d7ea001.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/19387810-aed5-4fd4-82be-19df3553156d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5acb5e41-e291-4a02-b1af-ec34accd683e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a5c9d193-0681-4522-8c2f-41d8eab14d85.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/50613810-2a95-48cd-b4d0-ae4a4a2237cb.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/47b3af32-0e62-4ed1-bd9c-243cc244585e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5aee3154-f2f1-4e8a-b60c-e5bf91afbf87.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/32d678c2-81e9-44db-946b-8bb99f6ce3fe.jpeg"
+
+        ],
+        bathrooms: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/cd5b5fb5-3cd7-45c8-98cf-f95ae79afd59.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0564a001-d832-4f0f-819e-89cc2240b800.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0c06225f-55a8-4866-9114-e55e85aaf459.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/9f022eee-64d5-4382-bde4-f778d0c31df1.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/def62c25-42cd-4afe-8c55-4da8e96a3233.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3efbc505-7aeb-4bb0-a5a5-8921f8291ba6.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f38af0c2-8b86-47a0-b53a-c94e0f5bc172.jpeg"
+
+        ],
+        living_hall: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5ac64ffe-ca8a-4677-a9a6-2f96f82ffb24.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f5b7b85d-b91b-461f-9cc8-ee1b8463f7c4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/b1bc5afd-8c30-4e9d-994f-6d901da5fe82.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5efdcfe5-bc85-448b-942b-c5fa136ba79a.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a6c814e4-302e-4704-a263-fc9480f51f16.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/46714542-4d40-4ac1-84e3-fa45549814c4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/7126eed2-010c-4102-ba84-17d367502a8c.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/41c31ace-76e9-4af8-86c3-3421e552c50a.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/1b520980-003d-4075-8d5a-bf64fb2b2483.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/7de88dd5-e847-491a-b556-e1b3f0055adc.jpeg"
+
+        ],
+        kitchen: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/b8a99307-7cc1-4bac-9255-2a7ce407471d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5f317027-10e1-4bd6-b1cf-104aa375abb4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/271c216a-d4d2-4df6-b4ed-956003c7c51d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a9513262-e95e-4fbb-84df-23406e8987b5.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/61513df4-c583-4e34-93f6-75c87ff13ace.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/43aba630-8914-4a11-9403-710fa4289169.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/ac0f288f-57c6-45e4-82c7-f967759eadb5.jpeg"
+
+        ],
+        balcony: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/49fa964c-28c8-4876-b417-2a3b0688dc74.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/c65bf5af-8408-4a16-807d-608de77e55a0.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/d79ef2a4-5a2a-4e70-a594-3ab3b0c041f9.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/903c22cb-9ae3-48ef-9bce-8bd7e34097d8.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5b6a2184-7686-41f3-ba1e-70b4058aa6df.jpeg"
+
+        ],
+        all: [
+
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3a6387d8-2c8c-4b7c-b8a7-a8bde8fb7eb4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3c34ceb3-4be9-4482-a8b2-c8d1d30dde1e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/9a070783-c761-4761-8996-868dbf0ad056.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a26786bc-40d1-4f7b-ace2-3d520470100b.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/af7f54d3-6c25-467c-88b9-075ed9b7f64e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/bc29b9a1-db2d-4917-9e5f-47c73e59d7f4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/02b94c28-7551-4672-8c5e-b0c28d7ea001.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/19387810-aed5-4fd4-82be-19df3553156d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5acb5e41-e291-4a02-b1af-ec34accd683e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a5c9d193-0681-4522-8c2f-41d8eab14d85.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/50613810-2a95-48cd-b4d0-ae4a4a2237cb.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/47b3af32-0e62-4ed1-bd9c-243cc244585e.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5aee3154-f2f1-4e8a-b60c-e5bf91afbf87.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/32d678c2-81e9-44db-946b-8bb99f6ce3fe.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/cd5b5fb5-3cd7-45c8-98cf-f95ae79afd59.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0564a001-d832-4f0f-819e-89cc2240b800.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/0c06225f-55a8-4866-9114-e55e85aaf459.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/9f022eee-64d5-4382-bde4-f778d0c31df1.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/def62c25-42cd-4afe-8c55-4da8e96a3233.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a643932c-bab1-465c-abcd-2f4fd5ea78bb.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/3efbc505-7aeb-4bb0-a5a5-8921f8291ba6.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f38af0c2-8b86-47a0-b53a-c94e0f5bc172.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5ac64ffe-ca8a-4677-a9a6-2f96f82ffb24.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/f5b7b85d-b91b-461f-9cc8-ee1b8463f7c4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/b1bc5afd-8c30-4e9d-994f-6d901da5fe82.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5efdcfe5-bc85-448b-942b-c5fa136ba79a.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a6c814e4-302e-4704-a263-fc9480f51f16.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/46714542-4d40-4ac1-84e3-fa45549814c4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/7126eed2-010c-4102-ba84-17d367502a8c.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/41c31ace-76e9-4af8-86c3-3421e552c50a.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/1b520980-003d-4075-8d5a-bf64fb2b2483.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/7de88dd5-e847-491a-b556-e1b3f0055adc.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/b8a99307-7cc1-4bac-9255-2a7ce407471d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5f317027-10e1-4bd6-b1cf-104aa375abb4.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/271c216a-d4d2-4df6-b4ed-956003c7c51d.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/a9513262-e95e-4fbb-84df-23406e8987b5.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/61513df4-c583-4e34-93f6-75c87ff13ace.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/43aba630-8914-4a11-9403-710fa4289169.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/ac0f288f-57c6-45e4-82c7-f967759eadb5.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/49fa964c-28c8-4876-b417-2a3b0688dc74.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/c65bf5af-8408-4a16-807d-608de77e55a0.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/d79ef2a4-5a2a-4e70-a594-3ab3b0c041f9.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/903c22cb-9ae3-48ef-9bce-8bd7e34097d8.jpeg",
+        "https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/5b6a2184-7686-41f3-ba1e-70b4058aa6df.jpeg"
+
+        ]
+      },
+      amenities: ['AC in all 3 Bedrooms', 'High-Speed Wi-Fi', 'Modular Kitchen with Utensils', 'Balcony with Skyline View', 'Geyser Hot Water', 'Elevator Access', 'Dedicated Car Parking', '24/7 Host Concierge', 'Power Backup'],
+      landmarks: [{ name: 'Blossom Skyline', time: 'On-site' }, { name: 'Max Hospital', time: '5 min' }, { name: 'Lulu Mall & Shaheed Path', time: '14 min' }],
+      description: 'Luxe 3BHK serviced residence at Blossom Skyline, Gomti Nagar. Features serene Sukoon Stay decor, panoramic 5th floor views, elevator access, high-speed WiFi, and direct hospitality by Superhosts Firoz & Shahanshah.'
     }
   };
 
   // Direct alias for database room_id 'Flat 402'
   BASELINE_PROPERTIES['Flat 402'] = Object.assign({}, BASELINE_PROPERTIES['GOM-402'], { id: 'Flat 402' });
+  BASELINE_PROPERTIES['Flat 502'] = Object.assign({}, BASELINE_PROPERTIES['GOM-502'], { id: 'Flat 502' });
 
   // Get merged properties (Baseline + LocalStorage + Database cache)
   function getShowcaseProperties() {
@@ -3184,6 +3327,9 @@
     if (merged['GOM-402'] && !merged['Flat 402']) {
       merged['Flat 402'] = Object.assign({}, merged['GOM-402'], { id: 'Flat 402' });
     }
+    if (merged['GOM-502'] && !merged['Flat 502']) {
+      merged['Flat 502'] = Object.assign({}, merged['GOM-502'], { id: 'Flat 502' });
+    }
 
     return merged;
   }
@@ -3195,6 +3341,9 @@
     const clean = String(idOrSlug).toLowerCase().trim().replace(/\.html$/, '').replace(/^\/+/, '');
     if (clean === 'flat 402' || clean === 'flat402' || clean === 'the tehzeeb nest' || clean === 'tehzeeb') {
       return all['Flat 402'] || all['GOM-402'] || null;
+    }
+    if (clean === 'flat 502' || clean === 'flat502' || clean === 'sukoon stay' || clean === 'sukoon') {
+      return all['Flat 502'] || all['GOM-502'] || null;
     }
     const found = Object.values(all).find(p => {
       if (!p) return false;

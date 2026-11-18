@@ -49,6 +49,7 @@
     'GOM-202': 'the-brown',
     'GOM-401': 'the-nawabi-stay',
     'GOM-302': 'the-unique',
+    'GOM-502': 'sukoon-stay',
     'VIL-106': 'green-forest',
     'VIL-108': 'pink-paradise'
   };
