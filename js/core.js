@@ -255,36 +255,75 @@ window.canManageStaff = function() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🏠 CARETAKER PROPERTY SCOPE ENGINE (Strict Location Binding)
-// 1. Arman & Shuaib: Vikalpkhand (Chinhat 9 flats)
-// 2. Sarvan: Madhavkunj (4 properties) & Celebrity Garden
-// 3. Aniket: Visheshkhand (3 properties)
+// 🏠 CARETAKER PROPERTY GROUPS (MULTI-LOCATION ASSIGNMENT ENGINE)
+// 1. Arman & Shuaib: Vikalp Khand (Chinhat 9 flats)
+// 2. Sarvan: Madhav Kunj (4 properties) & Celebrity Garden (1 property) = 5 properties
+// 3. Aniket: Vishesh Khand (3 properties: Pink House, Green House, Yellow House)
+// 4. Omaxe City / Arjunganj: Gomti Grand Villa (1 property)
+// 5. Khargapur / Airport: Royal White House (1 property)
 // ═══════════════════════════════════════════════════════════
 window.CARETAKER_PROPERTY_GROUPS = {
   vikalpkhand: {
-    label: '📍 Vikalp Khand (9 Flats)',
+    key: 'vikalpkhand',
+    label: '📍 Vikalp Khand (Chinhat 9 Flats)',
+    shortLabel: 'Vikalp Khand',
+    staff: 'Arman & Shuaib',
     names: ['arman', 'shuaib', 'shoaib'],
     roomIds: ['GOM-101', 'GOM-102', 'GOM-201', 'GOM-202', 'GOM-301', 'GOM-302', 'GOM-401', 'GOM-501', 'Flat 402']
   },
-  madhavkunj_celebrity: {
-    label: '📍 Madhav Kunj & Celebrity Garden (5 Properties)',
-    names: ['sarvan', 'sharwan', 'shravan'],
-    roomIds: ['VIL-107', 'VIL-106', 'VIL-108', 'LUL-101', 'LUL-402']
-  },
   visheshkhand: {
+    key: 'visheshkhand',
     label: '📍 Vishesh Khand (3 Properties)',
+    shortLabel: 'Vishesh Khand',
+    staff: 'Aniket',
     names: ['aniket'],
-    roomIds: ['VIL-103', 'VIL-104', 'VIL-105']
+    roomIds: ['VIL-103', 'VIL-104', 'VIL-105'] // Pink House, Green House, Yellow House
+  },
+  madhavkunj: {
+    key: 'madhavkunj',
+    label: '📍 Madhav Kunj & Celebrity Garden (5 Properties)',
+    shortLabel: 'Madhav Kunj & Celebrity',
+    staff: 'Sarvan',
+    names: ['sarvan', 'sharwan', 'shravan'],
+    roomIds: ['VIL-107', 'VIL-106', 'VIL-108', 'LUL-101', 'LUL-402'] // Velvet House, Green Forest, Pink Paradise, Luxe Haven, Celebrity Garden
+  },
+  omaxecity: {
+    key: 'omaxecity',
+    label: '📍 Omaxe City / Arjunganj (Gomti Grand Villa)',
+    shortLabel: 'Gomti Grand Villa',
+    staff: 'Gomti Grand Villa',
+    names: ['gomti', 'omaxe'],
+    roomIds: ['VIL-101']
+  },
+  khargapur: {
+    key: 'khargapur',
+    label: '📍 Khargapur / Airport (Royal White House)',
+    shortLabel: 'Royal White House',
+    staff: 'Royal White House',
+    names: ['khargapur', 'whitehouse', 'royal'],
+    roomIds: ['VIL-102']
   }
 };
+// Backward compatibility alias for legacy keys
+window.CARETAKER_PROPERTY_GROUPS.madhavkunj_celebrity = window.CARETAKER_PROPERTY_GROUPS.madhavkunj;
 
 window.resolveCaretakerRooms = async function() {
   if (!window.SESSION || window.SESSION.role !== 'caretaker') return null;
 
-  let rooms = (window._myAssignedRooms && window._myAssignedRooms.length) ? [...window._myAssignedRooms] : [];
+  let rooms = [];
 
-  // 1. Try to fetch from employee profile assigned_rooms if linked
-  if ((!rooms || !rooms.length) && window.SESSION.empId && window.sb) {
+  // 1. Resolve from SESSION.caretakerLocations (parsed directly from profiles.role composite string)
+  if (window.SESSION.caretakerLocations && window.SESSION.caretakerLocations.length) {
+    window.SESSION.caretakerLocations.forEach(locKey => {
+      const grp = window.CARETAKER_PROPERTY_GROUPS[locKey];
+      if (grp?.roomIds) {
+        rooms.push(...grp.roomIds);
+      }
+    });
+  }
+
+  // 2. Try to fetch from employee profile assigned_rooms if linked
+  if (!rooms.length && window.SESSION.empId && window.sb) {
     try {
       const { data: emp } = await window.sb.from('employees').select('assigned_rooms').eq('emp_id', window.SESSION.empId).single();
       if (emp?.assigned_rooms) {
@@ -293,25 +332,33 @@ window.resolveCaretakerRooms = async function() {
     } catch(e) {}
   }
 
-  // 2. Auto-detect by Caretaker name / email / display name
-  if (!rooms || !rooms.length) {
+  // 3. Auto-detect by Caretaker name / email / display name if no explicit location key
+  if (!rooms.length) {
     const uStr = `${window.SESSION.displayName || ''} ${window.SESSION.email || ''}`.toLowerCase();
-    if (uStr.includes('arman') || uStr.includes('shuaib') || uStr.includes('shoaib')) {
-      rooms = [...window.CARETAKER_PROPERTY_GROUPS.vikalpkhand.roomIds];
-    } else if (uStr.includes('sarvan') || uStr.includes('sharwan') || uStr.includes('shravan')) {
-      rooms = [...window.CARETAKER_PROPERTY_GROUPS.madhavkunj_celebrity.roomIds];
+    if (uStr.includes('sarvan') || uStr.includes('sharwan') || uStr.includes('shravan')) {
+      rooms = [...window.CARETAKER_PROPERTY_GROUPS.madhavkunj.roomIds];
+      window.SESSION.caretakerLocations = ['madhavkunj'];
     } else if (uStr.includes('aniket')) {
       rooms = [...window.CARETAKER_PROPERTY_GROUPS.visheshkhand.roomIds];
+      window.SESSION.caretakerLocations = ['visheshkhand'];
+    } else if (uStr.includes('arman') || uStr.includes('shuaib') || uStr.includes('shoaib')) {
+      rooms = [...window.CARETAKER_PROPERTY_GROUPS.vikalpkhand.roomIds];
+      window.SESSION.caretakerLocations = ['vikalpkhand'];
     }
   }
 
-  // 3. Safe fallback if still empty: Vikalp Khand 9 flats
-  if (!rooms || !rooms.length) {
+  // 4. Safe fallback if still empty: Vikalp Khand 9 flats
+  if (!rooms.length) {
     rooms = [...window.CARETAKER_PROPERTY_GROUPS.vikalpkhand.roomIds];
+    window.SESSION.caretakerLocations = ['vikalpkhand'];
   }
+
+  // Deduplicate combined rooms across multi-location assignments
+  rooms = [...new Set(rooms)];
 
   window._myAssignedRooms = rooms;
   window.SESSION.assignedRooms = rooms;
+  try { localStorage.setItem('uh_caretaker_rooms', JSON.stringify(rooms)); } catch(e) {}
   return rooms;
 };
 
@@ -908,7 +955,16 @@ async function loadProfile(userId) {
   }
 
   SESSION.userId = userId;
-  SESSION.role = p.role;
+  const rawRole = (p.role || 'viewer').trim();
+  SESSION.rawRole = rawRole;
+  if (rawRole.startsWith('caretaker')) {
+    SESSION.role = 'caretaker';
+    const locPart = rawRole.includes(':') ? rawRole.split(':')[1] : (rawRole.includes('|') ? rawRole.split('|')[1] : '');
+    SESSION.caretakerLocations = locPart ? locPart.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+  } else {
+    SESSION.role = rawRole;
+    SESSION.caretakerLocations = [];
+  }
   SESSION.empId = p.emp_id;
   SESSION.investorId = p.investor_id;
   SESSION.loginTimestamp = parseInt(sessionStorage.getItem('uh_session_start_ts') || '0', 10);
@@ -978,10 +1034,10 @@ async function loadProfile(userId) {
   } else if (p.role === 'ca') {
     renderFYSummary();
     try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'ca-audit'); } catch(e) {}
-  } else if (p.role === 'caretaker') {
+  } else if (SESSION.role === 'caretaker') {
     if (typeof window.resolveCaretakerRooms === 'function') await window.resolveCaretakerRooms();
     navigate('calendar');
-    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'calendar'); } catch(e) {}
+    try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, SESSION.role, 'calendar'); } catch(e) {}
   } else if (p.role === 'checkin_manager') {
     renderCheckinManagerViewNew();
     try { window.UserPageAudit?.trackVisit(userId, SESSION.displayName, p.role, 'checkin'); } catch(e) {}
@@ -2087,9 +2143,13 @@ function renderShell(content, activePage = 'dashboard') {
         </nav>
 
         <div class="sidebar-footer">
-          <button class="sidebar-action-btn help-btn" onclick="navigate('help')"><i class="ti ti-help-circle"></i> Help & Guide</button>
-          <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()"><i class="ti ti-adjustments-horizontal"></i> Preferences</button>
-          <button class="sidebar-action-btn logout-btn" id="logoutBtn"><i class="ti ti-logout"></i> Logout</button>
+          ${SESSION.role === 'caretaker' ? `
+            <button class="sidebar-action-btn logout-btn" id="logoutBtn" style="background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;font-weight:800;"><i class="ti ti-logout"></i> Logout Session</button>
+          ` : `
+            <button class="sidebar-action-btn help-btn" onclick="navigate('help')"><i class="ti ti-help-circle"></i> Help & Guide</button>
+            <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()"><i class="ti ti-adjustments-horizontal"></i> Preferences</button>
+            <button class="sidebar-action-btn logout-btn" id="logoutBtn"><i class="ti ti-logout"></i> Logout</button>
+          `}
         </div>
       </aside>
 
@@ -2099,20 +2159,24 @@ function renderShell(content, activePage = 'dashboard') {
         <header class="app-topbar">
           <div class="topbar-left">
             <button type="button" class="sidebar-toggle-btn" id="hamburgerBtn" aria-label="Toggle Navigation" title="Toggle Navigation"><i class="ti ti-menu-2"></i></button>
-            <div class="topbar-brand-group" onclick="navigate('dashboard')" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
+            <div class="topbar-brand-group" onclick="${SESSION.role === 'caretaker' ? "navigate('calendar')" : "navigate('dashboard')"}" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
               <img src="assets/logo-emblem.png" onerror="this.onerror=null;this.src='assets/logo.png';" alt="TUHH" style="width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.1);flex-shrink:0;" />
               <div class="topbar-brand-titles" style="display:flex;flex-direction:column;">
                 <span class="topbar-brand-main" style="font-weight:900;font-size:13px;color:#222222;letter-spacing:0.2px;white-space:nowrap;line-height:1.2;">UNIQUE HAVEN</span>
                 <span class="topbar-brand-sub" style="font-size:9px;color:var(--primary);font-weight:800;letter-spacing:0.5px;white-space:nowrap;">HOMES OPS</span>
               </div>
             </div>
-            <!-- Search Menu in Topbar Left on Desktop (Matching YBT CRM) -->
-            
           </div>
 
-          <!-- Desktop Center Navigation Links (HomeyHuts Style) -->
+          <!-- Desktop Center Navigation Links -->
           <nav class="topbar-desktop-nav">
             ${(() => {
+              if (SESSION.role === 'caretaker') {
+                return `
+                  <a href="javascript:void(0)" onclick="navigate('calendar')" class="${activePage==='calendar'?'active':''}"><i class="ti ti-calendar"></i> 🗓️ Calendar</a>
+                  <a href="javascript:void(0)" onclick="navigate('bookings')" class="${activePage==='bookings'?'active':''}"><i class="ti ti-calendar-check"></i> 📅 Bookings &amp; Stays</a>
+                `;
+              }
               const topKey = PAGE_TO_SIDEBAR_MAP[activePage] || (activePage === 'reports' ? 'bookings' : activePage);
               return `
                 <a href="javascript:void(0)" onclick="navigate('dashboard')" class="${topKey==='dashboard'?'active':''}"><i class="ti ti-calendar-event"></i> Today</a>
@@ -2150,21 +2214,25 @@ function renderShell(content, activePage = 'dashboard') {
               ` : ''}
             </div>
 
-            <!-- 1-Click WhatsApp Status Generator (Blossom Skyline) -->
-            <button type="button" class="topbar-wa-status-btn" onclick="typeof window.openBlossomSkylineDailyStatusModal === 'function' ? window.openBlossomSkylineDailyStatusModal() : (window.navigate('daily-report'), setTimeout(() => window.openBlossomSkylineDailyStatusModal?.(), 500))" title="1-Click WhatsApp Booking Data Status (Flats 101–501)" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#ffffff;border:none;border-radius:10px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(37,211,102,0.3);white-space:nowrap;transition:all 0.15s ease;">
-              <i class="ti ti-brand-whatsapp" style="font-size:15px;"></i>
-              <span class="topbar-wa-status-text">📋 WA Status</span>
-            </button>
+            <!-- 1-Click WhatsApp Status Generator (Non-caretaker only) -->
+            ${SESSION.role !== 'caretaker' ? `
+              <button type="button" class="topbar-wa-status-btn" onclick="typeof window.openBlossomSkylineDailyStatusModal === 'function' ? window.openBlossomSkylineDailyStatusModal() : (window.navigate('daily-report'), setTimeout(() => window.openBlossomSkylineDailyStatusModal?.(), 500))" title="1-Click WhatsApp Booking Data Status (Flats 101–501)" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#ffffff;border:none;border-radius:10px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(37,211,102,0.3);white-space:nowrap;transition:all 0.15s ease;">
+                <i class="ti ti-brand-whatsapp" style="font-size:15px;"></i>
+                <span class="topbar-wa-status-text">📋 WA Status</span>
+              </button>
+            ` : ''}
 
-            <!-- Primary Action Button: HomeyHuts Style Coral Red + New Booking -->
+            <!-- Primary Action Button: New Booking -->
             <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
               <span class="topbar-new-booking-icon"><i class="ti ti-plus"></i></span> <span class="topbar-new-booking-text">New Booking</span>
             </button>
 
-            <!-- Help Center Button -->
-            <button class="topbar-icon-btn" onclick="navigate('help')" title="Help & User Operating Guide (Press ? or F1)" aria-label="Help & Guide">
-              <span><i class="ti ti-help-circle" style="font-size:1.18rem;color:#0284C7;"></i></span>
-            </button>
+            <!-- Help Center Button (Non-caretaker only) -->
+            ${SESSION.role !== 'caretaker' ? `
+              <button class="topbar-icon-btn" onclick="navigate('help')" title="Help & User Operating Guide (Press ? or F1)" aria-label="Help & Guide">
+                <span><i class="ti ti-help-circle" style="font-size:1.18rem;color:#0284C7;"></i></span>
+              </button>
+            ` : ''}
 
             <!-- Notifications Bell -->
             <button class="topbar-icon-btn" id="topbarNotifBtn" onclick="window.notifications&&window.notifications.openPanel();" title="Notifications" aria-label="Notifications">
@@ -2180,6 +2248,13 @@ function renderShell(content, activePage = 'dashboard') {
               </div>
               <span class="avatar-caret" style="font-size:11px;color:#94A3B8;margin-left:2px;"><i class="ti ti-chevron-down"></i></span>
             </div>
+
+            <!-- Caretaker Direct 1-Click Logout Button in Topbar (Always Accessible) -->
+            ${SESSION.role === 'caretaker' ? `
+              <button type="button" class="btn-sm" onclick="if(confirm('Aap sure hain logout karna chahte hain?')) logout();" style="display:inline-flex;align-items:center;gap:6px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 2px 4px rgba(220,38,38,0.12);" title="Sign out from this device">
+                <i class="ti ti-logout" style="font-size:14px;"></i> <span>Logout</span>
+              </button>
+            ` : ''}
           </div>
         </header>
 
@@ -2611,12 +2686,11 @@ function navigate(page) {
     }
   }
 
-  // 🔒 CARETAKER ROLE PAGE GUARD — Caretakers can ONLY access Calendar & Bookings for their assigned properties
+  // 🔒 CARETAKER ROLE PAGE GUARD — Caretakers can ONLY access Calendar, Bookings & Menu (for Logout)
   if (SESSION.role === 'caretaker') {
-    const CARETAKER_ALLOWED = ['calendar', 'bookings', 'smart-bookings'];
+    const CARETAKER_ALLOWED = ['calendar', 'bookings', 'smart-bookings', 'menu'];
     if (!CARETAKER_ALLOWED.includes(page)) {
-      if (window.fsn) fsn.warning('Access Restricted', 'Caretakers can only view Calendar & Bookings for their assigned properties.');
-      else alert('Access Restricted: Caretakers can only view Calendar & Bookings for their assigned properties.');
+      console.warn('[Caretaker Guard] Redirecting restricted page to calendar:', page);
       navigate('calendar');
       return;
     }
@@ -3112,6 +3186,27 @@ function showPhotoViewer(url, path) {
 
 // ============ USER MANAGEMENT (Admin Only) ============
 window.getRoleBadgeHTML = function(role) {
+  const rawRole = (role || '').trim();
+
+  // 🏠 Specialized badge for Caretakers with assigned locations
+  if (rawRole.startsWith('caretaker')) {
+    const locPart = rawRole.includes(':') ? rawRole.split(':')[1] : (rawRole.includes('|') ? rawRole.split('|')[1] : '');
+    const locKeys = locPart ? locPart.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+    
+    let totalProps = 0;
+    const names = [];
+    locKeys.forEach(k => {
+      const g = window.CARETAKER_PROPERTY_GROUPS ? window.CARETAKER_PROPERTY_GROUPS[k] : null;
+      if (g) {
+        names.push(g.shortLabel || g.label);
+        totalProps += (g.roomIds || []).length;
+      }
+    });
+
+    const desc = names.length ? `${names.join(' + ')} (${totalProps} Units)` : 'Assigned Units';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:800;background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;" title="Caretaker: ${desc}">🏠 Caretaker: ${desc}</span>`;
+  }
+
   const map = {
     developer: { label: '🔴 Developer', bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5' },
     admin: { label: '🔵 Admin', bg: '#EDE9FE', color: '#5B21B6', border: '#C4B5FD' },
@@ -3326,7 +3421,7 @@ async function renderUserManagement() {
       if (activeFilter === 'suspended') return !u.is_approved;
       if (activeFilter === 'admin') return ['developer', 'admin'].includes(u.role);
       if (activeFilter === 'manager') return ['manager', 'owner'].includes(u.role);
-      if (activeFilter === 'staff') return ['booking_staff', 'caretaker', 'checkin_manager', 'moderator'].includes(u.role);
+      if (activeFilter === 'staff') return ['booking_staff', 'caretaker', 'checkin_manager', 'moderator'].includes(u.role) || (u.role || '').startsWith('caretaker');
       if (activeFilter === 'viewer') return u.role === 'viewer';
       return true;
     });
@@ -3884,47 +3979,115 @@ window.exportActivityLogsCSV = async function(dateStr) {
   }
 };
 
-// ============ ROLE PICKER MODAL ============
-function showRolePickerModal(userId, name, callback) {
+// ============ ROLE PICKER MODAL (3 CORE ROLES & MULTI-LOCATION CARETAKER) ============
+async function showRolePickerModal(userId, name, callback) {
+  let currentRole = '';
+  try {
+    const { data: prof } = await sb.from('profiles').select('role, assigned_rooms').eq('user_id', userId).single();
+    if (prof) currentRole = prof.role || '';
+  } catch(e) {}
+
+  const isCtRole = currentRole.startsWith('caretaker');
+  let selectedLocs = [];
+  if (isCtRole) {
+    const locPart = currentRole.includes(':') ? currentRole.split(':')[1] : (currentRole.includes('|') ? currentRole.split('|')[1] : '');
+    if (locPart) {
+      selectedLocs = locPart.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+  }
+
+  // Auto pre-check based on user name if no explicit location stored
+  if (isCtRole && !selectedLocs.length) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('sarvan') || n.includes('sharwan') || n.includes('shravan')) selectedLocs = ['madhavkunj'];
+    else if (n.includes('aniket')) selectedLocs = ['visheshkhand'];
+    else if (n.includes('arman') || n.includes('shuaib') || n.includes('shoaib')) selectedLocs = ['vikalpkhand'];
+    else selectedLocs = ['vikalpkhand'];
+  }
+
+  const selectedBaseRole = isCtRole ? 'caretaker' : (currentRole === 'developer' ? 'developer' : (currentRole === 'owner' || currentRole === 'admin' ? 'owner' : ''));
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
   modal.innerHTML = `
-    <div class="modal-box" style="max-width:440px;">
+    <div class="modal-box" style="max-width:480px;border-radius:16px;">
       <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-      <h2 style="margin:0 0 4px;font-size:18px;">🔧 Assign System Role</h2>
-      <div class="sub" style="font-size:13px;color:var(--muted);">${name}</div>
+      <h2 style="margin:0 0 4px;font-size:18px;font-weight:800;color:#0F172A;">🔧 Assign System Role</h2>
+      <div class="sub" style="font-size:13px;color:var(--muted);">${escapeHtml(name)}</div>
+      
       <div class="form-group" style="margin-top:14px;">
-        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:6px;">Select Role *</label>
-        <select id="rolePickerSel" style="width:100%;font-size:14px;padding:9px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;">
-          <option value="">-- Choose Access Level --</option>
-          <option value="developer">🔴 Developer (Full Master Access + Delete)</option>
-          <option value="admin">🔵 Admin (Full Operations & Settings)</option>
-          <option value="owner">👑 Owner (Full Properties, Financials, Bookings)</option>
-          <option value="manager">👔 Manager (Operations, Turnarounds & Bookings)</option>
-          <option value="moderator">🟡 Moderator (Bookings, ID Proofs & WhatsApp)</option>
-          <option value="booking_staff">📋 Booking Staff (Guest Register & Check-ins)</option>
-          <option value="caretaker">🏠 Caretaker (Assigned Properties, Bookings & Calendar Only)</option>
-          <option value="investor">📈 Investor (Assigned Property Occupancy & Share)</option>
-          <option value="employee">👷 Employee (Tasks, Attendance & Salary)</option>
-          <option value="ca">📑 CA / Auditor (Financial Reports & Statements)</option>
-          <option value="viewer">👁️ Viewer (View-Only Restricted Access)</option>
+        <label style="font-weight:700;font-size:13px;display:block;margin-bottom:6px;color:#1E293B;">Select System Role *</label>
+        <select id="rolePickerSel" style="width:100%;font-size:14px;padding:10px;border:1.5px solid #CBD5E1;border-radius:10px;background:#fff;font-weight:700;color:#0F172A;">
+          <option value="">-- Choose Access Level (3 Core Roles) --</option>
+          <option value="developer" ${selectedBaseRole === 'developer' ? 'selected' : ''}>🔴 1. Developer (Praveen Singh — Master System Access &amp; Database Delete)</option>
+          <option value="owner" ${selectedBaseRole === 'owner' ? 'selected' : ''}>👑 2. Owner (Mr. Firoz Khan &amp; Mr. Shahanshah — Executive Oversight, Financials &amp; Reports)</option>
+          <option value="caretaker" ${selectedBaseRole === 'caretaker' ? 'selected' : ''}>🏠 3. Caretaker (Assigned Homestays &amp; Properties Only)</option>
         </select>
       </div>
-      <div id="ctLocGroup" style="display:none;margin-top:10px;padding:10px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:8px;">
-        <label style="font-weight:700;font-size:12.5px;color:#166534;display:block;margin-bottom:4px;">📍 Caretaker Assigned Place *</label>
-        <select id="ctLocSel" style="width:100%;font-size:13px;padding:8px;border:1px solid #86EFAC;border-radius:6px;background:#fff;font-weight:600;">
-          <option value="vikalpkhand">📍 Vikalp Khand (Chinhat 9 Flats) — Arman &amp; Shuaib</option>
-          <option value="madhavkunj_celebrity">📍 Madhav Kunj &amp; Celebrity Garden (5 Properties) — Sarvan</option>
-          <option value="visheshkhand">📍 Vishesh Khand (3 Properties) — Aniket</option>
-        </select>
-        <div style="font-size:11px;color:#15803D;margin-top:4px;">Is caretaker ko bas inhi properties ka calender, booking aur guest ID upload dikhega.</div>
+
+      <!-- Caretaker Multi-Location Assignment Block -->
+      <div id="ctLocGroup" style="display:${selectedBaseRole === 'caretaker' ? 'block' : 'none'};margin-top:12px;padding:12px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;">
+        <div style="font-weight:800;font-size:13px;color:#166534;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+          <span>📍 Caretaker Assigned Locations (Multi-Select Allowed)</span>
+        </div>
+        <div style="font-size:11.5px;color:#15803D;margin-bottom:10px;line-height:1.4;">
+          Aap 1 ya multiple places select kar sakte hain (jaise Vishesh Khand + Khargapur). Caretaker ko bas unhi selected properties ka Calender, Booking aur Guest ID proof dikhega.
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" class="ct-loc-cb" value="vikalpkhand" ${selectedLocs.includes('vikalpkhand') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Vikalp Khand (Chinhat 9 Flats)</div>
+              <div style="font-size:11px;color:#64748B;">Flats 101–501 · Caretakers: Arman &amp; Shuaib (9 Units)</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" class="ct-loc-cb" value="visheshkhand" ${selectedLocs.includes('visheshkhand') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Vishesh Khand (3 Properties)</div>
+              <div style="font-size:11px;color:#64748B;">The Pink House, The Green House, The Yellow House · Caretaker: Aniket (3 Units)</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" class="ct-loc-cb" value="madhavkunj" ${selectedLocs.includes('madhavkunj') || selectedLocs.includes('madhavkunj_celebrity') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Madhav Kunj &amp; Celebrity Garden (5 Properties)</div>
+              <div style="font-size:11px;color:#64748B;">The Velvet House, Green Forest, Pink Paradise, The Luxe Haven, Celebrity Garden · Caretaker: Sarvan (5 Units)</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" class="ct-loc-cb" value="omaxecity" ${selectedLocs.includes('omaxecity') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Omaxe City / Arjunganj (Gomti Grand Villa)</div>
+              <div style="font-size:11px;color:#64748B;">Gomti Grand Villa · 1 Villa (VIL-101)</div>
+            </div>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #BBF7D0;border-radius:8px;cursor:pointer;">
+            <input type="checkbox" class="ct-loc-cb" value="khargapur" ${selectedLocs.includes('khargapur') ? 'checked' : ''} onchange="window.updateCaretakerSelectionSummary()" style="margin-top:3px;transform:scale(1.2);">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#0F172A;">📍 Khargapur / Airport (Royal White House)</div>
+              <div style="font-size:11px;color:#64748B;">Royal White House · 1 Villa (VIL-102)</div>
+            </div>
+          </label>
+        </div>
+
+        <div id="ctSummaryBox" style="margin-top:10px;padding:8px 12px;background:#ECFDF5;border:1.5px dashed #059669;border-radius:8px;font-size:12px;font-weight:700;color:#065F46;line-height:1.4;">
+          Calculating selected properties...
+        </div>
       </div>
-      <div style="font-size:12px;color:#4B5563;margin-top:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;line-height:1.4;" id="roleDesc">
+
+      <div style="font-size:12px;color:#4B5563;margin-top:10px;padding:10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;line-height:1.4;" id="roleDesc">
         Role select karein to see exact permissions and accessible pages.
       </div>
-      <button onclick="confirmRolePicker('${userId}','${name.replace(/'/g,"\\'")}',callback_${userId.replace(/-/g,'_')})" style="width:100%;margin-top:14px;background:#10B981;color:#fff;border:none;padding:10px;font-weight:700;border-radius:8px;font-size:14px;cursor:pointer;">
-        ✅ Confirm & Apply Role
+
+      <button onclick="confirmRolePicker('${userId}','${name.replace(/'/g,"\\'")}',callback_${userId.replace(/-/g,'_')})" style="width:100%;margin-top:14px;background:#10B981;color:#fff;border:none;padding:11px;font-weight:800;border-radius:10px;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,0.3);">
+        ✅ Confirm &amp; Apply Role
       </button>
       <div id="rolePickerErr" style="margin-top:8px;"></div>
     </div>`;
@@ -3932,25 +4095,51 @@ function showRolePickerModal(userId, name, callback) {
 
   window[`callback_${userId.replace(/-/g,'_')}`] = callback;
 
+  window.updateCaretakerSelectionSummary = function() {
+    const checked = Array.from(document.querySelectorAll('.ct-loc-cb:checked')).map(cb => cb.value);
+    const summaryBox = document.getElementById('ctSummaryBox');
+    if (!summaryBox) return;
+
+    if (!checked.length) {
+      summaryBox.innerHTML = '⚠️ Koi location select nahi hui (Please select at least 1 place)';
+      summaryBox.style.color = '#DC2626';
+      summaryBox.style.borderColor = '#FCA5A5';
+      summaryBox.style.background = '#FEF2F2';
+      return;
+    }
+
+    let totalProps = 0;
+    const names = [];
+    checked.forEach(k => {
+      const g = window.CARETAKER_PROPERTY_GROUPS[k];
+      if (g) {
+        names.push(g.shortLabel);
+        totalProps += (g.roomIds || []).length;
+      }
+    });
+
+    summaryBox.style.color = '#065F46';
+    summaryBox.style.borderColor = '#059669';
+    summaryBox.style.background = '#ECFDF5';
+    summaryBox.innerHTML = `✅ Selected: <strong>${names.join(' + ')}</strong> (Total <strong>${totalProps} Properties</strong> assigned)`;
+  };
+
+  window.updateCaretakerSelectionSummary();
+
   document.getElementById('rolePickerSel').onchange = function() {
     const isCt = this.value === 'caretaker';
     const ctBox = document.getElementById('ctLocGroup');
     if (ctBox) ctBox.style.display = isCt ? 'block' : 'none';
+    if (isCt && window.updateCaretakerSelectionSummary) {
+      window.updateCaretakerSelectionSummary();
+    }
 
     const desc = {
-      developer: '🔴 Developer: Master super-admin privileges including database record deletion, user management, and raw data access.',
-      admin: '🔵 Admin: Complete management permissions across bookings, calendars, flats status, staff, expenses, and system settings.',
-      owner: '👑 Owner: High-level property oversight, bookings, cash flow, payouts, WhatsApp dispatch, and full revenue visibility.',
-      manager: '👔 Manager: Daily operational lead: housekeeping turnarounds, booking verification, staff tasks, and guest communications.',
-      moderator: '🟡 Moderator: Bookings management, guest verification, ID proof uploads, and automated WhatsApp messaging.',
-      booking_staff: '📋 Booking Staff: Front-desk operations, adding new bookings, check-in flow, and collecting advance payments.',
-      caretaker: '🏠 Caretaker: Assigned properties only — Bookings, Calendar & Guest ID upload. Strictly blocked from financial, employee & expense pages.',
-      investor: '📈 Investor: Restricted portal viewing only their designated investor flats, occupancy stats, and monthly statements.',
-      employee: '👷 Employee: Staff self-service portal for attendance, task logging, and salary advance records.',
-      ca: '📑 CA / Auditor: Read-only access to ledger statements, cashbook reconciliations, and financial CSV exports.',
-      viewer: '👁️ Viewer: Read-only access to today\'s general check-ins, check-outs, and basic occupancy matrix.'
+      developer: '🔴 Developer: Master super-admin privileges (Praveen Singh) including database record deletion, raw queries, user management, and core architecture.',
+      owner: '👑 Owner: High-level business oversight (Mr. Firoz Khan & Mr. Shahanshah) with full access to Bookings, Calendar, Properties, Expenses, Financials & Reports.',
+      caretaker: '🏠 Caretaker: Assigned properties only. View Bookings & Calendar for assigned homestays, create reservations, and upload guest ID proofs. Strictly restricted from financial & admin settings.'
     };
-    document.getElementById('roleDesc').textContent = desc[this.value] || 'Role select karein to see exact permissions.';
+    document.getElementById('roleDesc').textContent = desc[this.value] || 'Role select karein to see permissions.';
   };
 }
 
@@ -3961,24 +4150,42 @@ async function confirmRolePicker(userId, name, callbackFn) {
     return;
   }
   
+  let finalRole = role;
+  let assignedRoomsStr = '';
+
   if (role === 'caretaker') {
-    const locKey = document.getElementById('ctLocSel')?.value || 'vikalpkhand';
-    const assignedRooms = (window.CARETAKER_PROPERTY_GROUPS && window.CARETAKER_PROPERTY_GROUPS[locKey]?.roomIds?.join(',')) || '';
+    const checked = Array.from(document.querySelectorAll('.ct-loc-cb:checked')).map(cb => cb.value);
+    const locs = checked.length ? checked : ['vikalpkhand'];
+    finalRole = 'caretaker:' + locs.join(',');
+
+    const combinedRooms = [];
+    locs.forEach(k => {
+      const g = window.CARETAKER_PROPERTY_GROUPS[k];
+      if (g?.roomIds) combinedRooms.push(...g.roomIds);
+    });
+    const uniqueRooms = [...new Set(combinedRooms)];
+    assignedRoomsStr = uniqueRooms.join(',');
+
     try {
-      if (assignedRooms) {
-        await sb.from('profiles').update({ role, assigned_rooms: assignedRooms }).eq('user_id', userId);
-        const { data: prof } = await sb.from('profiles').select('emp_id').eq('user_id', userId).single();
-        if (prof?.emp_id) {
-          await sb.from('employees').update({ assigned_rooms: assignedRooms }).eq('emp_id', prof.emp_id);
-        }
-      }
+      await sb.from('profiles').update({ role: finalRole, assigned_rooms: assignedRoomsStr }).eq('user_id', userId);
     } catch(e) {
-      console.warn('Caretaker room sync error:', e);
+      try { await sb.from('profiles').update({ role: finalRole }).eq('user_id', userId); } catch(e2) {}
     }
+
+    try {
+      const { data: prof } = await sb.from('profiles').select('emp_id').eq('user_id', userId).single();
+      if (prof?.emp_id) {
+        await sb.from('employees').update({ assigned_rooms: assignedRoomsStr }).eq('emp_id', prof.emp_id);
+      }
+    } catch(e) {}
+  } else {
+    try {
+      await sb.from('profiles').update({ role: finalRole }).eq('user_id', userId);
+    } catch(e) {}
   }
 
   document.querySelector('.modal-overlay')?.remove();
-  if (typeof callbackFn === 'function') callbackFn(role);
+  if (typeof callbackFn === 'function') callbackFn(finalRole);
 }
 
 // ============ APPROVE USER ============
@@ -6653,6 +6860,71 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
 // 📱 HOMEYHUTS SCREENSHOT 1 — MASTER APP MENU RENDERER
 // ═══════════════════════════════════════════════════════════
 function renderAppMenu() {
+  // 🏠 SPECIALIZED MENU FOR CARETAKERS (Direct Access + Big Logout)
+  if (SESSION.role === 'caretaker') {
+    const assignedRooms = window._myAssignedRooms || [];
+    const roomsCount = assignedRooms.length;
+    const locNames = (SESSION.caretakerLocations || []).map(k => window.CARETAKER_PROPERTY_GROUPS[k]?.shortLabel || k).filter(Boolean);
+    const locStr = locNames.length ? locNames.join(' + ') : 'Assigned Homestays';
+
+    const ctHtml = `
+      <div style="max-width:540px;margin:0 auto;padding:16px 12px;">
+        <div class="card" style="background:linear-gradient(135deg, #065F46 0%, #047857 100%);color:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 4px 14px rgba(6,95,70,0.25);">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;border:2px solid #fff;">
+              ${(SESSION.displayName || 'C').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-size:18px;font-weight:800;color:#fff;">${escapeHtml(SESSION.displayName || 'Caretaker')}</div>
+              <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.25);padding:3px 9px;border-radius:8px;font-size:11.5px;font-weight:800;margin-top:4px;">
+                🏠 CARETAKER · ${escapeHtml(locStr)}
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.2);font-size:12.5px;color:#D1FAE5;display:flex;justify-content:space-between;align-items:center;">
+            <span>Assigned Homestays Scope:</span>
+            <strong style="color:#fff;font-size:14px;">${roomsCount} Properties</strong>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px;margin-bottom:16px;">
+          <h3 style="margin:0 0 12px;font-size:14px;color:#1E293B;font-weight:800;">📍 Fast Navigation</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button type="button" onclick="navigate('calendar')" style="display:flex;align-items:center;gap:12px;padding:12px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;cursor:pointer;text-align:left;width:100%;">
+              <span style="font-size:24px;">🗓️</span>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#065F46;">Homestay Calendar</div>
+                <div style="font-size:11.5px;color:#047857;">Timeline view of all assigned rooms &amp; bookings</div>
+              </div>
+            </button>
+            <button type="button" onclick="navigate('bookings')" style="display:flex;align-items:center;gap:12px;padding:12px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;cursor:pointer;text-align:left;width:100%;">
+              <span style="font-size:24px;">📅</span>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#1E40AF;">Bookings &amp; Stays</div>
+                <div style="font-size:11.5px;color:#2563EB;">Guest register, check-ins &amp; ID proof upload</div>
+              </div>
+            </button>
+            <button type="button" onclick="if(window.renderAddBooking) renderAddBooking();" style="display:flex;align-items:center;gap:12px;padding:12px;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:12px;cursor:pointer;text-align:left;width:100%;">
+              <span style="font-size:24px;">➕</span>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#BE123C;">Add New Booking</div>
+                <div style="font-size:11.5px;color:#E11D48;">Direct booking for your assigned homestays</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px;">
+          <button type="button" onclick="if(confirm('Aap sure hain logout karna chahte hain?')) logout();" style="width:100%;padding:14px;background:#DC2626;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 3px 10px rgba(220,38,38,0.25);">
+            <i class="ti ti-logout" style="font-size:18px;"></i> 🚪 Logout from this Device
+          </button>
+        </div>
+      </div>
+    `;
+    renderShell(ctHtml, 'menu');
+    return;
+  }
+
   const shortName = (SESSION.displayName || 'Praveen Singh').split('(')[0].trim();
   const initial = shortName.charAt(0).toUpperCase() || 'P';
   const roleLabel = ({
