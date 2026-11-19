@@ -677,8 +677,10 @@ app.post('/logout', async (req, res) => {
 // 4. Web QR & Pairing Code Viewer
 app.post('/api/pairing-code', async (req, res) => {
   try {
-    const rawPhone = req.body?.phone || '919194109911';
-    const cleanPhone = String(rawPhone).replace(/\D/g, '');
+    let cleanPhone = String(req.body?.phone || '9194109911').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
+    }
     if (!sock) {
       await startBaileys();
       await new Promise(r => setTimeout(r, 2000));

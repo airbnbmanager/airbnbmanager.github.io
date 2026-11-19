@@ -199,7 +199,19 @@ async function buildMessageData(bkId) {
     flat: room.unit_no || roomId,
     floor: room.floor || '',
     address: room.address || 'Vikalp Khand, Gomti Nagar, Lucknow',
-    mapLink: room.map_link || '',
+    mapLink: room.map_link || (function() {
+      const rid = ((room.room_id || roomId || '') + ' ' + (room.nickname || '') + ' ' + (room.property_name || '')).toUpperCase();
+      if (rid.includes('VIL-103') || rid.includes('PINK HOUSE') || rid.includes('VIL-104') || rid.includes('GREEN HOUSE') || rid.includes('VIL-105') || rid.includes('YELLOW HOUSE')) {
+        return 'https://maps.app.goo.gl/pCGigAPQGHjcfadQ8';
+      }
+      if (rid.includes('VIL-101') || rid.includes('GRAND VILLA')) {
+        return 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A';
+      }
+      if (rid.includes('LUL') || rid.includes('LUXE') || rid.includes('VELVET') || rid.includes('PINK PARADISE') || rid.includes('GREEN FOREST') || rid.includes('CELEBRITY') || rid.includes('ROYAL WHITE')) {
+        return 'https://maps.app.goo.gl/b8YjBduoQxa98QhT6';
+      }
+      return 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA';
+    })(),
     propertyURL: window.getPropertyURL(room.nickname),
     wifi: room.wifi_ssid || 'UniqueHaven_WiFi',
     wifiPass: room.wifi_password || 'Airbnb.in1',

@@ -694,6 +694,28 @@ The Unique Haven Homes Property Management`;
     }
 
     if (!text) {
+      // Resolve Google Maps link from room data or fallback
+      let mapLink = b.rooms?.map_link || b.map_link || '';
+      if (!mapLink && b.room_id && window.sb) {
+        try {
+          const { data: rm } = await window.sb.from('rooms').select('map_link').eq('room_id', b.room_id).maybeSingle();
+          if (rm?.map_link) mapLink = rm.map_link;
+        } catch(e) {}
+      }
+      if (!mapLink) {
+        const rid = ((b.room_id || '') + ' ' + (b.room_name || '') + ' ' + (b.rooms?.nickname || '')).toUpperCase();
+        if (rid.includes('VIL-103') || rid.includes('PINK HOUSE') || rid.includes('VIL-104') || rid.includes('GREEN HOUSE') || rid.includes('VIL-105') || rid.includes('YELLOW HOUSE')) {
+          mapLink = 'https://maps.app.goo.gl/pCGigAPQGHjcfadQ8';
+        } else if (rid.includes('VIL-101') || rid.includes('GRAND VILLA')) {
+          mapLink = 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A';
+        } else if (rid.includes('LUL') || rid.includes('LUXE') || rid.includes('VELVET') || rid.includes('PINK PARADISE') || rid.includes('GREEN FOREST') || rid.includes('CELEBRITY') || rid.includes('ROYAL WHITE')) {
+          mapLink = 'https://maps.app.goo.gl/b8YjBduoQxa98QhT6';
+        } else {
+          mapLink = 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA';
+        }
+      }
+
+      const mapSection = mapLink ? `📍 *Google Maps Location:*\n${mapLink}\n\n` : '';
       const roomName = b.rooms?.nickname || b.rooms?.unit_no || b.room_name || b.room_id || 'Apartment';
       const guest = b.guest_name || 'Guest';
       const fmtD = (dt) => {
@@ -701,6 +723,7 @@ The Unique Haven Homes Property Management`;
         try { return new Date(dt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
         catch(e) { return dt; }
       };
+      const advStr = b.advance ? `💳 *Advance Paid:* ₹${Number(b.advance).toLocaleString('en-IN')}\n` : '';
       text =
         `🎉 *BOOKING CONFIRMED — THE UNIQUE HAVEN HOMES*\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -709,7 +732,10 @@ The Unique Haven Homes Property Management`;
         `🏠 *Property:* ${roomName}\n` +
         `📅 *Check-in:* ${fmtD(b.check_in)} (From 02:00 PM)\n` +
         `📅 *Check-out:* ${fmtD(b.check_out)} (By 11:00 AM)\n` +
-        `💰 *Total Amount:* ₹${(b.total_amount || 0).toLocaleString('en-IN')}\n\n` +
+        `💰 *Total Amount:* ₹${(b.total_amount || 0).toLocaleString('en-IN')}\n` +
+        advStr +
+        `\n` +
+        mapSection +
         `👤 *Manager:* Praveen Singh (9194109911)\n\n` +
         `*Contact*\n` +
         `If you need anything, message me anytime or call directly\n` +
