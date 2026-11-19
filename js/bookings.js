@@ -2678,6 +2678,7 @@ async function renderManageBookings() {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-sm" onclick="window.openCombinedReceiptByDateModal ? window.openCombinedReceiptByDateModal() : (window.BOOKING_RECEIPT_ENGINE && window.BOOKING_RECEIPT_ENGINE.openCombinedReceiptByDateModal())" style="background:#0F172A;color:#fff;border:none;font-weight:700;display:inline-flex;align-items:center;gap:5px;" title="Generate Combined Receipt by Phone & Dates"><span>📑</span> <span>Combined Receipt</span></button>
         <button class="btn-sm" onclick="openGuestStatementModal()" style="background:#4F46E5;color:#fff;border:none;font-weight:700;">📑 Guest Statement / Khata</button>
         <button class="btn-sm" onclick="navigate('whatsapp-hub')" style="background:#15803D;color:#fff;border:none;font-weight:700;">📱 WhatsApp Hub</button>
         ${canM ? `<button class="btn-sm" onclick="renderAddBooking()">➕ New Booking</button>` : ''}

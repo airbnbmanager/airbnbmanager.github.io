@@ -2222,6 +2222,11 @@ function renderShell(content, activePage = 'dashboard') {
               </button>
             ` : ''}
 
+            <!-- Combined Receipt Button (Phone + Dates) -->
+            <button type="button" class="topbar-combined-receipt-btn" onclick="typeof window.openCombinedReceiptByDateModal === 'function' ? window.openCombinedReceiptByDateModal() : (window.BOOKING_RECEIPT_ENGINE && window.BOOKING_RECEIPT_ENGINE.openCombinedReceiptByDateModal())" title="Generate Consolidated Receipt (Phone + Dates)" style="display:inline-flex;align-items:center;gap:6px;background:#0F172A;color:#ffffff;border:1px solid #334155;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;">
+              <span>📑</span> <span class="topbar-combined-receipt-text">Combined Receipt</span>
+            </button>
+
             <!-- Primary Action Button: New Booking -->
             <button type="button" class="topbar-new-booking-btn" onclick="if(window.renderAddBooking) renderAddBooking();" title="Create New Reservation">
               <span class="topbar-new-booking-icon"><i class="ti ti-plus"></i></span> <span class="topbar-new-booking-text">New Booking</span>

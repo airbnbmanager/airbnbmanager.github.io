@@ -2685,6 +2685,32 @@ ${propertiesList}
           </div>
         `}
 
+        <!-- 📅 Stay Dates Filter & Fine-Tuning Bar -->
+        <div class="multi-receipt-date-strip" style="background:#FFFFFF;border:1.5px solid #CBD5E1;border-radius:10px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:800;color:#0F172A;display:flex;align-items:center;gap:4px;">
+              <span>📅</span> <span>Stay Dates:</span>
+            </span>
+            <input type="date" id="mrfFromDate" value="${data.minCheckIn || ''}" style="padding:5px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;" />
+            <span style="font-size:12px;font-weight:800;color:#64748B;">to</span>
+            <input type="date" id="mrfToDate" value="${data.maxCheckOut || ''}" style="padding:5px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;" />
+            <button type="button" class="btn-sm" onclick="window.applyReceiptDateFilter()" style="background:#0F172A;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              🔄 Filter Bookings
+            </button>
+            <button type="button" class="btn-sm" onclick="this.closest('.modal-overlay').remove();window.openCombinedReceiptByDateModal('${escapeHtml(cleanPhone(data.phone || ''))}', '${data.minCheckIn || ''}', '${data.maxCheckOut || ''}')" style="background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE;padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              ⚙️ Custom Dates &amp; Flats
+            </button>
+            ${data.phone ? `
+              <button type="button" class="btn-sm" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;" title="All bookings across all dates">
+                🌟 All Dates (${escapeHtml(data.guestName || 'Guest')})
+              </button>
+            ` : ''}
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#475569;">
+            Included: <strong style="color:#0F172A;">${data.bookings.length} Homestays</strong> · Total: <strong style="color:#059669;">₹${Number(data.totalAmount||0).toLocaleString('en-IN')}</strong>
+          </div>
+        </div>
+
         <!-- Printable Document View Wrapper -->
         <div style="flex:1;overflow-y:auto;background:#fff;border-radius:10px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);border:1px solid #E2E8F0;" id="multiReceiptPrintArea">
           ${buildMultiPropertyReceiptHTML(data)}
@@ -2707,8 +2733,10 @@ ${propertiesList}
 
   // Helper when phone has multiple bookings (e.g. 9560172711 or 9044276377 has multiple bookings!)
   function showBookingPickerModal(bookings) {
+    window._lastPickerBookings = bookings;
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
+    modal.id = 'uhhBookingPickerModal';
     modal.style.zIndex = '99999';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
@@ -2753,7 +2781,7 @@ ${propertiesList}
 
         <div style="flex:1;overflow-y:auto;padding-right:4px;">
           <!-- 🌟 PROMINENT TOP BANNER: ALL BOOKINGS EK SATH -->
-          <div style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(49,46,129,0.25);">
+          <div style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(49,46,129,0.25);">
             <div>
               <div style="font-weight:900;font-size:15px;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
                 <span>📑 RECEIPT: ALL BOOKINGS EK SATH</span>
@@ -2766,6 +2794,24 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:900;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;white-space:nowrap;font-size:13px;box-shadow:0 2px 8px rgba(245,158,11,0.35);"
               onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(guestPhone))}')">
               🌟 Open All Bookings Ek Sath →
+            </button>
+          </div>
+
+          <!-- 📅 Filter Between Dates Bar -->
+          <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-weight:800;font-size:12px;color:#0F172A;display:flex;align-items:center;gap:4px;">
+                <span>📅</span> <span>Filter Dates:</span>
+              </span>
+              <input type="date" id="pkrFromDate" style="padding:5px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;" />
+              <span style="font-size:12px;font-weight:800;color:#64748B;">to</span>
+              <input type="date" id="pkrToDate" style="padding:5px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:12px;font-weight:700;color:#0F172A;" />
+              <button type="button" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;" onclick="window.applyPickerDateFilter()">
+                🔍 Filter &amp; Combine
+              </button>
+            </div>
+            <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" onclick="this.closest('.modal-overlay').remove();window.openCombinedReceiptByDateModal('${escapeHtml(cleanPhone(guestPhone))}')">
+              ⚙️ Custom Dates Tool →
             </button>
           </div>
 
@@ -2867,6 +2913,512 @@ ${propertiesList}
 
     document.body.appendChild(modal);
   }
+
+  // Window helper for date filtering in booking picker
+  window.applyPickerDateFilter = async function() {
+    const fVal = document.getElementById('pkrFromDate')?.value || '';
+    const tVal = document.getElementById('pkrToDate')?.value || '';
+    const bks = window._lastPickerBookings || [];
+    const phone = bks[0]?.phone || '';
+    if (!phone) {
+      alert('Guest phone not found.');
+      return;
+    }
+    const modal = document.getElementById('uhhBookingPickerModal');
+    if (modal) modal.remove();
+    await window.openCombinedReceiptForPhoneAndDates(phone, fVal, tVal);
+  };
+
+  // Window helper for date filtering inside multi-property receipt modal
+  window.applyReceiptDateFilter = async function() {
+    const fIn = document.getElementById('mrfFromDate');
+    const tIn = document.getElementById('mrfToDate');
+    const fVal = fIn ? fIn.value : '';
+    const tVal = tIn ? tIn.value : '';
+    const curData = window._activeMultiReceiptData || window._activeReceiptData;
+    if (!curData || !curData.phone) {
+      alert('Active guest phone not found to filter bookings.');
+      return;
+    }
+    const curModal = document.getElementById('uhhMultiBookingReceiptModal');
+    if (curModal) curModal.remove();
+    await window.openCombinedReceiptForPhoneAndDates(curData.phone, fVal, tVal);
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5C. DEDICATED MODAL: COMBINED RECEIPT BY PHONE & DATE RANGE
+  // Satisfies user requirement: "mobile no dalu and between ki date pooche
+  // from date - to date and uske between ki all booking ko fetch kare
+  // and combine receipt generate kare"
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function filterBookingsByDates(bookings, fromDate, toDate) {
+    return (bookings || []).filter(b => {
+      const ci = b.check_in || '';
+      const co = b.check_out || ci;
+      if (fromDate && toDate) {
+        if (fromDate === toDate) {
+          return ci === fromDate || (ci <= fromDate && co > fromDate);
+        }
+        return (ci >= fromDate && ci <= toDate && co >= fromDate && (ci < toDate || ci === fromDate));
+      } else if (fromDate) {
+        return ci >= fromDate;
+      } else if (toDate) {
+        return ci <= toDate;
+      }
+      return true;
+    });
+  }
+
+  async function openCombinedReceiptForPhoneAndDates(phone, fromDate, toDate) {
+    if (!phone) {
+      alert('Please enter a valid guest phone number.');
+      return;
+    }
+
+    let loadingEl = document.createElement('div');
+    loadingEl.className = 'modal-overlay';
+    loadingEl.id = 'uhhCombinedQueryLoading';
+    loadingEl.innerHTML = `
+      <div class="modal-box" style="text-align:center;padding:26px;max-width:320px;">
+        <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+        <div style="font-weight:800;font-size:15px;color:#0F172A;">Fetching Reservations…</div>
+        <div style="font-size:12px;color:#64748B;margin-top:4px;">Checking bookings for ${escapeHtml(phone)} ${fromDate ? `(${fromDate} → ${toDate || '...' })` : ''}</div>
+      </div>
+    `;
+    document.body.appendChild(loadingEl);
+
+    try {
+      let client = window.sb;
+      if (!client && typeof supabase !== 'undefined') {
+        const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : window.SUPABASE_URL;
+        const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : window.SUPABASE_ANON_KEY;
+        if (url && key) client = supabase.createClient(url, key);
+      }
+      if (!client) throw new Error('Supabase client not initialized.');
+
+      const digits = cleanPhone(phone);
+      const last10 = digits.slice(-10);
+
+      const { data, error } = await client.from('guest_register')
+        .select('*, rooms(*)')
+        .or(`phone.ilike.%${last10}%,phone.eq.${digits}`)
+        .eq('is_cancelled', false)
+        .order('check_in', { ascending: true });
+
+      loadingEl.remove();
+
+      if (error) throw error;
+      if (!data || !data.length) {
+        alert(`No active bookings found for phone: ${phone}`);
+        return;
+      }
+
+      const matching = filterBookingsByDates(data, fromDate, toDate);
+
+      if (!matching.length) {
+        const proceedAll = confirm(`Between ${fromDate} and ${toDate} koi booking nahi mili, par is phone par ${data.length} dusri booking mili hain.\n\nKya aap sabhi ${data.length} bookings ka combined receipt dekhna chahte hain?`);
+        if (proceedAll) {
+          window.openMultiPropertyReceiptModal(data.map(b => b.booking_id));
+        } else {
+          window.openCombinedReceiptByDateModal(phone, fromDate, toDate);
+        }
+        return;
+      }
+
+      const matchingIds = matching.map(b => b.booking_id);
+      window.openMultiPropertyReceiptModal(matchingIds);
+    } catch(err) {
+      if (document.getElementById('uhhCombinedQueryLoading')) {
+        document.getElementById('uhhCombinedQueryLoading').remove();
+      }
+      alert('Error fetching combined receipt: ' + err.message);
+    }
+  }
+
+  async function openCombinedReceiptByDateModal(prefillPhone = '', prefillFrom = '', prefillTo = '') {
+    const existing = document.getElementById('uhhCombinedReceiptDateModal');
+    if (existing) existing.remove();
+
+    let initPhone = String(prefillPhone || '').trim();
+    if (!initPhone && window._activeReceiptData?.phone) {
+      initPhone = cleanPhone(window._activeReceiptData.phone);
+    }
+    if (!initPhone && typeof currentSelectedBookingPhone !== 'undefined') {
+      initPhone = currentSelectedBookingPhone;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'uhhCombinedReceiptDateModal';
+    modal.style.zIndex = '99999';
+    modal.style.backdropFilter = 'blur(4px)';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:700px;width:95%;padding:22px;border-radius:16px;background:#FFFFFF;max-height:94vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(15,23,42,0.3);position:relative;">
+        
+        <!-- Prominent Close Button -->
+        <button type="button" class="modal-close-prominent" onclick="this.closest('.modal-overlay').remove()" title="Close (ESC)" style="position:absolute;top:14px;right:14px;background:#EF4444;border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(239,68,68,0.3);z-index:10;font-size:16px;font-weight:900;">
+          ✕
+        </button>
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1.5px solid #F1F5F9;padding-right:40px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 10px rgba(15,23,42,0.25);flex-shrink:0;">
+            📑
+          </div>
+          <div style="min-width:0;flex:1;">
+            <h3 style="margin:0;font-size:17.5px;font-weight:900;color:#0F172A;line-height:1.25;">
+              Combined Booking Receipt (Phone + Dates)
+            </h3>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">
+              Mobile no. aur between ki dates dalein — uske beech ki sabhi bookings fetch kar single combined grand receipt generate karein.
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Form Section -->
+        <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+          <!-- Phone Row -->
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11.5px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">
+              📱 Guest Mobile Number:
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="tel" id="crbInputPhone" value="${escapeHtml(initPhone)}" placeholder="e.g. 9044276377" 
+                style="flex:1;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;font-weight:700;color:#0F172A;background:#fff;outline:none;" 
+                oninput="window._debouncedFetchCombinedReceiptBookings && window._debouncedFetchCombinedReceiptBookings()"
+                onkeydown="if(event.key==='Enter') window._fetchCombinedReceiptBookings && window._fetchCombinedReceiptBookings();" />
+              <button type="button" class="btn-sm" onclick="window._fetchCombinedReceiptBookings && window._fetchCombinedReceiptBookings()" style="background:#0F172A;color:#fff;font-weight:800;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;white-space:nowrap;font-size:12.5px;display:inline-flex;align-items:center;gap:4px;">
+                <span>🔍</span> <span>Fetch Bookings</span>
+              </button>
+            </div>
+            <!-- Quick Guest Shortcut Chips -->
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+              <span style="font-size:11px;color:#64748B;font-weight:700;">Quick Chip:</span>
+              <button type="button" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#4F46E5;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;cursor:pointer;" onclick="document.getElementById('crbInputPhone').value='9044276377';window._fetchCombinedReceiptBookings();">
+                9044276377 (Heritage Garden)
+              </button>
+            </div>
+          </div>
+
+          <!-- Date Range Row (From Date - To Date) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">
+                📅 From Date (Check-in start):
+              </label>
+              <input type="date" id="crbInputFrom" value="${escapeHtml(prefillFrom)}" 
+                style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#fff;box-sizing:border-box;"
+                onchange="window._filterAndRenderCombinedPreview && window._filterAndRenderCombinedPreview()" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">
+                📅 To Date (Check-out limit):
+              </label>
+              <input type="date" id="crbInputTo" value="${escapeHtml(prefillTo)}" 
+                style="width:100%;padding:8px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#fff;box-sizing:border-box;"
+                onchange="window._filterAndRenderCombinedPreview && window._filterAndRenderCombinedPreview()" />
+            </div>
+          </div>
+
+          <!-- Quick Date Preset Chips Bar -->
+          <div id="crbQuickPresetsBar" style="display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px 0 2px;">
+            <!-- Dynamically populated when bookings are fetched -->
+          </div>
+        </div>
+
+        <!-- Live Bookings Preview Container -->
+        <div id="crbLivePreviewWrap" style="flex:1;overflow-y:auto;padding-right:4px;min-height:160px;display:flex;flex-direction:column;">
+          <div style="text-align:center;padding:34px 10px;color:#64748B;">
+            <div style="font-size:30px;margin-bottom:6px;">🔍</div>
+            <div style="font-weight:700;font-size:13px;">Guest ka mobile number dalein aur <strong>Fetch Bookings</strong> par click karein</div>
+          </div>
+        </div>
+
+        <!-- Footer / Action Bar -->
+        <div style="margin-top:14px;padding-top:12px;border-top:1.5px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div id="crbSelectionSummary" style="font-size:12.5px;font-weight:800;color:#0F172A;">
+            0 Homestays Selected
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="btn-sm" onclick="this.closest('.modal-overlay').remove()" style="background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;">
+              Cancel
+            </button>
+            <button type="button" id="crbBtnGenerate" onclick="window._executeGenerateCombinedReceipt()" disabled style="background:#0F172A;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(15,23,42,0.25);opacity:0.6;">
+              <span>📑 Generate Combined Receipt Ek Sath →</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const escReceiptDate = (e) => {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        modal.remove();
+        window.removeEventListener('keydown', escReceiptDate);
+      }
+    };
+    window.addEventListener('keydown', escReceiptDate);
+
+    // Initial trigger if phone exists
+    if (initPhone) {
+      setTimeout(() => {
+        window._fetchCombinedReceiptBookings();
+      }, 80);
+    }
+  }
+
+  // Live Fetch & Dynamic Filtering Helpers
+  let _fetchDebounceTimer = null;
+  window._debouncedFetchCombinedReceiptBookings = function() {
+    clearTimeout(_fetchDebounceTimer);
+    _fetchDebounceTimer = setTimeout(() => {
+      window._fetchCombinedReceiptBookings();
+    }, 350);
+  };
+
+  window._fetchCombinedReceiptBookings = async function() {
+    const pInput = document.getElementById('crbInputPhone');
+    if (!pInput) return;
+    const rawVal = pInput.value.trim();
+    const digits = cleanPhone(rawVal);
+    if (digits.length < 4) return;
+
+    const wrap = document.getElementById('crbLivePreviewWrap');
+    if (wrap) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:30px 10px;color:#64748B;">
+          <div style="font-size:32px;margin-bottom:8px;">⏳</div>
+          <div style="font-weight:800;font-size:14px;color:#0F172A;">Loading all bookings for ${escapeHtml(rawVal)}…</div>
+        </div>
+      `;
+    }
+
+    try {
+      let client = window.sb;
+      if (!client && typeof supabase !== 'undefined') {
+        const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : window.SUPABASE_URL;
+        const key = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : window.SUPABASE_ANON_KEY;
+        if (url && key) client = supabase.createClient(url, key);
+      }
+      if (!client) throw new Error('Supabase client not initialized.');
+
+      const last10 = digits.slice(-10);
+      const { data, error } = await client.from('guest_register')
+        .select('*, rooms(*)')
+        .or(`phone.ilike.%${last10}%,phone.eq.${digits}`)
+        .eq('is_cancelled', false)
+        .order('check_in', { ascending: true });
+
+      if (error) throw error;
+
+      window._rawFetchedBookings = data || [];
+
+      // Render preset chips based on discovered stays
+      const presetsBar = document.getElementById('crbQuickPresetsBar');
+      if (presetsBar) {
+        if (!data || !data.length) {
+          presetsBar.innerHTML = `<span style="font-size:11.5px;color:#EF4444;font-weight:700;">⚠️ Koi active booking nahi mili is phone par.</span>`;
+        } else {
+          // Cluster by stay dates
+          const clusters = new Map();
+          for (const b of data) {
+            const k = `${b.check_in || ''}_${b.check_out || ''}`;
+            if (!clusters.has(k)) clusters.set(k, []);
+            clusters.get(k).push(b);
+          }
+
+          let chipsHtml = `
+            <span style="font-size:11px;font-weight:800;color:#64748B;display:inline-flex;align-items:center;padding-right:4px;">Stays Found:</span>
+          `;
+
+          clusters.forEach((bks, k) => {
+            const ci = bks[0]?.check_in;
+            const co = bks[0]?.check_out;
+            const tot = bks.reduce((s, b) => s + (b.total_amount || 0), 0);
+            const label = `${formatDate(ci).slice(0, 6)} - ${formatDate(co).slice(0, 6)} (${bks.length} Flats · ₹${Math.round(tot/1000)}k)`;
+            chipsHtml += `
+              <button type="button" onclick="window._setPresetDates('${ci}','${co}')" style="background:#EEF2FF;border:1px solid #C7D2FE;color:#4F46E5;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all 0.15s ease;">
+                ⚡ ${escapeHtml(label)}
+              </button>
+            `;
+          });
+
+          if (data.length > 1) {
+            const grand = data.reduce((s, b) => s + (b.total_amount || 0), 0);
+            chipsHtml += `
+              <button type="button" onclick="window._setPresetDates('','')" style="background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;">
+                🌟 All ${data.length} Bookings (₹${grand.toLocaleString('en-IN')})
+              </button>
+            `;
+          }
+          presetsBar.innerHTML = chipsHtml;
+        }
+      }
+
+      window._filterAndRenderCombinedPreview();
+    } catch(err) {
+      if (wrap) {
+        wrap.innerHTML = `
+          <div style="text-align:center;padding:20px;color:#EF4444;">
+            <div style="font-size:24px;">⚠️</div>
+            <div style="font-weight:700;font-size:13px;margin-top:4px;">Failed to fetch bookings: ${escapeHtml(err.message)}</div>
+          </div>
+        `;
+      }
+    }
+  };
+
+  window._setPresetDates = function(fromD, toD) {
+    const fIn = document.getElementById('crbInputFrom');
+    const tIn = document.getElementById('crbInputTo');
+    if (fIn) fIn.value = fromD || '';
+    if (tIn) tIn.value = toD || '';
+    window._filterAndRenderCombinedPreview();
+  };
+
+  window._filterAndRenderCombinedPreview = function() {
+    const wrap = document.getElementById('crbLivePreviewWrap');
+    if (!wrap) return;
+
+    const fIn = document.getElementById('crbInputFrom');
+    const tIn = document.getElementById('crbInputTo');
+    const fromD = fIn ? fIn.value : '';
+    const toD = tIn ? tIn.value : '';
+
+    const allBks = window._rawFetchedBookings || [];
+    if (!allBks.length) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:30px 10px;color:#94A3B8;">
+          <div style="font-size:28px;margin-bottom:6px;">📭</div>
+          <div style="font-weight:700;font-size:13px;">Koi active booking available nahi hai.</div>
+        </div>
+      `;
+      window._updateCombinedReceiptSummary(0, 0);
+      return;
+    }
+
+    const matching = filterBookingsByDates(allBks, fromD, toD);
+
+    if (!matching.length) {
+      wrap.innerHTML = `
+        <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:20px;text-align:center;color:#92400E;">
+          <div style="font-size:28px;margin-bottom:6px;">⚠️</div>
+          <div style="font-weight:900;font-size:14px;">Selected dates (${fromD} to ${toD}) ke between koi booking nahi mili.</div>
+          <div style="font-size:12px;margin-top:4px;">Is guest ki total ${allBks.length} bookings dusri dates par hain.</div>
+          <button type="button" class="btn-sm" onclick="window._setPresetDates('','')" style="margin-top:10px;background:#0F172A;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:800;cursor:pointer;">
+            🌟 View All ${allBks.length} Bookings Ek Sath
+          </button>
+        </div>
+      `;
+      window._updateCombinedReceiptSummary(0, 0);
+      return;
+    }
+
+    const gName = matching[0]?.guest_name || allBks[0]?.guest_name || 'Guest';
+    const sumTotal = matching.reduce((s, b) => s + (b.total_amount || 0), 0);
+    const sumAdvance = matching.reduce((s, b) => s + (b.advance_amount || 0), 0);
+
+    let html = `
+      <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-weight:900;font-size:13.5px;color:#166534;display:flex;align-items:center;gap:6px;">
+            <span>✓ ${matching.length} Homestays Matched</span>
+            <span style="font-size:11px;background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:999px;font-weight:800;">${escapeHtml(gName)}</span>
+          </div>
+          <div style="font-size:11.5px;color:#15803D;margin-top:2px;">
+            ${fromD && toD ? `Stay range: <strong>${formatDate(fromD)} → ${formatDate(toD)}</strong>` : 'All Dates Combined'}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:15px;font-weight:900;color:#166534;">₹${sumTotal.toLocaleString('en-IN')}</div>
+          <button type="button" onclick="window._toggleSelectAllCombinedPreview(true)" style="background:none;border:none;color:#047857;font-size:11px;font-weight:800;cursor:pointer;padding:0;text-decoration:underline;">
+            Select All
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+    `;
+
+    matching.forEach((b, idx) => {
+      const pName = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Property';
+      const uNo = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+      const bTotal = Number(b.total_amount || 0);
+      const bAdv = Number(b.advance_amount || 0);
+
+      html += `
+        <label for="crb_bk_${b.booking_id}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:10px;cursor:pointer;transition:border-color 0.15s ease;" onmouseenter="this.style.borderColor='#3B82F6'" onmouseleave="this.style.borderColor='#E2E8F0'">
+          <input type="checkbox" id="crb_bk_${b.booking_id}" class="crb-check-item" value="${b.booking_id}" data-amount="${bTotal}" checked 
+            style="width:18px;height:18px;cursor:pointer;accent-color:#0F172A;" 
+            onchange="window._onCombinedItemCheckChange()" />
+          <div style="min-width:0;flex:1;">
+            <div style="font-weight:800;font-size:13.5px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+              <span>🏠 ${escapeHtml(pName)}${escapeHtml(uNo)}</span>
+              <span style="font-size:10.5px;color:#64748B;font-weight:600;">#${b.booking_id.slice(-6)}</span>
+            </div>
+            <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+              📅 ${formatDate(b.check_in)} → ${formatDate(b.check_out)} (${calcNights(b.check_in, b.check_out)}N)
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:900;font-size:14px;color:#059669;">₹${bTotal.toLocaleString('en-IN')}</div>
+            <div style="font-size:10.5px;color:#64748B;">Paid: ₹${bAdv.toLocaleString('en-IN')}</div>
+          </div>
+        </label>
+      `;
+    });
+
+    html += `</div>`;
+    wrap.innerHTML = html;
+
+    window._updateCombinedReceiptSummary(matching.length, sumTotal);
+  };
+
+  window._onCombinedItemCheckChange = function() {
+    const checked = Array.from(document.querySelectorAll('.crb-check-item:checked'));
+    const tot = checked.reduce((s, cb) => s + Number(cb.dataset.amount || 0), 0);
+    window._updateCombinedReceiptSummary(checked.length, tot);
+  };
+
+  window._toggleSelectAllCombinedPreview = function(forceChecked = true) {
+    document.querySelectorAll('.crb-check-item').forEach(cb => cb.checked = forceChecked);
+    window._onCombinedItemCheckChange();
+  };
+
+  window._updateCombinedReceiptSummary = function(count, total) {
+    const summary = document.getElementById('crbSelectionSummary');
+    const btn = document.getElementById('crbBtnGenerate');
+    if (summary) {
+      summary.innerHTML = count > 0 
+        ? `<strong>${count} Homestays Selected</strong> · Total: <span style="color:#059669;font-weight:900;font-size:13.5px;">₹${total.toLocaleString('en-IN')}</span>`
+        : `<span style="color:#94A3B8;">0 Homestays Selected</span>`;
+    }
+    if (btn) {
+      btn.disabled = count === 0;
+      btn.style.opacity = count > 0 ? '1' : '0.6';
+      btn.innerHTML = count > 0 
+        ? `<span>📑 Generate Combined Receipt (${count} Flats · ₹${total.toLocaleString('en-IN')}) →</span>`
+        : `<span>📑 Generate Combined Receipt Ek Sath →</span>`;
+    }
+  };
+
+  window._executeGenerateCombinedReceipt = function() {
+    const checked = Array.from(document.querySelectorAll('.crb-check-item:checked')).map(cb => cb.value);
+    if (!checked.length) {
+      alert('Kripya kam se kam 1 booking select karein.');
+      return;
+    }
+    const modal = document.getElementById('uhhCombinedReceiptDateModal');
+    if (modal) modal.remove();
+
+    window.openMultiPropertyReceiptModal(checked);
+  };
 
   // Render the Full Interactive Receipt Modal
   function renderReceiptModal(data) {
@@ -3171,6 +3723,8 @@ ${propertiesList}
     sanitizeFilename,
     openBookingReceiptModal,
     openMultiPropertyReceiptModal,
+    openCombinedReceiptByDateModal,
+    openCombinedReceiptForPhoneAndDates,
     fetchBookingReceiptData,
     fetchMultiBookingReceiptData,
     buildReceiptHTML,
@@ -3193,6 +3747,8 @@ ${propertiesList}
 window.sanitizeFilename = window.BOOKING_RECEIPT_ENGINE.sanitizeFilename;
 window.openBookingReceiptModal = window.BOOKING_RECEIPT_ENGINE.openBookingReceiptModal;
 window.openMultiPropertyReceiptModal = window.BOOKING_RECEIPT_ENGINE.openMultiPropertyReceiptModal;
+window.openCombinedReceiptByDateModal = window.BOOKING_RECEIPT_ENGINE.openCombinedReceiptByDateModal;
+window.openCombinedReceiptForPhoneAndDates = window.BOOKING_RECEIPT_ENGINE.openCombinedReceiptForPhoneAndDates;
 window.buildMultiPropertyReceiptHTML = window.BOOKING_RECEIPT_ENGINE.buildMultiPropertyReceiptHTML;
 window.buildMultiPropertyWhatsAppText = window.BOOKING_RECEIPT_ENGINE.buildMultiPropertyWhatsAppText;
 window.fetchMultiBookingReceiptData = window.BOOKING_RECEIPT_ENGINE.fetchMultiBookingReceiptData;
