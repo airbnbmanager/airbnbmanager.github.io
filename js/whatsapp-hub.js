@@ -11,7 +11,7 @@
 
   const DEFAULT_WA_CONFIG = {
     auto_send_enabled: true, // 🟢 1-BUTTON MASTER AUTOMATION (ON/OFF)
-    gateway_url: 'https://uhhs-whatsapp-bot.onrender.com',
+    gateway_url: 'http://localhost:3000',
     gateway_type: 'baileys',
     meta_phone_number_id: '',
     meta_waba_id: '',
@@ -154,6 +154,11 @@
     }
     if (!HUB.config.booking_group_id) {
       HUB.config.booking_group_id = DEFAULT_WA_CONFIG.booking_group_id;
+    }
+    // Auto-migrate gateway_url from dead Render bot to active Mac Mini gateway (http://localhost:3000)
+    if (!HUB.config.gateway_url || HUB.config.gateway_url.includes('onrender.com')) {
+      HUB.config.gateway_url = 'http://localhost:3000';
+      setLocalConfig(HUB.config);
     }
     // Dry-run mode is completely removed — always LIVE dispatches
     delete HUB.config.dry_run_mode;
@@ -430,42 +435,59 @@
       }
     }
 
-    const gatewayUrl = HUB.config.gateway_url || 'https://uhhs-whatsapp-bot.onrender.com';
-    try {
-      const endpoint = gatewayUrl.replace(/\/+$/, '') + '/send-message';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: targetPhone,
-          message: text,
-          isGroup: !!isGroup
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Gateway returned status ' + res.status);
-      }
-
-      logEntry.status = 'sent';
-      logEntry.api_response = data;
-      appendLocalLog(logEntry);
-      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
-
-      console.log('✅ [WhatsApp Hub] Dispatched successfully to:', targetPhone);
-      if (window.fsn) fsn.success('WhatsApp Sent', `Delivered to ${targetPhone}`);
-      return { ok: true, data };
-    } catch (err) {
-      logEntry.status = 'failed';
-      logEntry.error_message = err.message;
-      appendLocalLog(logEntry);
-      try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
-
-      console.warn('❌ [WhatsApp Hub] Gateway failed:', err.message);
-      if (window.fsn) fsn.warn('WhatsApp Gateway Notice', `Could not reach ${gatewayUrl}. Error: ${err.message}`);
-      return { ok: false, error: err.message };
+    // Smart candidate gateway resolution with automatic failover
+    const candidates = [];
+    if (HUB.config.gateway_url && !HUB.config.gateway_url.includes('onrender.com')) {
+      candidates.push(HUB.config.gateway_url.replace(/\/+$/, ''));
     }
+    // Always prioritize local Mac Mini gateway (100% active 24x7 on port 3000)
+    candidates.push('http://localhost:3000');
+    if (HUB.config.gateway_url && HUB.config.gateway_url.includes('onrender.com')) {
+      candidates.push(HUB.config.gateway_url.replace(/\/+$/, ''));
+    }
+    const uniqueCandidates = [...new Set(candidates)];
+
+    let lastError = null;
+    for (const gwUrl of uniqueCandidates) {
+      try {
+        const endpoint = gwUrl + '/send-message';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: targetPhone,
+            message: text,
+            isGroup: !!isGroup
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          logEntry.status = 'sent';
+          logEntry.gateway_used = gwUrl;
+          logEntry.api_response = data;
+          appendLocalLog(logEntry);
+          try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+
+          console.log(`✅ [WhatsApp Hub via ${gwUrl}] Dispatched successfully to:`, targetPhone);
+          if (window.fsn) fsn.success('WhatsApp Sent', `Delivered to ${targetPhone}`);
+          return { ok: true, data };
+        } else {
+          lastError = new Error(data.error || 'Gateway returned status ' + res.status);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    logEntry.status = 'failed';
+    logEntry.error_message = lastError ? lastError.message : 'All gateways unreachable';
+    appendLocalLog(logEntry);
+    try { if (window.sb) await sb.from('whatsapp_log').insert(logEntry); } catch (e) {}
+
+    console.warn('❌ [WhatsApp Hub] All gateways failed:', lastError?.message);
+    if (window.fsn) fsn.warn('WhatsApp Gateway Notice', `Could not reach WhatsApp Gateway. Error: ${lastError?.message}`);
+    return { ok: false, error: lastError?.message };
   }
 
   // ─── GLOBAL AUTOMATION TRIGGERS ───
@@ -672,7 +694,6 @@ The Unique Haven Homes Property Management`;
       console.log('ℹ️ Guest booking pass already dispatched for:', b.booking_id);
       return;
     }
-    if (b.booking_id) window._dispatchedBkPasses.add(b.booking_id);
 
     await loadConfig();
     const isMasterOn = HUB.config.auto_send_enabled !== false;
@@ -746,7 +767,7 @@ The Unique Haven Homes Property Management`;
         `_The Unique Haven Homes Luxury Stays_`;
     }
 
-    return await dispatchWhatsAppMessage({
+    const res = await dispatchWhatsAppMessage({
       to: b.phone,
       isGroup: false,
       text: text,
@@ -754,6 +775,10 @@ The Unique Haven Homes Property Management`;
       bookingId: b.booking_id,
       guestName: b.guest_name || 'Guest'
     });
+    if (res && res.ok && b.booking_id) {
+      window._dispatchedBkPasses.add(b.booking_id);
+    }
+    return res;
   };
 
   // B. Trigger Housekeeping Checkout Alert to Staff Group
