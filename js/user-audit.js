@@ -529,34 +529,41 @@
     overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
     overlay.innerHTML = `
-      <div style="background:#FFFFFF;border-radius:20px;width:100%;max-width:740px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.35);overflow:hidden;">
+      <div class="user-audit-modal-box">
         <!-- Header -->
-        <div style="padding:18px 24px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:44px;height:44px;border-radius:50%;background:#0284C7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;">
+        <div style="padding:14px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 240px;">
+            <div style="width:42px;height:42px;border-radius:50%;background:#0284C7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0;">
               ${(displayName || 'U').charAt(0).toUpperCase()}
             </div>
-            <div>
-              <div style="font-size:18px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;">
-                ${escapeHtml(displayName || 'User')}
+            <div style="min-width:0;">
+              <div style="font-size:16px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>${escapeHtml(displayName || 'User')}</span>
                 <span style="background:#E2E8F0;color:#334155;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;">${role || 'Staff'}</span>
               </div>
-              <div style="font-size:12px;color:#64748B;margin-top:2px;">User Audit & Activity Intelligence</div>
+              <div style="font-size:11.5px;color:#64748B;margin-top:2px;">User Audit &amp; Activity Intelligence</div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <select id="auditMonthSelector" style="padding:6px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;">
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;">
+            <select id="auditMonthSelector" style="padding:6px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:700;color:#0F172A;background:#FFFFFF;min-width:140px;">
               <option value="2026-11" selected>November 2026</option>
               <option value="2026-10">October 2026</option>
               <option value="2026-09">September 2026</option>
             </select>
-            <button onclick="document.getElementById('userAuditModalOverlay').remove()" style="background:#E2E8F0;border:none;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>
+            <button onclick="document.getElementById('userAuditModalOverlay').remove()" style="background:#E2E8F0;border:none;border-radius:50%;width:34px;height:34px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569;flex-shrink:0;" title="Close">✕</button>
           </div>
         </div>
 
         <!-- Body -->
-        <div id="userAuditModalBody" style="padding:20px 24px;overflow-y:auto;flex:1;">
+        <div id="userAuditModalBody" style="padding:16px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;">
           <div style="text-align:center;padding:40px;color:#64748B;">⏳ Loading comprehensive user audit...</div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:10px 18px;border-top:1px solid #E2E8F0;background:#F8FAFC;display:flex;justify-content:flex-end;align-items:center;">
+          <button onclick="document.getElementById('userAuditModalOverlay').remove()" class="btn-sm" style="background:#0F172A;color:#fff;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;">
+            ✕ Close Window
+          </button>
         </div>
       </div>
     `;
@@ -884,33 +891,37 @@
 
     bodyEl.innerHTML = `
       <!-- KPI CARDS -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(115px, 1fr));gap:10px;margin-bottom:20px;">
-        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px;text-align:center;">
+      <div class="user-mgmt-kpi-grid" style="margin-bottom:16px;">
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-left:4px solid #15803D;border-radius:12px;padding:10px;text-align:center;">
           <div style="font-size:22px;font-weight:900;color:#15803D;">${totalDaysLoggedIn}</div>
           <div style="font-size:10.5px;font-weight:800;color:#166534;text-transform:uppercase;margin-top:2px;">Days Active</div>
           <div style="font-size:10px;color:#64748B;margin-top:1px;">in this month</div>
         </div>
 
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:10px;text-align:center;">
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #1D4ED8;border-radius:12px;padding:10px;text-align:center;">
           <div style="font-size:18px;font-weight:900;color:#1D4ED8;">${fmtHoursMins(totalSecondsOnline)}</div>
           <div style="font-size:10.5px;font-weight:800;color:#1E40AF;text-transform:uppercase;margin-top:2px;">Screen Time</div>
           <div style="font-size:10px;color:#64748B;margin-top:1px;">total active</div>
         </div>
 
-        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:10px;text-align:center;">
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-left:4px solid #C2410C;border-radius:12px;padding:10px;text-align:center;">
           <div style="font-size:22px;font-weight:900;color:#C2410C;">${totalLoginsCount}</div>
           <div style="font-size:10.5px;font-weight:800;color:#9A3412;text-transform:uppercase;margin-top:2px;">Total Logins</div>
           <div style="font-size:10px;color:#64748B;margin-top:1px;">sessions</div>
         </div>
 
-        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:10px;text-align:center;">
+        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-left:4px solid #6D28D9;border-radius:12px;padding:10px;text-align:center;">
           <div style="font-size:18px;font-weight:900;color:#6D28D9;">${fmtHoursMins(avgSecsPerActiveDay)}</div>
           <div style="font-size:10.5px;font-weight:800;color:#5B21B6;text-transform:uppercase;margin-top:2px;">Avg Daily</div>
           <div style="font-size:10px;color:#64748B;margin-top:1px;">per active day</div>
         </div>
 
-        <div style="background:#ECFEFF;border:1px solid #A5F3FC;border-radius:12px;padding:10px;text-align:center;">
+        <div style="background:#ECFEFF;border:1px solid #A5F3FC;border-left:4px solid #0E7490;border-radius:12px;padding:10px;text-align:center;">
           <div style="font-size:22px;font-weight:900;color:#0E7490;">${visits.length}</div>
+          <div style="font-size:10.5px;font-weight:800;color:#155E75;text-transform:uppercase;margin-top:2px;">Navigations</div>
+          <div style="font-size:10px;color:#64748B;margin-top:1px;">pages visited</div>
+        </div>
+      </div>
           <div style="font-size:10.5px;font-weight:800;color:#155E75;text-transform:uppercase;margin-top:2px;">Navigations</div>
           <div style="font-size:10px;color:#64748B;margin-top:1px;">pages visited</div>
         </div>
@@ -981,8 +992,8 @@
         </div>
 
         ${userActions.length > 0 ? `
-          <div style="border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);max-height:220px;overflow-y:auto;background:#FFFFFF;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+          <div class="user-audit-table-wrap" style="max-height:240px;overflow-y:auto;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <table style="width:100%;min-width:520px;border-collapse:collapse;font-size:12px;text-align:left;">
               <thead>
                 <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
                   <th style="padding:8px 12px;width:100px;">Date &amp; Time</th>
@@ -1031,8 +1042,8 @@
         </div>
 
         ${dailyRecords.length > 0 ? `
-          <div style="border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+          <div class="user-audit-table-wrap" style="max-height:280px;overflow-y:auto;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;text-align:left;">
               <thead>
                 <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
                   <th style="padding:10px 12px;">Date</th>
@@ -1267,9 +1278,9 @@
         a.user_role === 'caretaker' ? '🔑 Caretaker' : (a.user_role || 'Staff');
 
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #F1F5F9;${unread ? 'background:#F0F9FF;border-left:3px solid #0284C7;' : 'background:#FFFFFF;'}">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-            <div style="width:40px;height:40px;border-radius:50%;background:${unread ? '#0284C7' : '#94A3B8'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex-shrink:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #F1F5F9;flex-wrap:wrap;${unread ? 'background:#F0F9FF;border-left:3px solid #0284C7;' : 'background:#FFFFFF;'}">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 220px;">
+            <div style="width:38px;height:38px;border-radius:50%;background:${unread ? '#0284C7' : '#94A3B8'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;">
               ${(a.user_name || 'U').charAt(0).toUpperCase()}
             </div>
             <div style="min-width:0;">
@@ -1279,13 +1290,13 @@
                 ${a.device ? `<span style="background:#F1F5F9;color:#0284C7;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #E2E8F0;">${a.device}</span>` : ''}
                 ${unread ? '<span style="background:#EF4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;">NEW</span>' : ''}
               </div>
-              <div style="font-size:12px;color:#64748B;margin-top:2px;">
+              <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
                 🕐 Logged in: <strong>${ts}</strong>
               </div>
             </div>
           </div>
 
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;">
             <button class="btn-sm" onclick="window.openUserAuditModal('${a.user_id}','${(a.user_name||'').replace(/'/g, "\\'")}', '${a.user_role}')"
               style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;padding:6px 12px;font-size:12px;" title="View User Audit">
               📊 Audit History
@@ -1306,7 +1317,7 @@
         </button>
       </div>
 
-      <div style="border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+      <div class="user-audit-table-wrap" style="box-shadow:0 1px 3px rgba(0,0,0,0.02);border-radius:14px;overflow:hidden;">
         ${rows}
       </div>
     `;
@@ -2179,48 +2190,48 @@
       </div>
 
       <!-- KPI METRIC CARDS -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
-        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#15803D;">${bookingsAdded.length}</div>
-          <div style="font-size:11px;font-weight:800;color:#166534;text-transform:uppercase;">Bookings Added</div>
+      <div class="user-mgmt-kpi-grid">
+        <div class="stat-card" style="background:#F0FDF4;border:1px solid #BBF7D0;border-left:4px solid #15803D;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#15803D;">${bookingsAdded.length}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#166534;text-transform:uppercase;">Bookings Added</div>
           <div style="font-size:10px;color:#64748B;">on ${curDate}</div>
         </div>
 
-        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#B45309;">${bookingsModified.length}</div>
-          <div style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Bookings Modified</div>
+        <div class="stat-card" style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #B45309;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#B45309;">${bookingsModified.length}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#92400E;text-transform:uppercase;">Bookings Modified</div>
           <div style="font-size:10px;color:#64748B;">edits tracked</div>
         </div>
 
-        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#DC2626;">${bookingsDeleted.length}</div>
-          <div style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;">Bookings Deleted</div>
+        <div class="stat-card" style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:20px;font-weight:900;color:#DC2626;">${bookingsDeleted.length}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#991B1B;text-transform:uppercase;">Bookings Deleted</div>
           <div style="font-size:10px;color:#64748B;">purged from register</div>
         </div>
 
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:18px;font-weight:900;color:#1D4ED8;">₹${totalPaymentsAmount.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;font-weight:800;color:#1E40AF;text-transform:uppercase;">Payments Collected</div>
+        <div class="stat-card" style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #1D4ED8;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:18px;font-weight:900;color:#1D4ED8;">₹${totalPaymentsAmount.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#1E40AF;text-transform:uppercase;">Payments Collected</div>
           <div style="font-size:10px;color:#64748B;">${payments.length} collections</div>
         </div>
 
-        <div style="background:#FDF2F8;border:1px solid #FBCFE8;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:18px;font-weight:900;color:#BE185D;">₹${totalAdvancesAmount.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;font-weight:800;color:#9D174D;text-transform:uppercase;">Advances Given</div>
+        <div class="stat-card" style="background:#FDF2F8;border:1px solid #FBCFE8;border-left:4px solid #BE185D;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:18px;font-weight:900;color:#BE185D;">₹${totalAdvancesAmount.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#9D174D;text-transform:uppercase;">Advances Given</div>
           <div style="font-size:10px;color:#64748B;">${advances.length} staff disbursements</div>
         </div>
 
-        <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:18px;font-weight:900;color:#6D28D9;">₹${totalExpensesAmount.toLocaleString('en-IN')}</div>
-          <div style="font-size:11px;font-weight:800;color:#5B21B6;text-transform:uppercase;">Expenses Entered</div>
+        <div class="stat-card" style="background:#F5F3FF;border:1px solid #DDD6FE;border-left:4px solid #6D28D9;border-radius:12px;padding:10px;text-align:center;">
+          <div class="stat-num" style="font-size:18px;font-weight:900;color:#6D28D9;">₹${totalExpensesAmount.toLocaleString('en-IN')}</div>
+          <div class="stat-label" style="font-size:11px;font-weight:800;color:#5B21B6;text-transform:uppercase;">Expenses Entered</div>
           <div style="font-size:10px;color:#64748B;">${expenses.length} outflow entries</div>
         </div>
       </div>
 
       <!-- MASTER ACTIONS TABLE / LIST -->
       ${filteredActions.length > 0 ? `
-        <div style="border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02);background:#FFFFFF;">
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:left;">
+        <div class="user-audit-table-wrap" style="box-shadow:0 1px 3px rgba(0,0,0,0.02);border-radius:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
+          <table style="width:100%;min-width:680px;border-collapse:collapse;font-size:12.5px;text-align:left;">
             <thead>
               <tr style="background:#F1F5F9;color:#475569;font-weight:800;border-bottom:1px solid #CBD5E1;">
                 <th style="padding:10px 14px;width:95px;">Time</th>

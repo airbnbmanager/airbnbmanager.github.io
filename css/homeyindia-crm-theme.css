@@ -4797,6 +4797,101 @@ html, body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   USER MANAGEMENT & STAFF ACTIVITY — RESPONSIVE TOUCH & SCROLL
+   ═══════════════════════════════════════════════════════════ */
+.user-mgmt-tabs-wrap {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 14px !important;
+  border-bottom: 2px solid #E5E7EB !important;
+  padding-bottom: 10px !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.user-mgmt-tabs-wrap::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.user-mgmt-tab-btn {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.user-mgmt-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.user-mgmt-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)) !important;
+  gap: 12px !important;
+}
+
+.user-audit-modal-box {
+  background: #FFFFFF !important;
+  border-radius: 20px !important;
+  width: 100% !important;
+  max-width: 780px !important;
+  max-height: 92vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35) !important;
+  overflow: hidden !important;
+  margin: auto !important;
+}
+
+.user-audit-table-wrap {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-radius: 12px !important;
+  border: 1px solid #E2E8F0 !important;
+  background: #FFFFFF !important;
+}
+
+@media (max-width: 768px) {
+  .user-mgmt-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .user-mgmt-kpi-grid .stat-card {
+    padding: 10px 12px !important;
+  }
+  .user-mgmt-kpi-grid .stat-num {
+    font-size: 20px !important;
+  }
+  .user-mgmt-kpi-grid .stat-label {
+    font-size: 11px !important;
+  }
+  .user-audit-modal-box {
+    max-height: 94vh !important;
+    border-radius: 18px 18px 0 0 !important;
+  }
+  .user-mgmt-tabs-wrap {
+    padding-bottom: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .user-mgmt-tab-btn {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+  }
+}
+
 @media print {
   body > *:not(#uhhPrintOverlay) {
     display: none !important;

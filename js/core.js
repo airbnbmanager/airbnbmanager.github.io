@@ -3379,22 +3379,22 @@ async function renderUserManagement() {
     </div>
 
     <!-- PRIMARY TAB SWITCHER -->
-    <div style="display:flex;gap:10px;margin-bottom:14px;border-bottom:2px solid #E5E7EB;padding-bottom:10px;">
-      <button type="button" class="btn-sm" onclick="setUserMgmtTab('users')"
-        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'users' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
-        👥 System Users & Roles (${totalUsers})
+    <div class="user-mgmt-tabs-wrap">
+      <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('users')"
+        style="${currentTab === 'users' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+        👥 System Users &amp; Roles (${totalUsers})
       </button>
-      <button type="button" class="btn-sm" onclick="setUserMgmtTab('activity')"
-        style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
-        ⏱️ Daily Logins & Screen Time Logs
+      <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('activity')"
+        style="${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+        ⏱️ Daily Logins &amp; Screen Time Logs
       </button>
       ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-        <button type="button" class="btn-sm" onclick="setUserMgmtTab('alerts')"
-          style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
+        <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('alerts')"
+          style="${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
           🔔 Developer Login Alerts
         </button>
-        <button type="button" class="btn-sm" onclick="setUserMgmtTab('work')"
-          style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;${currentTab === 'work' ? 'background:#059669;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;'}">
+        <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('work')"
+          style="${currentTab === 'work' ? 'background:#059669;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;'}">
           🛠️ Staff Daily Work &amp; Actions
         </button>
       ` : ''}
@@ -3458,7 +3458,7 @@ async function renderUserManagement() {
       ` : ''}
 
       <!-- Quick Filter KPI Ribbon -->
-      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:12px;">
+      <div class="user-mgmt-kpi-grid">
         <div class="stat-card" onclick="setUserFilter('all')" style="cursor:pointer;border-left:4px solid #3B82F6;${activeFilter === 'all' ? 'background:#EFF6FF;box-shadow:0 0 0 2px #3B82F6;' : ''}">
           <div class="stat-num" style="color:#1D4ED8;">${totalUsers}</div>
           <div class="stat-label">👥 Total Users</div>
@@ -3546,14 +3546,14 @@ async function renderUserManagement() {
               style="width:100%;padding:8px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:14px;box-sizing:border-box;" />
             ${sq ? `<span onclick="window._userSearchQuery='';renderUserManagement();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-weight:bold;">✕</span>` : ''}
           </div>
-          <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">
-            <button type="button" class="btn-sm" onclick="setUserFilter('all')" style="${activeFilter === 'all' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">All</button>
-            <button type="button" class="btn-sm" onclick="setUserFilter('active')" style="${activeFilter === 'active' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Active</button>
-            ${firedCount > 0 ? `<button type="button" class="btn-sm" onclick="setUserFilter('fired')" style="${activeFilter === 'fired' ? 'background:#DC2626;color:#fff;' : 'background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;'}">Former Staff (${firedCount})</button>` : ''}
-            <button type="button" class="btn-sm" onclick="setUserFilter('admin')" style="${activeFilter === 'admin' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Admin/Dev</button>
-            <button type="button" class="btn-sm" onclick="setUserFilter('manager')" style="${activeFilter === 'manager' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Owner/Mgr</button>
-            <button type="button" class="btn-sm" onclick="setUserFilter('staff')" style="${activeFilter === 'staff' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Staff</button>
-            <button type="button" class="btn-sm" onclick="setUserFilter('suspended')" style="${activeFilter === 'suspended' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Suspended</button>
+          <div style="display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;padding-bottom:2px;">
+            <button type="button" class="btn-sm" onclick="setUserFilter('all')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'all' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">All</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('active')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'active' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Active</button>
+            ${firedCount > 0 ? `<button type="button" class="btn-sm" onclick="setUserFilter('fired')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'fired' ? 'background:#DC2626;color:#fff;' : 'background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;'}">Former Staff (${firedCount})</button>` : ''}
+            <button type="button" class="btn-sm" onclick="setUserFilter('admin')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'admin' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Admin/Dev</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('manager')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'manager' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Owner/Mgr</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('staff')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'staff' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Staff</button>
+            <button type="button" class="btn-sm" onclick="setUserFilter('suspended')" style="flex-shrink:0;white-space:nowrap;${activeFilter === 'suspended' ? 'background:var(--primary);color:#fff;' : 'background:#F3F4F6;color:#374151;border:none;'}">Suspended</button>
           </div>
         </div>
       </div>
@@ -3567,7 +3567,7 @@ async function renderUserManagement() {
           <button class="btn-sm" onclick="window._userSearchQuery='';window._userFilter='all';renderUserManagement();" style="margin-top:12px;">Reset Filters</button>
         </div>
       ` : viewMode === 'cards' ? `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:12px;">
+        <div class="user-mgmt-card-grid">
           ${filtered.map(u => {
             const userEmail = emailMap[u.user_id] || (u.auth_provider === 'google' ? 'Google Account' : 'Direct Email');
             const isCurrentUser = u.user_id === SESSION.userId;
@@ -3618,24 +3618,24 @@ async function renderUserManagement() {
                 </div>
 
                 <!-- ACTIONS -->
-                <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;">
-                  <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
+                <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;flex-wrap:wrap;">
+                  <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:70px;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
                     🔧 Role
                   </button>
                   ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="flex:1;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
+                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:75px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
                       📊 Audit
                     </button>
                   ` : ''}
                   ${!isCurrentUser ? `
                     ${u.isFiredStaff && u.is_approved ? `
                       <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
-                        style="flex:1.4;background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving all records">
+                        style="flex:1.4 1 auto;min-width:110px;background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving all records">
                         🚫 Block Access
                       </button>
                     ` : `
                       <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
-                        style="flex:1;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
+                        style="flex:1 1 auto;min-width:90px;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
                         title="${u.is_approved ? 'Suspend User' : 'Activate User'}">
                         ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
                       </button>
@@ -3656,8 +3656,8 @@ async function renderUserManagement() {
         </div>
       ` : `
         <div class="card" style="padding:0;overflow:hidden;">
-          <div class="table-wrap">
-            <table>
+          <div class="table-wrap" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;min-width:620px;">
               <thead>
                 <tr>
                   <th>User / Name</th>
@@ -3801,7 +3801,7 @@ async function renderUserManagement() {
       </div>
 
       <!-- KPI METRICS -->
-      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
+      <div class="user-mgmt-kpi-grid">
         <div class="stat-card" style="border-left:4px solid #3B82F6;">
           <div class="stat-num" style="color:#1D4ED8;">${totalActiveUsersOnDate}</div>
           <div class="stat-label">👥 Staff Logged In</div>
@@ -3834,8 +3834,8 @@ async function renderUserManagement() {
         </div>
       ` : `
         <div class="card" style="padding:0;overflow:hidden;">
-          <div class="table-wrap">
-            <table>
+          <div class="table-wrap" style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;min-width:680px;">
               <thead>
                 <tr>
                   <th>User / Staff</th>
