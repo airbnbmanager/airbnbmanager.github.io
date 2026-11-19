@@ -411,7 +411,7 @@
       icon: '🎙️',
       title: 'Voice-to-Booking (Hindi/English)',
       sub: 'Speak to create a booking instantly [Voice AI]',
-      keywords: ['voice', 'bolkar', 'bolke', 'mic', 'nisha', 'speak', 'audio', 'ai booking'],
+      keywords: ['voice', 'bolkar', 'bolke', 'mic', 'speak', 'audio', 'ai booking'],
       action: () => window.openVoiceBookingModal()
     },
     {

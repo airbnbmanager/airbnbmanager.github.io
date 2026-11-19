@@ -90,7 +90,7 @@
       `  • ${r.property_name} (ID: ${r.room_id}) — ₹${Number(r.base_price).toLocaleString('en-IN')}/night | Max ${r.max_guests} guests`
     ).join('\n');
 
-    return `You are Nisha, the warm and professional AI voice concierge for "Unique Haven Homes" — Lucknow's finest luxury homestay brand.
+    return `You are the warm and professional AI voice concierge for "The Unique Haven Homes" — Lucknow's finest luxury homestay brand. Contact: +91 9194109911.
 
 Today's Date: ${today}
 
@@ -175,13 +175,13 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
           guest_name:          name || 'Unknown',
           phone:               phone || 'Not provided',
           interested_property: interested_property || 'General inquiry',
-          source:              'voice_agent_nisha',
+          source:              'voice_agent_tuhh',
           notes:               notes || '',
           status:              'new'
         });
       }
     } catch (err) {
-      console.warn('[Nisha] Lead save to Supabase failed (will still notify):', err.message);
+      console.warn('[TUHH] Lead save to Supabase failed (will still notify):', err.message);
     }
 
     // Always show notification regardless of Supabase
@@ -197,21 +197,21 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
 
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
     const adminMsg = encodeURIComponent(
-      `🔔 *New Lead — Unique Haven Homes*\n\n` +
+      `🔔 *New Lead — The Unique Haven Homes*\n\n` +
       `👤 *Name:* ${name || 'Unknown'}\n` +
       `📱 *Phone:* ${phone || 'N/A'}\n` +
       `🏠 *Interested in:* ${interested_property || 'General inquiry'}\n` +
-      `🤖 *Source:* Voice AI (Nisha)\n` +
+      `🤖 *Source:* Voice AI Concierge\n` +
       `🕐 *Time:* ${new Date().toLocaleString('en-IN')}\n\n` +
       `Please follow up ASAP! 🙏`
     );
 
     const guestMsg = encodeURIComponent(
       `Namaste ${name || ''}! 🙏\n\n` +
-      `Thank you for your interest in *Unique Haven Homes* Lucknow.\n\n` +
+      `Thank you for your interest in *The Unique Haven Homes* Lucknow.\n\n` +
       `You enquired about: *${interested_property || 'our properties'}*\n\n` +
       `Our team will share more details and check availability for you shortly.\n\n` +
-      `— Team Unique Haven Homes\n📍 Lucknow, UP`
+      `— Team The Unique Haven Homes\n📍 Lucknow, UP`
     );
 
     const notif = document.createElement('div');
@@ -230,7 +230,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
           <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎉</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#86efac;letter-spacing:0.3px;">New Lead Captured!</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:1px;">Via Voice AI • Nisha</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:1px;">Via Voice AI • The Unique Haven Homes</div>
           </div>
           <button onclick="document.getElementById('uhh-lead-notif').remove()"
             style="margin-left:auto;background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:2px;line-height:1;">×</button>
@@ -284,7 +284,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     const label      = document.getElementById('uhh-voice-label');
 
     if (statusText) statusText.textContent = text || status;
-    if (label) label.textContent = text || '🎙️ Talk to Nisha';
+    if (label) label.textContent = text || '🎙️ Speak with Host';
 
     const waveBars = `
       <div class="uhh-soundwave">
@@ -347,17 +347,17 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     const cleanFormatted = (text || '')
       .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
       .replace(/\n/g, '<br>');
-    line.innerHTML = `<span style="font-weight:700;color:${role==='user'?'#facc15':'#93c5fd'}">${role==='user'?'You':'Nisha'}:</span> ${cleanFormatted}`;
+    line.innerHTML = `<span style="font-weight:700;color:${role==='user'?'#facc15':'#93c5fd'}">${role==='user'?'You':'TUHH Concierge'}:</span> ${cleanFormatted}`;
     el.appendChild(line);
     el.scrollTop = el.scrollHeight;
   }
 
-  // ── 8. START CONVERSATION (Powered by Sarvam AI Bulbul + Nisha Engine) ──
+  // ── 8. START CONVERSATION ──
   let _isActiveVoiceSession = false;
 
   async function speakAndListen(textToSpeak) {
     if (!_isActiveVoiceSession) return;
-    setStatus('speaking', '🔊 Nisha bol rahi hain…');
+    setStatus('speaking', '🔊 Speaking…');
 
     const onDone = () => {
       if (!_isActiveVoiceSession) return;
@@ -433,7 +433,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     }
 
     _isActiveVoiceSession = true;
-    setStatus('connecting', 'Nisha se connect ho rahe hain…');
+    setStatus('connecting', 'Connecting to The Unique Haven Homes…');
 
     try {
       // Request mic permission and immediately stop tracks so SpeechRecognition has full exclusive access
@@ -451,7 +451,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
     // Pre-fetch live rates
     await getRates();
 
-    const welcomeMsg = 'Namaste ji! Main Nisha hoon, The Unique Haven Homes Lucknow ki AI concierge. Lucknow me luxury 3BHK flat ya grand private villa booking ke baare me pooch sakte hain. Main aapki kya madad kar sakti hoon?';
+    const welcomeMsg = 'Namaste ji! Welcome to The Unique Haven Homes Lucknow. Lucknow me luxury 3BHK flat ya grand private villa booking ke baare me pooch sakte hain. Main aapki kya madad kar sakta hoon?';
 
     appendTranscript('agent', welcomeMsg);
     await speakAndListen(welcomeMsg);
@@ -464,7 +464,7 @@ Remember: Your goal is to make guests fall in love with Unique Haven Homes and g
       window.nishaAI.stopSpeaking();
       window.nishaAI.stopListening();
     }
-    setStatus('idle', '🎙️ Talk to Nisha');
+    setStatus('idle', '🎙️ Speak with Host');
     const panel = document.getElementById('uhh-voice-panel');
     if (panel) panel.style.display = 'none';
   }

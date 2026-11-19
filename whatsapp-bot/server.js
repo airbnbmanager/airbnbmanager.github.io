@@ -246,8 +246,8 @@ async function startWhatsApp() {
   }
 }
 
-// ─── 🧠 NISHA AI RAG REASONING ENGINE (GEMINI 2.5 / 1.5 FLASH) ───
-async function generateNishaAIReply(userText, chatHistory = []) {
+// ─── 🧠 THE UNIQUE HAVEN HOMES AI RAG REASONING ENGINE (GEMINI) ───
+async function generateTuhhAIReply(userText, chatHistory = []) {
   const geminiKey = process.env.GEMINI_API_KEY || '';
   const context = getRelevantContext(userText);
 
@@ -258,14 +258,17 @@ async function generateNishaAIReply(userText, chatHistory = []) {
         parts: [{ text: h.text || '' }]
       }));
 
-      const systemPrompt = `You are "Nisha" (निशा), the warm, charming, and highly professional 24/7 AI Concierge & Reservation Manager for "The Unique Haven Homes" (TUHH) luxury homestays in Lucknow.
+      const systemPrompt = `You are the official 24/7 Virtual Concierge & Reservation Support for "The Unique Haven Homes" (TUHH) luxury homestays in Lucknow.
 Location: Lucknow, Uttar Pradesh, India.
+Contact Mobile Number: +91 9194109911.
+Brand Name: "The Unique Haven Homes".
 Key Points:
+- Always speak and represent "The Unique Haven Homes" directly. Never call yourself Nisha or any other personal name.
 - Direct booking saves 15% to 20% compared to Airbnb/OTAs.
-- Total 19 verified luxury homestay apartments and independent private villas.
+- Total 20 verified luxury homestay apartments and independent private villas.
 - Tone: Polite, warm Indian Hinglish / English. Use respectful hospitality phrases: "Namaste ji", "Bilkul ji", "Zaroor ji".
 - Keep voice and chat answers short and crisp (2 to 4 sentences).
-- Strictly use the verified knowledge context below. Never invent fake phone numbers, non-existent rooms, or arbitrary pricing:
+- Strictly use the verified knowledge context below. Official contact is +91 9194109911. Never invent fake phone numbers, non-existent rooms, or arbitrary pricing:
 
 === VERIFIED TUHH KNOWLEDGE CONTEXT ===
 ${context}
@@ -302,7 +305,7 @@ ${context}
 
   // Fallback to RAG direct fact
   if (context && !context.startsWith('[GENERAL OVERVIEW]')) {
-    return `🏨 *The Unique Haven Homes — AI Concierge* ✨\n\n${context}\n\n_Kisi aur query ke liye reply karein ya call karein: +91 9450055554_ 🙏`;
+    return `🏨 *The Unique Haven Homes* ✨\n\n${context}\n\n_Kisi aur query ke liye reply karein ya call karein: +91 9194109911_ 🙏`;
   }
   return null;
 }
@@ -376,8 +379,8 @@ Aapki chat ko hamare live property manager ko assign kar diya gaya hai.
 Hamari team aapse turant connect karegi. Aap apna requirement yahan likh sakte hain. 🙏`;
 
   } else if (process.env.GEMINI_API_KEY) {
-    // 🧠 Try Gemini 2.5 / 1.5 Flash with RAG
-    replyText = await generateNishaAIReply(text, chat.history);
+    // 🧠 Try Gemini Flash with RAG
+    replyText = await generateTuhhAIReply(text, chat.history);
   }
 
   if (!replyText) {
@@ -483,7 +486,7 @@ _Reply *2* for Pricing, *3* for Check-in Rules, or *5* to speak with Manager._`;
 
 💳 *Booking Policy:* ₹2,000 to ₹5,000 advance payment secures your dates. Remaining balance payable at check-in.
 
-Direct booking ke liye reply karein ya call karein: 📞 +91 9450055554`;
+Direct booking ke liye reply karein ya call karein: 📞 +91 9194109911`;
 
   } else if (lower === '3' || lower.includes('checkin') || lower.includes('check-in') || lower.includes('checkout') || lower.includes('rules') || lower.includes('id')) {
     replyText =
@@ -533,14 +536,14 @@ Website: https://uniquehavenhomesstay.com`;
     // 🔍 Smart RAG Keyword Matcher Fallback for specific property/policy
     const ragAnswer = getRelevantContext(text);
     if (ragAnswer && !ragAnswer.startsWith('[GENERAL OVERVIEW]')) {
-      replyText = `🏨 *The Unique Haven Homes — AI Concierge* ✨\n\n${ragAnswer}\n\n_Aap dates ya query batayein, main assistance provide kar deti hoon! Call: +91 9450055554_ 🙏`;
+      replyText = `🏨 *The Unique Haven Homes* ✨\n\n${ragAnswer}\n\n_Kisi bhi query ke liye reply karein ya call karein: +91 9194109911_ 🙏`;
     } else {
       // Default Warm Welcome Menu
       replyText =
 `👋 *Hello ${name}! Welcome to The Unique Haven Homes.* 🏨✨
 Luxury Serviced Homestays & Independent Villas in Lucknow.
 
-Main aapka AI assistant hoon. Main aapki kya madad kar sakta hoon?
+Aapki kya madad kar sakte hain?
 
 Reply with a number:
 *1* 🏡 View Luxury Villas & Flats
@@ -1069,7 +1072,7 @@ app.post('/api/ai/rag-query', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'query text is required.' });
     }
     const context = getRelevantContext(query);
-    const answer = await generateNishaAIReply(query, history || []);
+    const answer = await generateTuhhAIReply(query, history || []);
     res.json({ ok: true, answer, context });
   } catch (err) {
     console.error('RAG query endpoint error:', err);

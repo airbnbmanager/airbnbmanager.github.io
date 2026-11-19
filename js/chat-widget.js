@@ -1177,8 +1177,8 @@
     // 32. GREETINGS
     if (/^(hi|hello|hii|hey|helo|namaste|namaskar|pranam|good morning|good evening|kya haal)\b/i.test(msg) || raw.length < 3) {
       return {
-        text: `Namaste! 🙏 Main **Nisha** hoon, **Unique Haven Homes, Lucknow** ki verified AI concierge.\n\n` +
-              `Main aapki turant sahayata kar sakti hoon:\n` +
+        text: `Namaste! 🙏 Welcome to **The Unique Haven Homes, Lucknow**.\n\n` +
+              `Aapki turant sahayata ke liye:\n` +
               `• 🏡 **Gomti Grand Villa (₹8,000)** & Royal White House (₹12,000)\n` +
               `• 🏢 **3BHK Luxury Flats (₹4,500/night)** in Gomti Nagar\n` +
               `• 🕐 **Check-in / Check-out & Rules (100% Couple Friendly)**\n` +
@@ -1952,9 +1952,9 @@
     const wrap = document.createElement('div');
     wrap.id = 'uhh-chat-btn-wrap';
     wrap.innerHTML = `
-      <button id="uhh-chat-btn" class="uhh-chat-unified-btn" aria-label="Chat with Nisha AI — The Unique Haven Homes">
+      <button id="uhh-chat-btn" class="uhh-chat-unified-btn" aria-label="The Unique Haven Homes Support">
         <span class="uhh-chat-btn-sparkle">✨</span>
-        <span class="uhh-chat-btn-title">Nisha AI Concierge</span>
+        <span class="uhh-chat-btn-title">TUHH Concierge</span>
         <span class="uhh-chat-btn-pill">💬 Ask</span>
         <span class="uhh-chat-badge">1</span>
       </button>
@@ -2001,16 +2001,16 @@
         </div>
         <div class="uhh-chat-header-info">
           <div class="uhh-chat-header-name">
-            <span>Nisha — AI Concierge</span>
+            <span>The Unique Haven Homes</span>
             <svg class="uhh-wa-verified-badge" width="15" height="15" viewBox="0 0 24 24" fill="#00A884"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           </div>
           <div class="uhh-chat-header-status" id="uhh-chat-header-status">The Unique Haven Homes · Online</div>
         </div>
         <div class="uhh-chat-header-actions">
-          <a href="tel:+919450055554" class="uhh-header-icon-btn" title="Call Host (+91 94500 55554)" aria-label="Call">
+          <a href="tel:+919194109911" class="uhh-header-icon-btn" title="Call Host (+91 9194109911)" aria-label="Call">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </a>
-          <a href="https://wa.me/919450055554?text=Namaste!%20I%20am%20looking%20for%20stay%20at%20Unique%20Haven%20Homes." target="_blank" rel="noopener" class="uhh-header-icon-btn" title="Direct WhatsApp" aria-label="WhatsApp">
+          <a href="https://wa.me/919194109911?text=Namaste!%20I%20am%20looking%20for%20stay%20at%20The%20Unique%20Haven%20Homes." target="_blank" rel="noopener" class="uhh-header-icon-btn" title="Direct WhatsApp" aria-label="WhatsApp">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
           </a>
           <button id="uhh-chat-voice-toggle" class="uhh-chat-voice-toggle ${_autoVoice ? 'active' : 'muted'}" title="Toggle Voice" aria-label="Toggle Voice">
@@ -2145,7 +2145,7 @@
     // Send greeting after short delay
     setTimeout(() => {
       addBotMessage({
-        text: 'Namaste! 🙏 Main **Nisha** hoon, aapki 24/7 AI Concierge at **The Unique Haven Homes**.\n\nLucknow mein luxury homestays, private pool villas, live availability ya **15% direct discount** ke liye batayein — kaise madad karoon?',
+        text: 'Namaste! 🙏 Welcome to **The Unique Haven Homes**.\n\nLucknow mein luxury homestays, private pool villas, live availability ya **15% direct discount** ke liye batayein — kaise madad karein?',
         quickReplies: [
           '💰 Rates & Pricing',
           '🏢 3BHK Luxury Flats',

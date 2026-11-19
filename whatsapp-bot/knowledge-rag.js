@@ -1,7 +1,7 @@
 /**
  * 🧠 TUHH KNOWLEDGE BASE & SMART RAG ENGINE
- * Fast context retrieval for WhatsApp AI Concierge (Nisha)
- * Supports all 19 properties, check-in policies, WiFi, caretakers, locations & FAQs.
+ * Fast context retrieval for WhatsApp AI Concierge (The Unique Haven Homes)
+ * Supports all 20 properties, check-in policies, WiFi, caretakers, locations & FAQs.
  */
 
 const https = require('https');
@@ -163,7 +163,7 @@ const STATIC_PROPERTIES = [
     rent: 9200,
     maxGuests: 12,
     wifi: { ssid: 'UniqueHaven_GrandVilla', pass: 'Airbnb.in1' },
-    caretaker: { name: 'Host Concierge', phone: '9450055554' },
+    caretaker: { name: 'Host Concierge', phone: '9194109911' },
     map: 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A',
     features: 'Gated 4BHK private bungalow, private parking for 3 cars, large living hall'
   },
