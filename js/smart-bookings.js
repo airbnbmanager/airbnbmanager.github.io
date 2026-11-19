@@ -859,7 +859,7 @@ function renderSingleAirbnbResCard(b, paidMap, canM, today) {
   const avatarInfo = getGuestAvatarInfo(b.guest_name);
   const propThumb = getPropertyCoverThumb(b);
   const hasId = !!(b.id_proof_photo_paths || b.id_proof_photo_path);
-  const isBlocked = b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot';
+  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) || b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot' || (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')));
 
   const guestPhoto = b.guest_photo || (b.id_proof_photo_path && b.id_proof_photo_path.startsWith('http') ? b.id_proof_photo_path : null);
 
@@ -1536,6 +1536,9 @@ window.openBookingDrawer = async function(bookingId) {
   const tot = b.total_amount || 0;
   const bal = tot - pd;
   const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+  const isBlocked = (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
+                    b.booking_mode === 'Offline-Blocked' ||
+                    (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')));
   const bSrc = (typeof window.getBookingSource === 'function') ? window.getBookingSource(b) : null;
   const canM = ['owner','admin','manager','moderator','developer','caretaker'].includes(SESSION.role);
   const canD = ['developer','owner','admin'].includes(SESSION.role);
@@ -1565,6 +1568,23 @@ window.openBookingDrawer = async function(bookingId) {
         </div>
 
         <div class="sbk-drawer-body">
+
+          <!-- Blocked Calendar Slot Banner -->
+          ${isBlocked ? `
+            <div style="background:linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);border:2px solid #94A3B8;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:6px;">
+                  <span>🔒</span> Blocked Calendar Date
+                </div>
+                <div style="font-size:12px;color:#475569;margin-top:2px;">
+                  This slot is blocked / unavailable on the calendar. Click below to convert it to a real guest booking.
+                </div>
+              </div>
+              <button type="button" class="btn-sm" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)" style="background:#059669;color:#fff;border:none;padding:9px 18px;font-size:13px;font-weight:800;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">
+                ➕ Convert to Real Guest Booking
+              </button>
+            </div>
+          ` : ''}
 
           <!-- Direct Website Pending Approval Banner -->
           ${b.verification_status === 'pending' ? `
@@ -1834,6 +1854,11 @@ window.openBookingDrawer = async function(bookingId) {
 
           <!-- Operational Actions Group -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+            ${isBlocked ? `
+              <button type="button" class="btn-sm" style="background:#059669;color:#fff;padding:12px;font-weight:800;grid-column:span 2;font-size:13px;border-radius:8px;cursor:pointer;border:none;" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)">
+                ➕ Convert to Real Guest Booking
+              </button>
+            ` : ''}
             <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openLateCheckoutModal('${b.booking_id}')" title="Grant Late Check-Out (e.g. 04:30 PM) + optional fee &amp; alert housekeeping">
               🌇 Late Check-Out
             </button>

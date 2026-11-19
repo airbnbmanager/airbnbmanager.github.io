@@ -74,7 +74,10 @@ window.ICAL_SYNC = {
         uid,
         confirmationCode,
         phoneEnd,
-        isBlocked: summary.toLowerCase().includes('not available') || summary.toLowerCase().includes('unavailable') || summary.toLowerCase().includes('blocked'),
+        isBlocked: summary.toLowerCase().includes('not available') || 
+                   summary.toLowerCase().includes('unavailable') || 
+                   summary.toLowerCase().includes('blocked') || 
+                   (!confirmationCode && summary.trim().toLowerCase() === 'reserved'),
         isFuture: checkIn > today,
         isBeforeMonth: checkIn < monthStart
       };
@@ -169,7 +172,7 @@ window.ICAL_SYNC = {
 
       // Fetch ALL active bookings for this room in DB (not just online channels)
       const { data: existing } = await sb.from('guest_register')
-        .select('booking_id, ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled, guest_name, total_amount')
+        .select('booking_id, ical_uid, airbnb_confirmation_code, check_in, check_out, booking_mode, is_cancelled, guest_name, total_amount, synced_from_ical, booked_by')
         .eq('room_id', room.room_id)
         .neq('is_cancelled', true);
       
@@ -183,49 +186,106 @@ window.ICAL_SYNC = {
       for (const event of events) {
         if (!event.checkIn || !event.checkOut) continue;
 
-        // 1. STRICT PROTECTION: Check if ANY ACTIVE BOOKING already overlaps this date range on this room
+        // 1. Check if ANY ACTIVE BOOKING already overlaps this date range on this room
         const activeOverlap = (existing || []).find(b => {
           if (!b.check_in || !b.check_out || b.is_cancelled) return false;
           return (b.check_in < event.checkOut && b.check_out > event.checkIn);
         });
 
+        const isOverlapBlock = activeOverlap && (
+          (activeOverlap.booking_id && String(activeOverlap.booking_id).startsWith('BLK_')) ||
+          activeOverlap.booking_mode === 'Offline-Blocked' ||
+          (activeOverlap.guest_name && (activeOverlap.guest_name.includes('Blocked') || activeOverlap.guest_name.includes('🔒')))
+        );
+
         // If an active booking already exists for these dates:
         if (activeOverlap) {
-          // If this iCal event is a block, DO NOT insert dummy block over a real booking!
+          // If this event is a block:
           if (event.isBlocked) {
-            // Also clean up any lingering dummy block for this date if present
-            const dummyToPurge = (existing || []).find(b => 
-              (b.booking_id.startsWith('BLK_') || b.booking_mode === 'Offline-Blocked' || b.guest_name === '🔒 Blocked Slot') &&
-              (b.check_in < event.checkOut && b.check_out > event.checkIn)
-            );
-            if (dummyToPurge) {
-              await sb.from('guest_register').delete().eq('booking_id', dummyToPurge.booking_id);
-            }
+            // Already blocked in database (either via manual block, prior sync, or same dates).
+            // If activeOverlap is a REAL booking, NEVER overwrite real booking with a block!
             result.skipped++;
             continue;
           }
 
-          // If this is an actual online reservation, link the confirmation code to the existing booking if missing
-          if (event.confirmationCode && !activeOverlap.airbnb_confirmation_code) {
-            await sb.from('guest_register').update({
-              airbnb_confirmation_code: event.confirmationCode,
-              ical_uid: event.uid || activeOverlap.ical_uid
-            }).eq('booking_id', activeOverlap.booking_id);
+          // If this event is a REAL reservation (has confirmation code or real guest):
+          if (isOverlapBlock) {
+            // Purge the obsolete block in favor of the incoming real reservation!
+            await sb.from('guest_register').delete().eq('booking_id', activeOverlap.booking_id);
+            const idx = existing.indexOf(activeOverlap);
+            if (idx >= 0) existing.splice(idx, 1);
+            console.log(`🧹 Replaced dummy block ${activeOverlap.booking_id} with real reservation ${event.confirmationCode || ''}`);
+          } else {
+            // Overlap is already a REAL booking (e.g. from Gmail sync or direct host entry):
+            // Link confirmation code / ical_uid if missing, and DO NOT duplicate
+            if (event.confirmationCode && !activeOverlap.airbnb_confirmation_code) {
+              await sb.from('guest_register').update({
+                airbnb_confirmation_code: event.confirmationCode,
+                ical_uid: event.uid || activeOverlap.ical_uid
+              }).eq('booking_id', activeOverlap.booking_id);
+            }
+            result.skipped++;
+            continue;
           }
-          result.skipped++;
+        }
+
+        // 2. Handle Blocked / Unavailable Calendar Dates (USER DIRECTIVE: Auto-block in TUHH Calendar)
+        if (event.isBlocked) {
+          const blockId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}_${event.checkOut.replace(/-/g, '')}`;
+
+          // Check if already in DB
+          const { data: existingBlk } = await sb.from('guest_register')
+            .select('booking_id')
+            .eq('booking_id', blockId)
+            .maybeSingle();
+
+          if (existingBlk) {
+            result.skipped++;
+            continue;
+          }
+
+          const { error: blkErr } = await sb.from('guest_register').insert({
+            booking_id: blockId,
+            room_id: room.room_id,
+            guest_name: '🔒 Blocked Slot',
+            check_in: event.checkIn,
+            check_out: event.checkOut,
+            total_amount: 0,
+            per_day_rate: 0,
+            booking_mode: 'Offline-Blocked',
+            payment_status: 'Blocked',
+            verification_status: 'approved',
+            guests: null,
+            ical_uid: event.uid || null,
+            synced_from_ical: true,
+            booked_by: `${channelName} Calendar Block`,
+            notes: `Blocked on ${channelName} calendar (${event.summary || 'Unavailable'}). Click to convert to real booking.`
+          });
+
+          if (!blkErr) {
+            result.created++;
+            if (event.uid) existingUids.add(event.uid);
+            existing.push({
+              booking_id: blockId,
+              room_id: room.room_id,
+              check_in: event.checkIn,
+              check_out: event.checkOut,
+              booking_mode: 'Offline-Blocked',
+              guest_name: '🔒 Blocked Slot',
+              total_amount: 0,
+              synced_from_ical: true,
+              booked_by: `${channelName} Calendar Block`,
+              ical_uid: event.uid
+            });
+          } else {
+            result.skipped++;
+          }
           continue;
         }
 
-        // 2. Already synced check
+        // 3. Already synced check for real reservations
         if (existingUids.has(event.uid)) { result.skipped++; continue; }
         if (event.confirmationCode && existingCodes.has(event.confirmationCode)) { result.skipped++; continue; }
-
-        // 3. Skip Blocked / Unavailable slots completely
-        // USER DIRECTIVE: ONLY sync real Online bookings, NEVER insert offline/blocked slots into DB!
-        if (event.isBlocked) {
-          result.skipped++;
-          continue;
-        }
 
         // Must NOT be an unavailable/blocked placeholder
         if (!event.confirmationCode && (!event.summary || event.summary.toLowerCase().includes('not available') || event.summary.toLowerCase().includes('blocked'))) {
@@ -280,6 +340,32 @@ window.ICAL_SYNC = {
         } else {
           result.skipped++;
         }
+      }
+
+      // 5. Auto-cleanup: If a block was previously synced from this channel's iCal, but the host has unblocked it on Airbnb, remove the stale block
+      const activeBlockUids = new Set(
+        events.filter(e => e.isBlocked || !e.confirmationCode).map(e => e.uid).filter(Boolean)
+      );
+      const activeBlockRanges = new Set(
+        events.filter(e => e.isBlocked || !e.confirmationCode).map(e => `${e.checkIn}_${e.checkOut}`)
+      );
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      const staleBlocks = (existing || []).filter(b => {
+        if (!b.check_out || b.check_out < todayIso) return false;
+        const isChannelBlock = (b.booking_id && String(b.booking_id).startsWith('BLK_')) &&
+                               b.synced_from_ical === true &&
+                               (b.booking_mode === 'Offline-Blocked' || (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')))) &&
+                               (b.booked_by && b.booked_by.includes(channelName));
+        if (!isChannelBlock) return false;
+        if (b.ical_uid && activeBlockUids.has(b.ical_uid)) return false;
+        if (activeBlockRanges.has(`${b.check_in}_${b.check_out}`)) return false;
+        return true;
+      });
+
+      for (const stale of staleBlocks) {
+        await sb.from('guest_register').delete().eq('booking_id', stale.booking_id);
+        console.log(`🧹 Auto-unblocked slot ${stale.booking_id} (${stale.check_in} -> ${stale.check_out}) as it was removed from ${channelName}`);
       }
     } catch(err) {
       result.errors.push(`${channelName}: ${err.message}`);

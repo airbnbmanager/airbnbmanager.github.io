@@ -419,14 +419,16 @@ async function renderInvestorReport(investorId, roomId, month) {
     const bMode = (b.booking_mode || '').toLowerCase();
     const name = (b.guest_name || '').toLowerCase();
     const notes = (b.notes || '').toLowerCase();
+    const bookedBy = (b.booked_by || '').toLowerCase();
     return bId.startsWith('BLK_') || 
            bMode === 'offline-blocked' || 
            bMode.includes('blocked') || 
            name.includes('blocked') || 
            name.includes('🔒') || 
+           bookedBy.includes('calendar block') ||
            notes.includes('offline slot reserved') || 
            notes.includes('(not available)') ||
-           (Number(b.total_amount || 0) === 0 && (bMode.includes('block') || bId.startsWith('BLK_')));
+           (Number(b.total_amount || 0) === 0 && (bMode.includes('block') || bId.startsWith('BLK_') || name.includes('blocked') || name.includes('🔒')));
   };
 
   const isExcluded = (b) => {

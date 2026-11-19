@@ -3086,6 +3086,7 @@ window.duplicateBooking = async function(bookingId) {
 };
 
 async function renderAddBooking(prefillOpts) {
+  window.renderAddBooking = renderAddBooking;
   if (prefillOpts && typeof prefillOpts === 'object') {
     const pIn = prefillOpts.check_in || prefillOpts.checkIn || window._bookingPrefill?.checkIn;
     const pOut = prefillOpts.check_out || prefillOpts.checkOut || (pIn && typeof dateAdd === 'function' ? dateAdd(pIn, 1) : window._bookingPrefill?.checkOut);

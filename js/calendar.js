@@ -1753,9 +1753,11 @@ window.openBookingDetails = async function(bId) {
 // room + dates pre-filled so the new booking_id is never BLK_
 // ═══════════════════════════════════════════════════════════
 window.calConvertBlockToBooking = async function(blkId, roomId, checkIn, checkOut, btn) {
-  // Close the popup immediately
+  // Close any modal or drawer immediately
   const overlay = btn?.closest('.modal-overlay');
   if (overlay) overlay.remove();
+  document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+  if (typeof window.closeBookingDrawer === 'function') window.closeBookingDrawer();
 
   // Confirm intent
   const ok = confirm(`Convert blocked dates ${checkIn} → ${checkOut} to a real guest booking?\n\nThe block will be removed and a fresh booking form will open.`);
@@ -1764,20 +1766,32 @@ window.calConvertBlockToBooking = async function(blkId, roomId, checkIn, checkOu
   try {
     // Delete the blocked slot from DB
     await sb.from('guest_register').delete().eq('booking_id', blkId);
+    if (window.fsn) fsn.info('Block Removed', 'Opening booking form with pre-filled dates...');
   } catch (e) {
     console.warn('[UHH] Could not delete block before convert:', e);
-    // Continue anyway — user can delete it manually
   }
 
-  // Open Add Booking form with room + dates pre-filled
-  if (window.renderAddBooking) {
-    renderAddBooking({ room_id: roomId, check_in: checkIn, check_out: checkOut });
+  // Pre-fill parameters and open Add Booking form
+  const prefill = { room_id: roomId, check_in: checkIn, check_out: checkOut, guest_name: '', phone: '' };
+  window._bookingPrefill = {
+    roomId: roomId,
+    checkIn: checkIn,
+    checkOut: checkOut,
+    guestName: '',
+    guestPhone: ''
+  };
+
+  if (typeof window.renderAddBooking === 'function') {
+    window.renderAddBooking(prefill);
+  } else if (typeof renderAddBooking === 'function') {
+    renderAddBooking(prefill);
   } else {
     // Fallback: navigate to bookings tab then open form
     if (typeof navigate === 'function') navigate('bookings');
     setTimeout(() => {
-      if (window.renderAddBooking) renderAddBooking({ room_id: roomId, check_in: checkIn, check_out: checkOut });
-    }, 500);
+      if (typeof window.renderAddBooking === 'function') window.renderAddBooking(prefill);
+      else if (typeof renderAddBooking === 'function') renderAddBooking(prefill);
+    }, 400);
   }
 };
 
