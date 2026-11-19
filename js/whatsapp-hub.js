@@ -118,7 +118,7 @@
     renderHubBody();
   };
 
-  // ─── Dual-Layer Config: LocalStorage + Supabase (Free Tier Safe) ───
+  // ─── Dual-Layer Config: LocalStorage + Mac Mini Gateway API ───
   function getLocalConfig() {
     try {
       const raw = localStorage.getItem(WA_LOCAL_CONFIG_KEY);
@@ -130,41 +130,56 @@
     try {
       localStorage.setItem(WA_LOCAL_CONFIG_KEY, JSON.stringify(c));
     } catch (e) {}
+    try {
+      const gwUrl = (c?.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+      fetch(gwUrl + '/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(c)
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   async function loadConfig() {
     HUB.config = { ...DEFAULT_WA_CONFIG };
-    const local = getLocalConfig();
-    if (local) {
+
+    // 1. Check local server (Mac Mini) for persistent settings
+    let serverCfg = null;
+    try {
+      const gwUrl = (DEFAULT_WA_CONFIG.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
+      const res = await fetch(gwUrl + '/api/config');
+      if (res.ok) {
+        const d = await res.json();
+        if (d.ok && d.config && typeof d.config === 'object') {
+          serverCfg = d.config;
+        }
+      }
+    } catch (e) {}
+
+    const saved = serverCfg || getLocalConfig();
+    if (saved) {
       HUB.config = {
         ...HUB.config,
-        ...local,
-        investor_groups: {
-          ...DEFAULT_WA_CONFIG.investor_groups,
-          ...(local.investor_groups || {})
-        }
+        ...saved,
+        investor_groups: (saved.investor_groups && Object.keys(saved.investor_groups).length > 0)
+          ? { ...saved.investor_groups }
+          : { ...DEFAULT_WA_CONFIG.investor_groups }
       };
     }
-    // Auto-migrate: ensure booking_group and investor_booking default to ON
-    if (HUB.config.send_booking_group === undefined || HUB.config.send_booking_group === false) {
-      HUB.config.send_booking_group = true;
-    }
-    if (HUB.config.send_investor_booking === undefined) {
-      HUB.config.send_investor_booking = true;
-    }
+
+    // Preserve user explicit toggle choices (STRICT: never override false to true!)
+    if (HUB.config.auto_send_enabled === undefined) HUB.config.auto_send_enabled = true;
+    if (HUB.config.send_welcome === undefined) HUB.config.send_welcome = true;
+    if (HUB.config.send_booking_group === undefined) HUB.config.send_booking_group = true;
+    if (HUB.config.send_investor_booking === undefined) HUB.config.send_investor_booking = false;
+
     if (!HUB.config.booking_group_id) {
       HUB.config.booking_group_id = DEFAULT_WA_CONFIG.booking_group_id;
     }
-    // Auto-migrate gateway_url from dead Render bot to active Mac Mini gateway (http://localhost:3000)
     if (!HUB.config.gateway_url || HUB.config.gateway_url.includes('onrender.com')) {
       HUB.config.gateway_url = 'http://localhost:3000';
-      setLocalConfig(HUB.config);
     }
-    // Dry-run mode is completely removed — always LIVE dispatches
     delete HUB.config.dry_run_mode;
-    // Force master auto-send and guest welcome pass active
-    HUB.config.auto_send_enabled = true;
-    HUB.config.send_welcome = true;
     setLocalConfig(HUB.config);
     startGatewayKeepAlive();
     return HUB.config;
@@ -235,9 +250,40 @@
       if (!map.has(k)) map.set(k, l);
     });
 
-    HUB.logs = Array.from(map.values()).sort((a, b) => new Date(b.sent_at || 0) - new Date(a.sent_at || 0));
+    const clearedAt = parseInt(localStorage.getItem('uhhs_wa_logs_cleared_at') || '0', 10);
+    let merged = Array.from(map.values());
+    if (clearedAt > 0) {
+      merged = merged.filter(l => {
+        const t = new Date(l.sent_at || 0).getTime();
+        return t > clearedAt;
+      });
+    }
+
+    HUB.logs = merged.sort((a, b) => new Date(b.sent_at || 0) - new Date(a.sent_at || 0));
     return HUB.logs;
   }
+
+  window.clearAllWhatsAppLogs = async function() {
+    if (!confirm('Are you sure you want to delete all previous message logs? This will reset the message counter to 0.')) return;
+    const now = Date.now();
+    localStorage.setItem(WA_LOCAL_LOGS_KEY, '[]');
+    localStorage.setItem('uhhs_wa_logs_cleared_at', String(now));
+    HUB.logs = [];
+
+    const gwCandidates = [
+      (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, ''),
+      'http://localhost:3000'
+    ];
+    for (const gwUrl of [...new Set(gwCandidates)]) {
+      try {
+        await fetch(gwUrl + '/api/audit-logs/clear', { method: 'POST' });
+      } catch (e) {}
+    }
+
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'log') el.innerHTML = renderLogTab();
+    if (window.fsn?.toast) fsn.toast('🗑️ All previous message logs have been deleted successfully!');
+  };
 
   // ─── Load templates ───
   const BUILTIN_TEMPLATES = [
@@ -642,9 +688,10 @@
       }
     }
 
-    // Special fallback for Yellow House / Villas / 1BHK Luxe Haven (Firoz & Shahenshah -> UHHS Owners Group)
-    if (!target && (roomId === 'VIL-105' || roomId === 'LUL-101' || roomId === 'LUL-402' || propDisplay.toLowerCase().includes('yellow') || propDisplay.toLowerCase().includes('luxe haven') || propDisplay.toLowerCase().includes('pink paradise') || propDisplay.toLowerCase().includes('velvet') || propDisplay.toLowerCase().includes('green forest') || roomId.startsWith('VIL-'))) {
-      target = '120363427551867491@g.us';
+    // Check if alerts for this property were explicitly disabled by user
+    if (target === 'disabled' || target === 'off' || target === false || target === '') {
+      console.log('ℹ️ Investor alerts explicitly DISABLED by user for property:', propDisplay);
+      return { ok: false, reason: 'disabled_for_this_property' };
     }
 
     if (!target) {
@@ -721,8 +768,14 @@ The Unique Haven Homes Property Management`;
     }
 
     await loadConfig();
-    HUB.config.auto_send_enabled = true;
-    HUB.config.send_welcome = true;
+    if (!HUB.config.auto_send_enabled) {
+      console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub. Skipping guest pass.');
+      return;
+    }
+    if (HUB.config.send_welcome === false) {
+      console.log('ℹ️ Guest booking pass toggle is OFF in WhatsApp Hub. Skipping.');
+      return;
+    }
 
     let text = '';
     if (typeof window.buildMessageData === 'function' && typeof window.tplConfirmation === 'function' && b.booking_id) {
@@ -1999,11 +2052,136 @@ The Unique Haven Homes Property Management`;
       knob.style.background = '#CBD5E1';
       thumb.style.left = '3px';
     }
+
+    // Instantly save state to HUB.config & server so it NEVER reverts!
+    HUB.config = HUB.config || {};
+    if (id === 'cfgAutoSend') HUB.config.auto_send_enabled = isChecked;
+    else if (id === 'cfgSendWelcome') HUB.config.send_welcome = isChecked;
+    else if (id === 'cfgSendBookingGroup') HUB.config.send_booking_group = isChecked;
+    else if (id === 'cfgSendInvestorBooking') HUB.config.send_investor_booking = isChecked;
+    else if (id === 'cfgSendInvestor') HUB.config.send_investor_reports = isChecked;
+    else if (id === 'cfgSendCheckout') HUB.config.send_checkout = isChecked;
+
+    setLocalConfig(HUB.config);
+    updateHeaderSenderBadge();
+  };
+
+  const PROPERTY_ROSTER = [
+    { key: '101-Pink Paradise', name: 'Pink Paradise Villa (101)', defaultGroup: '120363427551867491@g.us' },
+    { key: '102-Yellow House', name: 'The Yellow House (102)', defaultGroup: '120363427551867491@g.us' },
+    { key: '103-Green Forest', name: 'Green Forest View (103)', defaultGroup: '120363427551867491@g.us' },
+    { key: '104-Celebrity Garden', name: 'Celebrity Garden (104)', defaultGroup: '120363427551867491@g.us' },
+    { key: '105-Unique 3BHK', name: 'The Unique 3BHK (105)', defaultGroup: '120363427249232463@g.us' },
+    { key: '106-Light Green', name: 'The Light Green (106)', defaultGroup: '120363409825792343@g.us' },
+    { key: '107-Starlight Blue', name: 'Starlight Blue PentHouse (107)', defaultGroup: '120363411439466222@g.us' },
+    { key: '108-Black Beauty', name: 'Black Beauty (108)', defaultGroup: '120363427249232463@g.us' },
+    { key: '109-Nawabi Stay', name: 'The Nawabi Stay (109)', defaultGroup: '120363426678446574@g.us' },
+    { key: '110-Gomti Grand Villa', name: 'Gomti Grand Villa (110)', defaultGroup: '120363412244446528@g.us' },
+    { key: '111-Green House', name: 'The Green House (111)', defaultGroup: '120363427551867491@g.us' },
+    { key: '112-Pink House', name: 'The Pink House (112)', defaultGroup: '120363427551867491@g.us' },
+    { key: '113-Brown Flat', name: 'The Brown Flat (113)', defaultGroup: '120363412078246077@g.us' },
+    { key: '114-Velvet House', name: 'The Velvet House (114)', defaultGroup: '120363427551867491@g.us' },
+    { key: '115-Royal White', name: 'Royal White House (115)', defaultGroup: '120363412244446528@g.us' },
+    { key: '116-Dark Blue', name: 'The Dark Blue (116)', defaultGroup: '120363430510952329@g.us' },
+    { key: '117-RedRose Palace', name: 'RedRose Palace (117)', defaultGroup: '120363411536897935@g.us' },
+    { key: 'FLAT402-The Tehzeeb Nest', name: 'The Tehzeeb Nest (FLAT402)', defaultGroup: '120363427551867491@g.us' },
+    { key: '101-The Luxe Haven', name: 'The Luxe Haven (101)', defaultGroup: '120363427551867491@g.us' }
+  ];
+
+  window.togglePropGroupRoute = function(key) {
+    HUB.config = HUB.config || {};
+    HUB.config.investor_groups = HUB.config.investor_groups || {};
+    const item = PROPERTY_ROSTER.find(p => p.key === key);
+    const defGroup = item ? item.defaultGroup : '120363427551867491@g.us';
+
+    const current = HUB.config.investor_groups[key];
+    const isCurrentlyDisabled = (current === 'disabled' || current === 'off' || current === '');
+
+    if (isCurrentlyDisabled) {
+      // Turn ON
+      HUB.config.investor_groups[key] = defGroup;
+    } else {
+      // Turn OFF
+      HUB.config.investor_groups[key] = 'disabled';
+    }
+
+    setLocalConfig(HUB.config);
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
+    if (window.fsn?.toast) {
+      fsn.toast(`${key}: Group alert is now ${isCurrentlyDisabled ? '🟢 ACTIVE' : '⚪ OFF'}`);
+    }
+  };
+
+  window.setAllPropertyAlerts = function(enable) {
+    HUB.config = HUB.config || {};
+    HUB.config.investor_groups = HUB.config.investor_groups || {};
+
+    PROPERTY_ROSTER.forEach(p => {
+      HUB.config.investor_groups[p.key] = enable ? p.defaultGroup : 'disabled';
+      // Also sync shorthand keys
+      const shortKey = p.name.split(' (')[0];
+      HUB.config.investor_groups[shortKey] = enable ? p.defaultGroup : 'disabled';
+    });
+
+    setLocalConfig(HUB.config);
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
+    if (window.fsn?.toast) {
+      fsn.toast(enable ? '🟢 All property group alerts ENABLED' : '⚪ All property group alerts SILENCED');
+    }
+  };
+
+  window.updatePropGroupTarget = function(key, val) {
+    HUB.config = HUB.config || {};
+    HUB.config.investor_groups = HUB.config.investor_groups || {};
+    HUB.config.investor_groups[key] = val.trim();
+    setLocalConfig(HUB.config);
   };
 
   function renderSettingsTab() {
     const c = HUB.config || {};
     const groupsJson = JSON.stringify(c.investor_groups || {}, null, 2);
+
+    const propRows = PROPERTY_ROSTER.map(p => {
+      const map = c.investor_groups || {};
+      const current = map[p.key] !== undefined ? map[p.key] : (map[p.name] !== undefined ? map[p.name] : p.defaultGroup);
+      const isEnabled = (current !== 'disabled' && current !== 'off' && current !== '' && current !== false);
+      const targetVal = isEnabled ? (current || p.defaultGroup) : '';
+
+      return `
+        <tr style="border-bottom:1px solid #F1F5F9;transition:background 0.15s ease;">
+          <td style="padding:10px 12px;">
+            <div style="font-weight:700;color:#0F172A;font-size:12.5px;">${escapeHtml(p.name)}</div>
+            <div style="font-size:11px;color:#94A3B8;font-family:monospace;">${escapeHtml(p.key)}</div>
+          </td>
+          <td style="padding:10px 12px;white-space:nowrap;">
+            <button type="button" onclick="togglePropGroupRoute('${p.key}')" style="
+              border:1.5px solid ${isEnabled ? '#86EFAC' : '#CBD5E1'};
+              background:${isEnabled ? '#DCFCE7' : '#F1F5F9'};
+              color:${isEnabled ? '#15803D' : '#64748B'};
+              font-weight:800;
+              font-size:11.5px;
+              padding:5px 12px;
+              border-radius:20px;
+              cursor:pointer;
+              transition:all 0.15s ease;
+            ">
+              ${isEnabled ? '🟢 ACTIVE (ON)' : '⚪ OFF (DISABLED)'}
+            </button>
+          </td>
+          <td style="padding:10px 12px;">
+            <input 
+              type="text" 
+              value="${escapeHtml(targetVal)}" 
+              placeholder="${isEnabled ? 'Group ID or Phone (e.g. 120363...@g.us)' : 'Alerts Disabled for this Property'}"
+              ${!isEnabled ? 'disabled style="width:100%;box-sizing:border-box;background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;font-family:monospace;font-size:11.5px;"' : 'style="width:100%;box-sizing:border-box;background:#FFFFFF;color:#0F172A;border:1px solid #CBD5E1;border-radius:6px;padding:6px 10px;font-family:monospace;font-size:11.5px;"'}
+              onchange="updatePropGroupTarget('${p.key}', this.value)"
+            />
+          </td>
+        </tr>
+      `;
+    }).join('');
 
     return `
       <div class="card">
@@ -2038,7 +2216,7 @@ The Unique Haven Homes Property Management`;
           })}
           ${renderSwitchCard({
             id: 'cfgSendInvestorBooking',
-            checked: c.send_investor_booking !== false,
+            checked: c.send_investor_booking === true,
             title: '💼 Investor Group Booking Alert',
             subtitle: 'New booking confirm hote hi us property ke Investor WhatsApp group me alert bhejta hai.'
           })}
@@ -2056,20 +2234,61 @@ The Unique Haven Homes Property Management`;
           })}
         </div>
 
-        <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 WhatsApp Group Identifiers (@g.us)</h4>
-        <div style="font-size:12px;color:#64748B;margin-bottom:10px;">
-          Enter the unique Group ID (e.g. <code>120363425834560086@g.us</code>) or Phone Number to receive booking alerts.
+        <h4 style="margin:0 0 10px 0;color:#0F172A;">👥 General Booking Group Identifier</h4>
+        <div class="form-group" style="margin-bottom:18px;background:#F8FAFC;padding:12px 14px;border-radius:10px;border:1px solid #E2E8F0;">
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;color:#0F172A;">
+            🛎️ Operations / 📒Booking Data Group ID or Phone
+          </label>
+          <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || '120363425834560086@g.us'}" style="width:100%;box-sizing:border-box;font-family:monospace;padding:8px;border-radius:6px;border:1px solid #CBD5E1;" />
+          <div style="font-size:11.5px;color:#64748B;margin-top:4px;">
+            Target group receives immediate notification for every booking across all properties when "📒Booking Data Group Alert" toggle is ON.
+          </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">🛎️ Operations / Booking Group ID or Phone</label>
-          <input type="text" id="cfgBookingGroup" value="${c.booking_group_id || ''}" style="width:100%;box-sizing:border-box;font-family:monospace;" />
+        <!-- 🏢 Interactive Property-Wise Group Routing -->
+        <div style="margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <div>
+              <h4 style="margin:0;color:#0F172A;font-size:14.5px;">🏢 Property-Wise WhatsApp Group Routing</h4>
+              <p style="margin:2px 0 0 0;font-size:12px;color:#64748B;">
+                Aap individual properties ke group alerts ko yahin se ek click me ON ya OFF kar sakte hain.
+              </p>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button type="button" onclick="setAllPropertyAlerts(true)" class="btn-sm" style="background:#ECFDF5;color:#15803D;border:1px solid #A7F3D0;padding:5px 12px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;">
+                🟢 Enable All Properties
+              </button>
+              <button type="button" onclick="setAllPropertyAlerts(false)" class="btn-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;padding:5px 12px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;">
+                ⚪ Silence All Properties
+              </button>
+            </div>
+          </div>
+
+          <div style="max-height:360px;overflow-y:auto;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead>
+                <tr style="background:#F8FAFC;border-bottom:1.5px solid #E2E8F0;text-align:left;color:#475569;font-size:11px;">
+                  <th style="padding:10px 12px;">HOMESTAY PROPERTY</th>
+                  <th style="padding:10px 12px;">STATUS</th>
+                  <th style="padding:10px 12px;">TARGET WHATSAPP GROUP / NUMBER</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${propRows}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:16px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">📊 Investor Groups Mapping (JSON)</label>
-          <textarea id="cfgInvestorGroups" style="width:100%;box-sizing:border-box;height:110px;font-family:monospace;font-size:12px;">${groupsJson}</textarea>
-        </div>
+        <!-- Advanced JSON editor (collapsible) -->
+        <details style="margin-bottom:18px;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;background:#F8FAFC;">
+          <summary style="font-size:12.5px;font-weight:700;color:#475569;cursor:pointer;">
+            🛠️ Advanced: Direct JSON Mapping Editor
+          </summary>
+          <div style="margin-top:10px;">
+            <textarea id="cfgInvestorGroups" style="width:100%;box-sizing:border-box;height:110px;font-family:monospace;font-size:12px;padding:8px;border-radius:6px;border:1px solid #CBD5E1;">${groupsJson}</textarea>
+          </div>
+        </details>
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">🛡️ Official Meta Cloud API (100% Free & Ban-Proof)</h4>
         <div style="font-size:12px;color:#64748B;margin-bottom:12px;background:#EFF6FF;padding:10px 14px;border-radius:8px;border:1px solid #BFDBFE;">
@@ -2115,8 +2334,8 @@ The Unique Haven Homes Property Management`;
 
         <h4 style="margin:0 0 10px 0;color:#0F172A;">📡 Baileys QR Local Gateway (Alternative)</h4>
         <div class="form-group" style="margin-bottom:12px;">
-          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Render Bot)</label>
-          <input type="text" id="cfgGatewayUrl" value="${c.gateway_url || 'https://uhhs-whatsapp-bot.onrender.com'}" style="width:100%;box-sizing:border-box;font-family:monospace;margin-bottom:8px;" />
+          <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">Gateway Server URL (Local Mac Mini)</label>
+          <input type="text" id="cfgGatewayUrl" value="${c.gateway_url || 'http://localhost:3000'}" style="width:100%;box-sizing:border-box;font-family:monospace;margin-bottom:8px;" />
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="testGatewayBtn" onclick="testWhatsAppGateway()" style="padding:9px 14px;background:#0F172A;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;white-space:nowrap;flex:1 1 auto;">
               ⚡ Test Gateway Connection
@@ -2157,9 +2376,10 @@ The Unique Haven Homes Property Management`;
   };
 
   window.saveHubSettings = async function() {
-    let invGroups = {};
+    let invGroups = HUB.config?.investor_groups || {};
     try {
-      invGroups = JSON.parse(document.getElementById('cfgInvestorGroups')?.value || '{}');
+      const raw = document.getElementById('cfgInvestorGroups')?.value;
+      if (raw) invGroups = JSON.parse(raw);
     } catch (e) {
       alert('⚠️ Invalid JSON in Investor Groups mapping!');
       return;
@@ -2167,21 +2387,21 @@ The Unique Haven Homes Property Management`;
 
     const updates = {
       auto_send_enabled: document.getElementById('cfgAutoSend') ? document.getElementById('cfgAutoSend').checked : (HUB.config.auto_send_enabled !== false),
-      send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : true,
-      send_booking_group: document.getElementById('cfgSendBookingGroup') ? document.getElementById('cfgSendBookingGroup').checked : true,
-      send_investor_booking: document.getElementById('cfgSendInvestorBooking') ? document.getElementById('cfgSendInvestorBooking').checked : true,
+      send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : (HUB.config.send_welcome !== false),
+      send_booking_group: document.getElementById('cfgSendBookingGroup') ? document.getElementById('cfgSendBookingGroup').checked : (HUB.config.send_booking_group !== false),
+      send_investor_booking: document.getElementById('cfgSendInvestorBooking') ? document.getElementById('cfgSendInvestorBooking').checked : (HUB.config.send_investor_booking === true),
       send_housekeeping_checkout: false,
       send_investor_reports: document.getElementById('cfgSendInvestor')?.checked === true,
       send_checkout: document.getElementById('cfgSendCheckout')?.checked === true,
       booking_group_id: document.getElementById('cfgBookingGroup')?.value?.trim() || '120363425834560086@g.us',
       housekeeping_group_id: '',
       investor_groups: invGroups,
-      gateway_type: 'baileys',
+      gateway_type: document.getElementById('cfgGatewayType')?.value || 'baileys',
       meta_phone_number_id: document.getElementById('cfgMetaPhoneId')?.value?.trim() || '',
       meta_waba_id: document.getElementById('cfgMetaWabaId')?.value?.trim() || '',
       meta_access_token: document.getElementById('cfgMetaToken')?.value?.trim() || '',
       meta_verify_token: 'uhhs_meta_secure_2026',
-      gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'https://uhhs-whatsapp-bot.onrender.com',
+      gateway_url: document.getElementById('cfgGatewayUrl')?.value?.trim() || 'http://localhost:3000',
       updated_at: new Date().toISOString()
     };
 
@@ -2191,7 +2411,12 @@ The Unique Haven Homes Property Management`;
 
     try {
       if (window.sb) {
-        await sb.from('whatsapp_config').upsert({ id: 1, ...updates });
+        await sb.from('whatsapp_config').upsert({
+          id: 1,
+          auto_send_enabled: updates.auto_send_enabled,
+          gateway_url: updates.gateway_url,
+          updated_at: new Date().toISOString()
+        });
       }
     } catch (e) {}
 
@@ -2558,6 +2783,9 @@ Google Maps: https://maps.app.goo.gl/b8YjBduoQxa98QhT6</textarea>
             </button>
             <button id="btnRefreshLogs" onclick="refreshHubDeliveryLogs()" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
               🔄 Live Refresh
+            </button>
+            <button onclick="clearAllWhatsAppLogs()" class="btn-sm" style="background:#EF4444;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              🗑️ Clear Old Logs
             </button>
           </div>
         </div>

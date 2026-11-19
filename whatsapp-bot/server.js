@@ -1287,7 +1287,39 @@ app.post('/send-group', async (req, res) => {
   }
 });
 
-// 11. Delivery Audit Logs API (For Live Automation & Message Tracking Panel)
+// 11. Delivery Audit Logs & Persistent Config API (For Live Automation & Message Tracking Panel)
+const CONFIG_FILE = path.join(AUTH_FOLDER, 'config.json');
+
+function loadPersistentConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error reading config file:', e);
+  }
+  return null;
+}
+
+function savePersistentConfig(cfg) {
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving config file:', e);
+  }
+}
+
+app.get('/api/config', (req, res) => {
+  const cfg = loadPersistentConfig();
+  res.json({ ok: true, config: cfg });
+});
+
+app.post('/api/config', (req, res) => {
+  const cfg = req.body || {};
+  savePersistentConfig(cfg);
+  res.json({ ok: true, config: cfg });
+});
+
 app.get('/api/audit-logs', (req, res) => {
   res.json({
     ok: true,
@@ -1296,6 +1328,12 @@ app.get('/api/audit-logs', (req, res) => {
     gatewayStatus: connectionStatus,
     logs: auditLogs
   });
+});
+
+app.post('/api/audit-logs/clear', (req, res) => {
+  auditLogs = [];
+  saveAuditLogs();
+  res.json({ ok: true, message: 'All audit logs cleared successfully' });
 });
 
 app.post('/api/audit-logs/retry', async (req, res) => {
