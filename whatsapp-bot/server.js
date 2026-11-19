@@ -137,8 +137,8 @@ async function startWhatsApp() {
       auth: state,
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
-      // 🛡️ Use standard stable Chrome browser tuple (prevents WhatsApp desktop protocol drops)
-      browser: Browsers.ubuntu('Chrome'),
+      // 🛡️ Use standard stable macOS Desktop browser tuple (prevents WhatsApp desktop protocol drops)
+      browser: Browsers.macOS('Desktop'),
       keepAliveIntervalMs: 15_000,
       connectTimeoutMs: 90_000,
       defaultQueryTimeoutMs: 90_000,
@@ -674,7 +674,27 @@ app.post('/logout', async (req, res) => {
   }
 });
 
-// 4. Web QR Code Viewer
+// 4. Web QR & Pairing Code Viewer
+app.post('/api/pairing-code', async (req, res) => {
+  try {
+    const rawPhone = req.body?.phone || '919194109911';
+    const cleanPhone = String(rawPhone).replace(/\D/g, '');
+    if (!sock) {
+      await startBaileys();
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    if (!sock) {
+      return res.status(500).json({ ok: false, error: 'WhatsApp client is initializing. Please retry in 3 seconds.' });
+    }
+    const code = await sock.requestPairingCode(cleanPhone);
+    console.log(`🔑 [Pairing Code Generated] for ${cleanPhone}: ${code}`);
+    res.json({ ok: true, code, phone: cleanPhone });
+  } catch (err) {
+    console.error('Pairing code error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get('/qr', async (req, res) => {
   if (connectionStatus === 'connected') {
     const userJid = sock?.user?.id || '';
@@ -684,7 +704,7 @@ app.get('/qr', async (req, res) => {
         <div style="font-size:48px;margin-bottom:12px;">✅</div>
         <h2 style="color:#15803D;margin:0 0 8px 0;">WhatsApp Connected!</h2>
         <p style="font-size:16px;color:#1E293B;">Connected Number: <b>+${phone}</b></p>
-        <p style="color:#64748B;font-size:13px;">AI Agent &amp; Gateway are LIVE 24x7.</p>
+        <p style="color:#64748B;font-size:13px;">The Unique Haven Homes Gateway is LIVE 24x7.</p>
         <div style="margin-top:24px;">
           <form method="POST" action="/logout" onsubmit="return confirm('Disconnect this number to scan a different one?');">
             <button type="submit" style="background:#DC2626;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">
@@ -695,38 +715,112 @@ app.get('/qr', async (req, res) => {
       </div>
     `);
   }
-  if (!lastQr) {
-    return res.send(`
-      <div style="font-family:system-ui,sans-serif;text-align:center;padding:50px;">
-        <div style="font-size:36px;margin-bottom:10px;">⏳</div>
-        <h2>Initializing WhatsApp Client...</h2>
-        <p style="color:#64748B;">Please wait, fresh QR code is being generated...</p>
-        <script>setTimeout(()=>location.reload(), 2500);</script>
-      </div>
-    `);
-  }
+
   let qrDataUrl = '';
-  try {
-    qrDataUrl = await QRCodeNode.toDataURL(lastQr, { margin: 2, width: 300 });
-  } catch(e) {
-    qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lastQr)}`;
+  if (lastQr) {
+    try {
+      qrDataUrl = await QRCodeNode.toDataURL(lastQr, { margin: 2, width: 300 });
+    } catch(e) {
+      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lastQr)}`;
+    }
   }
+
   res.send(`
-    <div style="font-family:system-ui,sans-serif;text-align:center;padding:40px;max-width:500px;margin:auto;">
-      <h2 style="color:#0F172A;margin-bottom:6px;">📱 Link WhatsApp with TUHH CRM</h2>
-      <p style="color:#64748B;font-size:13px;margin-top:0;">Open WhatsApp on phone → <b>Linked Devices</b> → <b>Link a Device</b></p>
-      <div style="display:inline-block;padding:16px;background:#fff;border:2px solid #CBD5E1;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.08);margin:14px 0;">
-        <img src="${qrDataUrl}" alt="WhatsApp QR Code" style="width:280px;height:280px;display:block;" />
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Link WhatsApp — The Unique Haven Homes</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F8FAFC;margin:0;padding:24px;color:#0F172A;">
+      <div style="max-width:520px;margin:auto;background:#FFFFFF;border-radius:18px;border:1px solid #E2E8F0;box-shadow:0 10px 30px rgba(0,0,0,0.06);padding:30px 24px;text-align:center;">
+        
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:14px;">
+          <span>🟢 The Unique Haven Homes Gateway</span>
+        </div>
+
+        <h2 style="margin:0 0 6px 0;font-size:22px;">Link WhatsApp Business</h2>
+        <p style="margin:0 0 20px 0;color:#64748B;font-size:13.5px;">Number: <strong>+91 9194109911</strong></p>
+
+        <!-- METHOD 1: 8-DIGIT PAIRING CODE (100% RELIABLE) -->
+        <div style="background:#F1F5F9;border:1.5px solid #CBD5E1;border-radius:14px;padding:20px;text-align:left;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <strong style="color:#0F172A;font-size:14px;">Method 1: 8-Digit Pairing Code (Recommended)</strong>
+            <span style="background:#0284C7;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:uppercase;">No Camera</span>
+          </div>
+          <p style="margin:0 0 12px 0;font-size:12.5px;color:#475569;line-height:1.5;">
+            1. Phone me WhatsApp open karein → <b>Linked Devices</b> → <b>Link a device</b><br>
+            2. Screen ke neeche <b>"Link with phone number instead"</b> par tap karein.<br>
+            3. Neeche button daba kar 8-digit code generate karein aur phone me daalein:
+          </p>
+
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="pairPhone" type="text" value="919194109911" style="flex:1;padding:10px 14px;border-radius:10px;border:1.5px solid #CBD5E1;font-size:14px;font-weight:700;background:#fff;" />
+            <button id="btnPair" onclick="requestPairingCode()" style="background:#059669;color:#fff;border:none;padding:11px 18px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.25);">
+              🔑 Get Code
+            </button>
+          </div>
+
+          <div id="pairResult" style="display:none;margin-top:14px;background:#FFFFFF;border:2px dashed #059669;border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Enter this code in WhatsApp on your phone:</div>
+            <div id="pairCodeDisplay" style="font-size:28px;font-weight:900;letter-spacing:4px;color:#059669;font-family:monospace;margin:6px 0;"></div>
+            <div style="font-size:11.5px;color:#64748B;">Code valid for 60 seconds • Waiting for phone...</div>
+          </div>
+        </div>
+
+        <!-- METHOD 2: QR CODE SCAN -->
+        <div style="border-top:1px solid #E2E8F0;padding-top:20px;">
+          <div style="color:#64748B;font-size:12.5px;margin-bottom:12px;"><strong>Method 2: QR Code Camera Scan</strong></div>
+          <div style="display:inline-block;padding:14px;background:#fff;border:2px solid #CBD5E1;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.06);">
+            ${qrDataUrl ? `<img src="${qrDataUrl}" alt="WhatsApp QR Code" style="width:240px;height:240px;display:block;" />` : `<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;color:#64748B;font-size:13px;">Generating QR...</div>`}
+          </div>
+          <p style="color:#64748B;font-size:11.5px;margin-top:10px;">Agar QR scan me "Couldn't link" aaye toh upar wala <b>Method 1 (Pairing Code)</b> use karein.</p>
+        </div>
+
       </div>
-      <p style="color:#64748B;font-size:12px;">⏳ Auto-refreshes when scanned from your phone.</p>
+
       <script>
+        async function requestPairingCode() {
+          const btn = document.getElementById('btnPair');
+          const phone = document.getElementById('pairPhone').value.trim();
+          btn.disabled = true;
+          btn.textContent = 'Generating...';
+          try {
+            const res = await fetch('/api/pairing-code', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone })
+            });
+            const data = await res.json();
+            if (data.ok && data.code) {
+              document.getElementById('pairResult').style.display = 'block';
+              // Format 8-char code with hyphen: ABCD-EFGH
+              const raw = data.code;
+              const formatted = raw.length === 8 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+              document.getElementById('pairCodeDisplay').textContent = formatted;
+            } else {
+              alert('Could not generate pairing code: ' + (data.error || 'Please wait a moment and retry.'));
+            }
+          } catch (e) {
+            alert('Request failed: ' + e.message);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '🔑 Get Code';
+          }
+        }
+
+        // Auto reload once connected
         setInterval(async () => {
-          const r = await fetch('/status');
-          const d = await r.json();
-          if (d.connected) location.reload();
-        }, 2000);
+          try {
+            const r = await fetch('/status');
+            const d = await r.json();
+            if (d.connected) location.reload();
+          } catch(e) {}
+        }, 2500);
       </script>
-    </div>
+    </body>
+    </html>
   `);
 });
 
