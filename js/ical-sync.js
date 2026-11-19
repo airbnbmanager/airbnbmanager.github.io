@@ -121,6 +121,51 @@ window.ICAL_SYNC = {
     return localStorage.getItem('tuhh_custom_ical_' + room.room_id) || null;
   },
 
+  // Splits a blocked event range into sub-ranges that do not overlap any active real guest booking
+  getFreeSubRanges(checkIn, checkOut, realBookings) {
+    if (!checkIn || !checkOut) return [];
+    const d = new Date(checkIn + 'T00:00:00Z');
+    const end = new Date(checkOut + 'T00:00:00Z');
+    const freeNights = [];
+
+    while (d < end) {
+      const ds = d.toISOString().slice(0, 10);
+      const isCovered = (realBookings || []).some(b => 
+        !b.is_cancelled && b.check_in && b.check_out && b.check_in <= ds && b.check_out > ds
+      );
+      if (!isCovered) freeNights.push(ds);
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+
+    if (freeNights.length === 0) return [];
+
+    const ranges = [];
+    let curStart = freeNights[0];
+    let curEnd = freeNights[0];
+
+    for (let i = 1; i < freeNights.length; i++) {
+      const nextExpected = new Date(curEnd + 'T00:00:00Z');
+      nextExpected.setUTCDate(nextExpected.getUTCDate() + 1);
+      const nextExpectedStr = nextExpected.toISOString().slice(0, 10);
+
+      if (freeNights[i] === nextExpectedStr) {
+        curEnd = freeNights[i];
+      } else {
+        const coDate = new Date(curEnd + 'T00:00:00Z');
+        coDate.setUTCDate(coDate.getUTCDate() + 1);
+        ranges.push({ checkIn: curStart, checkOut: coDate.toISOString().slice(0, 10) });
+        curStart = freeNights[i];
+        curEnd = freeNights[i];
+      }
+    }
+
+    const coDate = new Date(curEnd + 'T00:00:00Z');
+    coDate.setUTCDate(coDate.getUTCDate() + 1);
+    ranges.push({ checkIn: curStart, checkOut: coDate.toISOString().slice(0, 10) });
+
+    return ranges;
+  },
+
   // Outbound 2-Way Calendar Feed Generator (.ics)
   async generateOutboundIcal(roomId) {
     const { data: bookings } = await sb.from('guest_register')
@@ -183,103 +228,94 @@ window.ICAL_SYNC = {
       const bookingMode = isBcom ? 'Online-Booking.com' : 'Online-Airbnb';
       const channelTag = isBcom ? '🔵 Booking.com' : '🏨 Airbnb';
 
+      const isBlockBooking = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
+                                  b.booking_mode === 'Offline-Blocked' ||
+                                  (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')));
+      const realBookings = (existing || []).filter(b => !isBlockBooking(b));
+
       for (const event of events) {
         if (!event.checkIn || !event.checkOut) continue;
 
-        // 1. Check if ANY ACTIVE BOOKING already overlaps this date range on this room
-        const activeOverlap = (existing || []).find(b => {
-          if (!b.check_in || !b.check_out || b.is_cancelled) return false;
-          return (b.check_in < event.checkOut && b.check_out > event.checkIn);
-        });
-
-        const isOverlapBlock = activeOverlap && (
-          (activeOverlap.booking_id && String(activeOverlap.booking_id).startsWith('BLK_')) ||
-          activeOverlap.booking_mode === 'Offline-Blocked' ||
-          (activeOverlap.guest_name && (activeOverlap.guest_name.includes('Blocked') || activeOverlap.guest_name.includes('🔒')))
-        );
-
-        // If an active booking already exists for these dates:
-        if (activeOverlap) {
-          // If this event is a block:
-          if (event.isBlocked) {
-            // Already blocked in database (either via manual block, prior sync, or same dates).
-            // If activeOverlap is a REAL booking, NEVER overwrite real booking with a block!
-            result.skipped++;
-            continue;
-          }
-
-          // If this event is a REAL reservation (has confirmation code or real guest):
-          if (isOverlapBlock) {
-            // Purge the obsolete block in favor of the incoming real reservation!
-            await sb.from('guest_register').delete().eq('booking_id', activeOverlap.booking_id);
-            const idx = existing.indexOf(activeOverlap);
-            if (idx >= 0) existing.splice(idx, 1);
-            console.log(`🧹 Replaced dummy block ${activeOverlap.booking_id} with real reservation ${event.confirmationCode || ''}`);
-          } else {
-            // Overlap is already a REAL booking (e.g. from Gmail sync or direct host entry):
-            // Link confirmation code / ical_uid if missing, and DO NOT duplicate
-            if (event.confirmationCode && !activeOverlap.airbnb_confirmation_code) {
-              await sb.from('guest_register').update({
-                airbnb_confirmation_code: event.confirmationCode,
-                ical_uid: event.uid || activeOverlap.ical_uid
-              }).eq('booking_id', activeOverlap.booking_id);
-            }
-            result.skipped++;
-            continue;
-          }
-        }
-
-        // 2. Handle Blocked / Unavailable Calendar Dates (USER DIRECTIVE: Auto-block in TUHH Calendar)
+        // 1. Handle Blocked / Unavailable Calendar Dates
         if (event.isBlocked) {
-          const blockId = `BLK_${room.room_id}_${event.checkIn.replace(/-/g, '')}_${event.checkOut.replace(/-/g, '')}`;
+          // Split block into sub-ranges that do not overlap any active real guest booking
+          const subRanges = this.getFreeSubRanges(event.checkIn, event.checkOut, realBookings);
+          for (const sub of subRanges) {
+            const blockId = `BLK_${room.room_id}_${sub.checkIn.replace(/-/g, '')}_${sub.checkOut.replace(/-/g, '')}`;
 
-          // Check if already in DB
-          const { data: existingBlk } = await sb.from('guest_register')
-            .select('booking_id')
-            .eq('booking_id', blockId)
-            .maybeSingle();
+            // Check if already in DB or in-memory list
+            const existingBlk = (existing || []).find(b => b.booking_id === blockId);
+            if (existingBlk) {
+              result.skipped++;
+              continue;
+            }
 
-          if (existingBlk) {
-            result.skipped++;
-            continue;
-          }
-
-          const { error: blkErr } = await sb.from('guest_register').insert({
-            booking_id: blockId,
-            room_id: room.room_id,
-            guest_name: '🔒 Blocked Slot',
-            check_in: event.checkIn,
-            check_out: event.checkOut,
-            total_amount: 0,
-            per_day_rate: 0,
-            booking_mode: 'Offline-Blocked',
-            payment_status: 'Blocked',
-            verification_status: 'approved',
-            guests: null,
-            ical_uid: event.uid || null,
-            synced_from_ical: true,
-            booked_by: `${channelName} Calendar Block`,
-            notes: `Blocked on ${channelName} calendar (${event.summary || 'Unavailable'}). Click to convert to real booking.`
-          });
-
-          if (!blkErr) {
-            result.created++;
-            if (event.uid) existingUids.add(event.uid);
-            existing.push({
+            const blockUid = event.uid ? `${event.uid}_${room.room_id}_${sub.checkIn.replace(/-/g, '')}` : null;
+            const { error: blkErr } = await sb.from('guest_register').insert({
               booking_id: blockId,
               room_id: room.room_id,
-              check_in: event.checkIn,
-              check_out: event.checkOut,
-              booking_mode: 'Offline-Blocked',
               guest_name: '🔒 Blocked Slot',
+              check_in: sub.checkIn,
+              check_out: sub.checkOut,
               total_amount: 0,
+              per_day_rate: 0,
+              booking_mode: 'Offline-Blocked',
+              payment_status: 'Blocked',
+              verification_status: 'approved',
+              guests: null,
+              ical_uid: blockUid,
               synced_from_ical: true,
               booked_by: `${channelName} Calendar Block`,
-              ical_uid: event.uid
+              notes: `Blocked on ${channelName} calendar (${event.summary || 'Unavailable'}). Click to convert to real booking.`
             });
-          } else {
-            result.skipped++;
+
+            if (!blkErr) {
+              result.created++;
+              if (blockUid) existingUids.add(blockUid);
+              existing.push({
+                booking_id: blockId,
+                room_id: room.room_id,
+                check_in: sub.checkIn,
+                check_out: sub.checkOut,
+                booking_mode: 'Offline-Blocked',
+                guest_name: '🔒 Blocked Slot',
+                total_amount: 0,
+                synced_from_ical: true,
+                booked_by: `${channelName} Calendar Block`,
+                ical_uid: blockUid
+              });
+            } else {
+              console.warn('[ICAL_SYNC] Block insert error:', blkErr);
+              result.skipped++;
+            }
           }
+          continue;
+        }
+
+        // 2. Incoming REAL online reservation:
+        // Purge any dummy block that overlaps these dates so real booking takes over
+        const dummyClashes = (existing || []).filter(b => 
+          isBlockBooking(b) && b.check_in < event.checkOut && b.check_out > event.checkIn
+        );
+        for (const d of dummyClashes) {
+          await sb.from('guest_register').delete().eq('booking_id', d.booking_id);
+          const idx = existing.indexOf(d);
+          if (idx >= 0) existing.splice(idx, 1);
+          console.log(`🧹 Replaced dummy block ${d.booking_id} with real reservation ${event.confirmationCode || ''}`);
+        }
+
+        // Check if an active real booking already covers these dates
+        const realOverlap = realBookings.find(b => 
+          !b.is_cancelled && b.check_in < event.checkOut && b.check_out > event.checkIn
+        );
+        if (realOverlap) {
+          if (event.confirmationCode && !realOverlap.airbnb_confirmation_code) {
+            await sb.from('guest_register').update({
+              airbnb_confirmation_code: event.confirmationCode,
+              ical_uid: event.uid || realOverlap.ical_uid
+            }).eq('booking_id', realOverlap.booking_id);
+          }
+          result.skipped++;
           continue;
         }
 
@@ -343,12 +379,15 @@ window.ICAL_SYNC = {
       }
 
       // 5. Auto-cleanup: If a block was previously synced from this channel's iCal, but the host has unblocked it on Airbnb, remove the stale block
-      const activeBlockUids = new Set(
-        events.filter(e => e.isBlocked || !e.confirmationCode).map(e => e.uid).filter(Boolean)
-      );
-      const activeBlockRanges = new Set(
-        events.filter(e => e.isBlocked || !e.confirmationCode).map(e => `${e.checkIn}_${e.checkOut}`)
-      );
+      const allActiveBlockedNights = new Set();
+      events.filter(e => e.isBlocked).forEach(e => {
+        const d = new Date(e.checkIn + 'T00:00:00Z');
+        const end = new Date(e.checkOut + 'T00:00:00Z');
+        while (d < end) {
+          allActiveBlockedNights.add(d.toISOString().slice(0, 10));
+          d.setUTCDate(d.getUTCDate() + 1);
+        }
+      });
       const todayIso = new Date().toISOString().slice(0, 10);
 
       const staleBlocks = (existing || []).filter(b => {
@@ -358,9 +397,19 @@ window.ICAL_SYNC = {
                                (b.booking_mode === 'Offline-Blocked' || (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')))) &&
                                (b.booked_by && b.booked_by.includes(channelName));
         if (!isChannelBlock) return false;
-        if (b.ical_uid && activeBlockUids.has(b.ical_uid)) return false;
-        if (activeBlockRanges.has(`${b.check_in}_${b.check_out}`)) return false;
-        return true;
+        
+        // If at least one night of this block is still active in the feed, keep it!
+        const bStart = new Date(b.check_in + 'T00:00:00Z');
+        const bEnd = new Date(b.check_out + 'T00:00:00Z');
+        let hasActiveNight = false;
+        while (bStart < bEnd) {
+          if (allActiveBlockedNights.has(bStart.toISOString().slice(0, 10))) {
+            hasActiveNight = true;
+            break;
+          }
+          bStart.setUTCDate(bStart.getUTCDate() + 1);
+        }
+        return !hasActiveNight;
       });
 
       for (const stale of staleBlocks) {

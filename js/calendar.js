@@ -7,6 +7,20 @@ async function renderReports() {
   const currentKey = (window.SESSION && SESSION.currentPage === 'calendar') ? 'calendar' : 'reports';
   renderShell(`<div class="loading">📅 Loading calendar...</div>`, currentKey);
 
+  // Background Auto-Sync iCal from Airbnb & OTAs (debounced 3 mins)
+  if (window.ICAL_SYNC && typeof window.ICAL_SYNC.syncAll === 'function') {
+    const lastSync = window._lastCalAutoSync || 0;
+    if (Date.now() - lastSync > 3 * 60 * 1000) {
+      window._lastCalAutoSync = Date.now();
+      window.ICAL_SYNC.syncAll().then(res => {
+        if (res && res.created > 0) {
+          console.log('[Calendar AutoSync] Created new items, re-rendering:', res.created);
+          if (typeof window.renderReports === 'function') window.renderReports();
+        }
+      }).catch(console.warn);
+    }
+  }
+
   let roomsData = [];
   try {
     const res = await sb.from('rooms').select('*').order('unit_no');
@@ -677,7 +691,7 @@ async function renderReports() {
           <button type="button" class="btn-cal-nav" onclick="chMo(-1)" title="Previous Month" style="border:none;background:transparent;padding:6px 12px;font-size:13px;font-weight:800;color:#0F172A;cursor:pointer;border-radius:6px;">‹</button>
           <button type="button" class="btn-cal-nav" onclick="calGoToday()" title="Current Month" style="border:none;background:#FFFFFF;padding:6px 14px;font-size:11.5px;font-weight:800;color:#0284C7;cursor:pointer;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">Today</button>
           <button type="button" class="btn-cal-nav" onclick="chMo(1)" title="Next Month" style="border:none;background:transparent;padding:6px 12px;font-size:13px;font-weight:800;color:#0F172A;cursor:pointer;border-radius:6px;">›</button>
-          <button type="button" class="btn-cal-nav" onclick="renderReports()" title="Refresh live data" style="border:none;background:transparent;padding:6px 8px;font-size:12px;color:#475569;cursor:pointer;border-radius:6px;border-left:1px solid #E2E8F0;margin-left:2px;">🔄</button>
+          <button type="button" class="btn-cal-nav" onclick="calTriggerManualSync(this)" title="Refresh live data & sync Airbnb/OTA calendar" style="border:none;background:transparent;padding:6px 8px;font-size:12px;color:#475569;cursor:pointer;border-radius:6px;border-left:1px solid #E2E8F0;margin-left:2px;">🔄</button>
         </div>
       </div>
 
@@ -1792,6 +1806,39 @@ window.calConvertBlockToBooking = async function(blkId, roomId, checkIn, checkOu
       if (typeof window.renderAddBooking === 'function') window.renderAddBooking(prefill);
       else if (typeof renderAddBooking === 'function') renderAddBooking(prefill);
     }, 400);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🔄 MANUAL 1-CLICK CALENDAR & AIRBNB SYNC
+// ═══════════════════════════════════════════════════════════
+window.calTriggerManualSync = async function(btn) {
+  if (btn) {
+    btn.style.display = 'inline-block';
+    btn.style.transition = 'transform 0.6s ease';
+    btn.style.transform = 'rotate(360deg)';
+  }
+  if (window.fsn) fsn.info('Syncing Calendar', 'Fetching live Airbnb & OTA calendar blocks...');
+  try {
+    if (window.ICAL_SYNC && typeof window.ICAL_SYNC.syncAll === 'function') {
+      const res = await window.ICAL_SYNC.syncAll();
+      if (window.fsn) {
+        if (res && res.created > 0) {
+          fsn.success('Sync Complete', `Updated ${res.created} calendar block(s) from Airbnb.`);
+        } else {
+          fsn.success('All Synced', 'All calendar dates and blocks are up to date.');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Calendar] Manual sync error:', e);
+  } finally {
+    if (btn) {
+      setTimeout(() => {
+        btn.style.transform = '';
+      }, 600);
+    }
+    renderReports();
   }
 };
 
