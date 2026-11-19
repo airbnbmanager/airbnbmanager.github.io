@@ -422,7 +422,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     } catch(e) {}
 
     return `
-      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;line-height:1.35;font-size:10.5px;">
+      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:auto;break-inside:auto;line-height:1.35;font-size:10.5px;">
         
         <!-- Header Strip -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #0F172A;padding-bottom:6px;margin-bottom:6px;gap:12px;">
@@ -879,7 +879,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         <style>
           @page {
             size: A4 portrait;
-            margin: 0 !important; /* Suppresses browser default URL/headers/footers */
+            margin: 8mm 10mm 8mm 10mm !important;
           }
           * {
             box-sizing: border-box;
@@ -892,33 +892,56 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             background: #ffffff !important;
             color: #0F172A !important;
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            width: 210mm !important;
-            min-height: 297mm !important;
+            width: 100% !important;
+            min-height: auto !important;
             -webkit-font-smoothing: antialiased;
             text-rendering: geometricPrecision;
           }
           
-          /* Master Container for A4 Fit */
+          /* Master Container for A4 Fit & Natural Multi-Page Pagination */
           .uhh-receipt-container, .invoice-doc {
-            width: 210mm !important;
+            width: 100% !important;
             max-width: 210mm !important;
-            min-height: 295mm !important;
-            max-height: 297mm !important;
+            min-height: auto !important;
+            max-height: none !important;
             box-sizing: border-box !important;
             margin: 0 auto !important;
-            padding: 12mm 14mm 10mm 14mm !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: space-between !important;
+            padding: 4mm 6mm !important;
+            display: block !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             background: #ffffff !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Keep Table Rows and Metric Cards from breaking in half */
+          .uhh-receipt-container table {
+            width: 100% !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+          }
+          .uhh-receipt-container tr {
             page-break-inside: avoid !important;
-            page-break-after: avoid !important;
             break-inside: avoid !important;
-            break-after: avoid !important;
-            overflow: hidden !important;
+          }
+          .uhh-receipt-container thead {
+            display: table-header-group !important;
+          }
+          .uhh-receipt-container tfoot {
+            display: table-footer-group !important;
+          }
+          .uhh-receipt-container > div {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .uhh-receipt-container div[style*="border:1px solid #0F172A"],
+          .uhh-receipt-container div[style*="border: 1px solid #0F172A"],
+          .uhh-receipt-container div[style*="border:1.5px solid #0F172A"] {
+            page-break-inside: auto !important;
+            break-inside: auto !important;
           }
 
           /* Proportional A4 Letterhead Scaling */
@@ -1054,22 +1077,23 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
           @media print {
             @page {
               size: A4 portrait;
-              margin: 0 !important;
+              margin: 8mm 10mm 8mm 10mm !important;
             }
             html, body {
-              width: 210mm !important;
-              height: 297mm !important;
+              width: 100% !important;
+              height: auto !important;
+              min-height: auto !important;
               margin: 0 !important;
               padding: 0 !important;
-              overflow: hidden !important;
+              overflow: visible !important;
             }
             .uhh-receipt-container {
-              width: 210mm !important;
-              height: 297mm !important;
-              max-height: 297mm !important;
-              overflow: hidden !important;
-              page-break-after: avoid !important;
-              break-after: avoid !important;
+              width: 100% !important;
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
+              page-break-after: auto !important;
+              break-after: auto !important;
             }
           }
         </style>
@@ -1249,53 +1273,109 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     let propertiesHTML = '';
     if (isMulti) {
       const bList = data.bookings || [];
-      propertiesHTML = bList.map((b, idx) => {
-        const room = b.rooms || {};
-        const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
-        const unit = room.unit_no ? ` (${room.unit_no})` : '';
-        const address = room.address || 'Lucknow, Uttar Pradesh';
-        const n = calcNights(b.check_in, b.check_out);
-        const ci = formatDate(b.check_in);
-        const co = formatDate(b.check_out);
-        const cit = formatTime(b.check_in_time || '14:00');
-        const cot = formatTime(b.check_out_time || '11:00');
-        const amt = Number(b.total_amount || 0);
+      if (bList.length <= 2) {
+        // 1-2 properties: Full detailed spacious cards
+        propertiesHTML = bList.map((b, idx) => {
+          const room = b.rooms || {};
+          const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
+          const unit = room.unit_no ? ` (${room.unit_no})` : '';
+          const address = room.address || 'Lucknow, Uttar Pradesh';
+          const n = calcNights(b.check_in, b.check_out);
+          const ci = formatDate(b.check_in);
+          const co = formatDate(b.check_out);
+          const cit = formatTime(b.check_in_time || '14:00');
+          const cot = formatTime(b.check_out_time || '11:00');
+          const amt = Number(b.total_amount || 0);
 
-        return `
-          <div style="background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
-              <div>
-                <div style="font-size:10.5px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;">Homestay #${idx + 1}</div>
-                <div style="font-size:16px;font-weight:900;color:#0F172A;line-height:1.2;">${escapeHtml(pName)}${escapeHtml(unit)}</div>
-                <div style="font-size:11.5px;color:#64748B;margin-top:2px;">📍 ${escapeHtml(address)}</div>
+          return `
+            <div style="background:#FFFFFF;border:1.5px solid #CBD5E1;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                <div>
+                  <div style="font-size:10.5px;font-weight:800;color:#B45309;text-transform:uppercase;letter-spacing:0.5px;">Homestay #${idx + 1}</div>
+                  <div style="font-size:16px;font-weight:900;color:#0F172A;line-height:1.2;">${escapeHtml(pName)}${escapeHtml(unit)}</div>
+                  <div style="font-size:11.5px;color:#64748B;margin-top:2px;">📍 ${escapeHtml(address)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:17px;font-weight:900;color:#059669;">₹${amt.toLocaleString('en-IN')}</div>
+                  <div style="font-size:10.5px;color:#64748B;font-family:monospace;">${escapeHtml(b.booking_id)}</div>
+                </div>
               </div>
-              <div style="text-align:right;">
-                <div style="font-size:16px;font-weight:900;color:#0F172A;">₹${amt.toLocaleString('en-IN')}</div>
-                <div style="font-size:10.5px;color:#64748B;font-family:monospace;">${escapeHtml(b.booking_id)}</div>
+
+              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                <div>
+                  <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-In</div>
+                  <div style="font-size:13px;font-weight:800;color:#0F172A;">${ci}</div>
+                  <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cit}</div>
+                </div>
+                <div style="text-align:center;color:#94A3B8;font-size:15px;font-weight:bold;">→</div>
+                <div>
+                  <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-Out</div>
+                  <div style="font-size:13px;font-weight:800;color:#0F172A;">${co}</div>
+                  <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cot}</div>
+                </div>
+                <div style="border-left:1px dashed #CBD5E1;padding-left:10px;">
+                  <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Stay</div>
+                  <div style="font-size:13px;font-weight:800;color:#4F46E5;">${n} Night${n > 1 ? 's' : ''}</div>
+                  <div style="font-size:11px;color:#475569;font-weight:600;">👥 ${b.guests || 1} Guests</div>
+                </div>
               </div>
             </div>
+          `;
+        }).join('');
+      } else {
+        // 3+ properties (e.g. 5 or 10 Homestays): High-Density Allocation Matrix (perfect for Mobile & WhatsApp!)
+        propertiesHTML = `
+          <div style="border:1.5px solid #0F172A;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="background:#0F172A;color:#FFFFFF;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;font-weight:900;letter-spacing:0.5px;">🏠 ALLOCATED HOMESTAYS (${bList.length} PROPERTIES)</span>
+              <span style="font-size:10px;color:#94A3B8;font-weight:700;">ALL TARIFFS IN INR</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              ${bList.map((b, idx) => {
+                const room = b.rooms || {};
+                const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
+                const unit = room.unit_no ? ` (${room.unit_no})` : '';
+                const ci = formatDate(b.check_in);
+                const co = formatDate(b.check_out);
+                const cit = formatTime(b.check_in_time || '14:00');
+                const cot = formatTime(b.check_out_time || '11:00');
+                const n = calcNights(b.check_in, b.check_out);
+                const amt = Number(b.total_amount || 0);
 
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-              <div>
-                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-In</div>
-                <div style="font-size:13px;font-weight:800;color:#0F172A;">${ci}</div>
-                <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cit}</div>
-              </div>
-              <div style="text-align:center;color:#94A3B8;font-size:15px;font-weight:bold;">→</div>
-              <div>
-                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Check-Out</div>
-                <div style="font-size:13px;font-weight:800;color:#0F172A;">${co}</div>
-                <div style="font-size:11px;color:#475569;font-weight:600;">⏰ ${cot}</div>
-              </div>
-              <div style="border-left:1px dashed #CBD5E1;padding-left:10px;">
-                <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Stay</div>
-                <div style="font-size:13px;font-weight:800;color:#4F46E5;">${n} Night${n > 1 ? 's' : ''}</div>
-                <div style="font-size:11px;color:#475569;font-weight:600;">👥 ${b.guests || 1} Guests</div>
-              </div>
+                return `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                      <div style="background:#0F172A;color:#fff;font-size:10.5px;font-weight:900;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        ${String(idx + 1).padStart(2, '0')}
+                      </div>
+                      <div style="min-width:0;flex:1;">
+                        <div style="font-size:14px;font-weight:900;color:#0F172A;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                          ${escapeHtml(pName)}${escapeHtml(unit)}
+                        </div>
+                        <div style="font-size:11px;color:#475569;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span>📅 <strong>${ci}</strong> (${cit}) → <strong>${co}</strong> (${cot})</span>
+                          <span style="color:#CBD5E1;">·</span>
+                          <span>🌙 <strong>${n}N</strong></span>
+                          <span style="color:#CBD5E1;">·</span>
+                          <span>👥 ${b.guests || 1} Guests</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;padding-left:6px;">
+                      <div style="font-size:15px;font-weight:900;color:#059669;">₹${amt.toLocaleString('en-IN')}</div>
+                      <div style="font-size:10px;color:#64748B;font-family:monospace;">#${escapeHtml(b.booking_id.slice(-6))}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div style="background:#F1F5F9;border-top:1.5px solid #0F172A;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:900;">
+              <span style="font-size:11.5px;color:#0F172A;text-transform:uppercase;letter-spacing:0.3px;">TOTAL COMBINED TARIFF (${bList.length} HOMESTAYS):</span>
+              <span style="font-size:16px;color:#0F172A;">₹${totalAmount.toLocaleString('en-IN')}</span>
             </div>
           </div>
         `;
-      }).join('');
+      }
     } else {
       const b = data.booking || {};
       const room = b.rooms || {};
@@ -1345,7 +1425,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     }
 
     return `
-      <div id="uhhMobileSlipCard" style="width:480px;max-width:480px;background:#FFFFFF;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:20px 18px;border-radius:14px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision;font-variant-numeric:tabular-nums;border:2px solid #0F172A;margin:0 auto;">
+      <div id="uhhMobileSlipCard" style="width:640px;max-width:640px;background:#FFFFFF;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:22px 20px;border-radius:14px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision;font-variant-numeric:tabular-nums;border:2px solid #0F172A;margin:0 auto;">
         
         <!-- Header Strip -->
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E2E8F0;padding-bottom:12px;margin-bottom:10px;gap:10px;">
@@ -1562,9 +1642,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     let tempWrapper = null;
     try {
       let captureEl = null;
-      let captureWidth = 480;
+      let captureWidth = 640;
 
-      // 🌟 MODE 1: MOBILE PASS (Default) - Vertical 480px, perfect for smartphones & WhatsApp!
+      // 🌟 MODE 1: MOBILE PASS (Default) - Vertical 640px, perfect for smartphones & WhatsApp!
       if (mode === 'mobile') {
         if (data) {
           tempWrapper = document.createElement('div');
@@ -1572,59 +1652,60 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
           tempWrapper.style.position = 'fixed';
           tempWrapper.style.left = '-9999px';
           tempWrapper.style.top = '0';
-          tempWrapper.style.width = '480px';
-          tempWrapper.style.maxWidth = '480px';
+          tempWrapper.style.width = '640px';
+          tempWrapper.style.maxWidth = '640px';
           tempWrapper.style.boxSizing = 'border-box';
           tempWrapper.style.zIndex = '-99999';
           tempWrapper.style.background = '#ffffff';
           tempWrapper.innerHTML = buildMobileSlipCardHTML(data);
           document.body.appendChild(tempWrapper);
           captureEl = tempWrapper.firstElementChild || tempWrapper;
-          captureWidth = 480;
+          captureWidth = 640;
         } else if (el) {
           const target = el.querySelector('.uhh-receipt-container') || el;
           tempWrapper = target.cloneNode(true);
           tempWrapper.style.position = 'fixed';
           tempWrapper.style.left = '-9999px';
           tempWrapper.style.top = '0';
-          tempWrapper.style.width = '760px';
-          tempWrapper.style.zIndex = '-99999';
-          document.body.appendChild(tempWrapper);
-          captureEl = tempWrapper;
-          captureWidth = 760;
-        }
-      } else {
-        // 🌟 MODE 2: OFFICIAL RECEIPT (Full A4 / Desktop layout)
-        const target = el ? (el.querySelector('.uhh-receipt-container') || el) : null;
-        if (target) {
-          tempWrapper = target.cloneNode(true);
-          tempWrapper.id = 'uhh_official_receipt_render_wrapper';
-          tempWrapper.style.position = 'fixed';
-          tempWrapper.style.left = '-9999px';
-          tempWrapper.style.top = '0';
-          tempWrapper.style.width = '760px';
-          tempWrapper.style.maxWidth = '760px';
+          tempWrapper.style.width = '640px';
+          tempWrapper.style.maxWidth = '640px';
           tempWrapper.style.boxSizing = 'border-box';
           tempWrapper.style.zIndex = '-99999';
-          tempWrapper.style.background = '#ffffff';
           document.body.appendChild(tempWrapper);
           captureEl = tempWrapper;
-          captureWidth = 760;
-        } else if (data) {
+          captureWidth = 640;
+        }
+      } else {
+        // 🌟 MODE 2: OFFICIAL RECEIPT (Full A4 / Desktop layout at 860px for high-res crispness)
+        captureWidth = 860;
+        if (data) {
           tempWrapper = document.createElement('div');
           tempWrapper.id = 'uhh_official_receipt_render_wrapper';
           tempWrapper.style.position = 'fixed';
           tempWrapper.style.left = '-9999px';
           tempWrapper.style.top = '0';
-          tempWrapper.style.width = '760px';
-          tempWrapper.style.maxWidth = '760px';
+          tempWrapper.style.width = '860px';
+          tempWrapper.style.maxWidth = '860px';
           tempWrapper.style.boxSizing = 'border-box';
           tempWrapper.style.zIndex = '-99999';
           tempWrapper.style.background = '#ffffff';
           tempWrapper.innerHTML = data.isMulti ? buildMultiPropertyReceiptHTML(data) : buildReceiptHTML(data);
           document.body.appendChild(tempWrapper);
           captureEl = tempWrapper.firstElementChild || tempWrapper;
-          captureWidth = 760;
+        } else if (el) {
+          const target = el.querySelector('.uhh-receipt-container') || el;
+          tempWrapper = target.cloneNode(true);
+          tempWrapper.id = 'uhh_official_receipt_render_wrapper';
+          tempWrapper.style.position = 'fixed';
+          tempWrapper.style.left = '-9999px';
+          tempWrapper.style.top = '0';
+          tempWrapper.style.width = '860px';
+          tempWrapper.style.maxWidth = '860px';
+          tempWrapper.style.boxSizing = 'border-box';
+          tempWrapper.style.zIndex = '-99999';
+          tempWrapper.style.background = '#ffffff';
+          document.body.appendChild(tempWrapper);
+          captureEl = tempWrapper;
         }
       }
 
@@ -1645,9 +1726,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
       await new Promise(r => setTimeout(r, 60));
 
       const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
-      const fullWidth = captureEl.offsetWidth || captureWidth;
+      const fullWidth = captureWidth;
 
-      // 🌟 ULTRA-CRISP 3X DPI RETINA CAPTURE (IRCTC Screenshot Grade Clarity)
+      // 🌟 ULTRA-CRISP 3X DPI RETINA CAPTURE (300+ DPI Clarity)
       const canvas = await window.html2canvas(captureEl, {
         scale: 3, // 300+ DPI Crisp Retina Resolution
         useCORS: true,
@@ -1660,7 +1741,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         y: 0,
         width: fullWidth,
         height: fullHeight,
-        windowWidth: 1024,
+        windowWidth: Math.max(fullWidth, 1280),
         windowHeight: fullHeight + 100
       });
 
@@ -1789,6 +1870,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
           <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnDownloadSlipImg">
             📥 Download PNG
           </button>
+          <button type="button" class="btn-sm" style="background:#475569;color:#fff;font-weight:800;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnToggleZoom" title="Toggle between 100% actual size and fit to window">
+            🔍 100% Zoom / Fit
+          </button>
           ${navigator.canShare && navigator.canShare({ files: [file] }) ? `
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" id="btnShareSlipImg">
               📱 WhatsApp Share Sheet
@@ -1805,8 +1889,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         </div>
 
         <!-- Scrollable Image Preview -->
-        <div style="flex:1;overflow-y:auto;background:#1E293B;padding:16px;border-radius:8px;text-align:center;">
-          <img src="${imgUrl}" alt="Slip Preview" style="${isMobile ? 'width:480px;max-width:100%;' : 'width:100%;max-width:720px;'}height:auto;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.45);background:#fff;display:inline-block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;" />
+        <div id="slipPreviewScrollContainer" style="flex:1;overflow:auto;background:#1E293B;padding:16px;border-radius:8px;text-align:center;">
+          <img id="slipPreviewImage" src="${imgUrl}" alt="Slip Preview" style="width:${isMobile ? '640px' : '860px'};max-width:100%;height:auto;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.45);background:#fff;display:inline-block;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;transition:max-width 0.2s ease;" />
         </div>
       </div>
     `;
@@ -1906,6 +1990,27 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         a.href = imgUrl;
         a.download = `${filename}.png`;
         a.click();
+      };
+    }
+
+    // Zoom Toggle Button Handler
+    const btnZoom = prevModal.querySelector('#btnToggleZoom');
+    const previewImg = prevModal.querySelector('#slipPreviewImage');
+    if (btnZoom && previewImg) {
+      let isZoomed100 = false;
+      btnZoom.onclick = () => {
+        isZoomed100 = !isZoomed100;
+        if (isZoomed100) {
+          previewImg.style.maxWidth = 'none';
+          previewImg.style.width = isMobile ? '640px' : '860px';
+          btnZoom.textContent = '🔍 Fit to Window';
+          btnZoom.style.background = '#2563EB';
+        } else {
+          previewImg.style.maxWidth = '100%';
+          previewImg.style.width = isMobile ? '640px' : '860px';
+          btnZoom.textContent = '🔍 100% Zoom / Fit';
+          btnZoom.style.background = '#475569';
+        }
       };
     }
 
@@ -2170,7 +2275,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     } catch(e) {}
 
     return `
-      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:avoid;break-inside:avoid;line-height:1.35;font-size:10.5px;">
+      <div class="uhh-receipt-container" style="background:#fff;color:#0F172A;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;padding:12px 16px;max-width:760px;margin:0 auto;box-sizing:border-box;page-break-inside:auto;break-inside:auto;line-height:1.35;font-size:10.5px;">
         
         <!-- Header Strip -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1.5px solid #0F172A;padding-bottom:6px;margin-bottom:6px;gap:12px;">
@@ -2260,57 +2365,59 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             </div>
           </div>
 
-          <table style="width:100%;border-collapse:collapse;font-size:10px;">
-            <thead>
-              <tr style="background:#F1F5F9;color:#475569;text-align:left;border-bottom:1px solid #CBD5E1;">
-                <th style="padding:4px 6px;font-weight:800;width:20px;text-align:center;">#</th>
-                <th style="padding:4px 6px;font-weight:800;">Property &amp; Location</th>
-                <th style="padding:4px 6px;font-weight:800;">Stay Dates &amp; Timings</th>
-                <th style="padding:4px 6px;font-weight:800;text-align:center;">Nights</th>
-                <th style="padding:4px 6px;font-weight:800;text-align:center;">Guests</th>
-                <th style="padding:4px 8px;font-weight:800;text-align:right;">Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${bookings.map((b, idx) => {
-                const room = b.rooms || {};
-                const prop = room.nickname || room.property_name || b.room_id || 'Homestay Property';
-                const unit = room.unit_no ? ` (${room.unit_no})` : '';
-                const mapLink = room.map_link ? ` <a href="${room.map_link}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:700;">[📍 Map]</a>` : '';
-                const n = calcNights(b.check_in, b.check_out);
-                const ciTime = formatTime(b.check_in_time || '14:00');
-                const coTime = formatTime(b.check_out_time || '11:00');
-                const amt = Number(b.total_amount || 0);
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;">
+            <table style="width:100%;min-width:600px;border-collapse:collapse;font-size:10px;">
+              <thead>
+                <tr style="background:#F1F5F9;color:#475569;text-align:left;border-bottom:1px solid #CBD5E1;">
+                  <th style="padding:4px 6px;font-weight:800;width:24px;text-align:center;white-space:nowrap;">#</th>
+                  <th style="padding:4px 6px;font-weight:800;min-width:180px;">Property &amp; Location</th>
+                  <th style="padding:4px 6px;font-weight:800;min-width:160px;white-space:nowrap;">Stay Dates &amp; Timings</th>
+                  <th style="padding:4px 6px;font-weight:800;text-align:center;white-space:nowrap;">Nights</th>
+                  <th style="padding:4px 6px;font-weight:800;text-align:center;white-space:nowrap;">Guests</th>
+                  <th style="padding:4px 8px;font-weight:800;text-align:right;white-space:nowrap;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookings.map((b, idx) => {
+                  const room = b.rooms || {};
+                  const prop = room.nickname || room.property_name || b.room_id || 'Homestay Property';
+                  const unit = room.unit_no ? ` (${room.unit_no})` : '';
+                  const mapLink = room.map_link ? ` <a href="${room.map_link}" target="_blank" style="color:#0284C7;text-decoration:none;font-weight:700;">[📍 Map]</a>` : '';
+                  const n = calcNights(b.check_in, b.check_out);
+                  const ciTime = formatTime(b.check_in_time || '14:00');
+                  const coTime = formatTime(b.check_out_time || '11:00');
+                  const amt = Number(b.total_amount || 0);
 
-                return `
-                  <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#fff' : '#F8FAFC'};">
-                    <td style="padding:4px 6px;color:#64748B;font-weight:700;text-align:center;">${String(idx + 1).padStart(2, '0')}</td>
-                    <td style="padding:4px 6px;">
-                      <strong style="color:#0F172A;font-size:10.5px;">${escapeHtml(prop)}${escapeHtml(unit)}</strong>${mapLink}
-                      <span style="font-size:9px;color:#64748B;"> · ID: ${escapeHtml(b.booking_id)} · ${escapeHtml(room.address || 'Lucknow')}</span>
-                      ${cleanNotes(b.notes) ? `<div style="font-size:8.5px;color:#B45309;font-weight:700;margin-top:2px;">📝 ${escapeHtml(cleanNotes(b.notes))}</div>` : ''}
-                    </td>
-                    <td style="padding:4px 6px;">
-                      <strong>${formatDate(b.check_in)}</strong> (${ciTime}) → <strong>${formatDate(b.check_out)}</strong> (${coTime})
-                    </td>
-                    <td style="padding:4px 6px;text-align:center;font-weight:700;">${n}N</td>
-                    <td style="padding:4px 6px;text-align:center;">👥 ${b.guests || 1}</td>
-                    <td style="padding:4px 8px;text-align:right;font-weight:900;font-size:11px;color:#0F172A;">₹${amt.toLocaleString('en-IN')}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-            <tfoot>
-              <tr style="background:#F1F5F9;border-top:1.5px solid #0F172A;font-weight:900;">
-                <td colspan="5" style="padding:5px 6px;text-align:right;text-transform:uppercase;letter-spacing:0.4px;font-size:10px;">
-                  Grand Combined Stay Total (${bookings.length} Homestays):
-                </td>
-                <td style="padding:5px 8px;text-align:right;font-size:12.5px;color:#0F172A;">
-                  ₹${totalAmount.toLocaleString('en-IN')}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+                  return `
+                    <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#fff' : '#F8FAFC'};">
+                      <td style="padding:4px 6px;color:#64748B;font-weight:700;text-align:center;white-space:nowrap;">${String(idx + 1).padStart(2, '0')}</td>
+                      <td style="padding:4px 6px;">
+                        <strong style="color:#0F172A;font-size:10.5px;">${escapeHtml(prop)}${escapeHtml(unit)}</strong>${mapLink}
+                        <span style="font-size:9px;color:#64748B;"> · ID: ${escapeHtml(b.booking_id)} · ${escapeHtml(room.address || 'Lucknow')}</span>
+                        ${cleanNotes(b.notes) ? `<div style="font-size:8.5px;color:#B45309;font-weight:700;margin-top:2px;">📝 ${escapeHtml(cleanNotes(b.notes))}</div>` : ''}
+                      </td>
+                      <td style="padding:4px 6px;white-space:nowrap;">
+                        <strong>${formatDate(b.check_in)}</strong> (${ciTime}) → <strong>${formatDate(b.check_out)}</strong> (${coTime})
+                      </td>
+                      <td style="padding:4px 6px;text-align:center;font-weight:700;white-space:nowrap;">${n}N</td>
+                      <td style="padding:4px 6px;text-align:center;white-space:nowrap;">👥 ${b.guests || 1}</td>
+                      <td style="padding:4px 8px;text-align:right;font-weight:900;font-size:11px;color:#0F172A;white-space:nowrap;">₹${amt.toLocaleString('en-IN')}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="background:#F1F5F9;border-top:1.5px solid #0F172A;font-weight:900;">
+                  <td colspan="5" style="padding:5px 6px;text-align:right;text-transform:uppercase;letter-spacing:0.4px;font-size:10px;">
+                    Grand Combined Stay Total (${bookings.length} Homestays):
+                  </td>
+                  <td style="padding:5px 8px;text-align:right;font-size:12.5px;color:#0F172A;white-space:nowrap;">
+                    ₹${totalAmount.toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
 
         <!-- 💰 Financial & Advance Payment Tracker -->
