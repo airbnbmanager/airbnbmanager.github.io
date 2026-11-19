@@ -162,9 +162,10 @@
     }
     // Dry-run mode is completely removed — always LIVE dispatches
     delete HUB.config.dry_run_mode;
-    if (HUB.config.auto_send_enabled !== false) {
-      HUB.config.auto_send_enabled = true;
-    }
+    // Force master auto-send and guest welcome pass active
+    HUB.config.auto_send_enabled = true;
+    HUB.config.send_welcome = true;
+    setLocalConfig(HUB.config);
     startGatewayKeepAlive();
     return HUB.config;
   }
@@ -689,22 +690,19 @@ The Unique Haven Homes Property Management`;
 
   // A2. Trigger Direct Booking Confirmation Pass to Guest Mobile
   window.triggerGuestBookingPass = async function(b) {
-    if (!b || !b.phone) return;
+    console.log('📱 [triggerGuestBookingPass] Invoked with booking payload:', b);
+    if (!b || !b.phone) {
+      console.warn('⚠️ [triggerGuestBookingPass] Missing booking object or phone:', b);
+      return;
+    }
     if (b.booking_id && window._dispatchedBkPasses.has(b.booking_id)) {
       console.log('ℹ️ Guest booking pass already dispatched for:', b.booking_id);
       return;
     }
 
     await loadConfig();
-    const isMasterOn = HUB.config.auto_send_enabled !== false;
-    if (!isMasterOn) {
-      console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
-      return;
-    }
-    if (HUB.config.send_welcome === false) {
-      console.log('ℹ️ Guest booking pass toggle is OFF in WhatsApp Hub.');
-      return;
-    }
+    HUB.config.auto_send_enabled = true;
+    HUB.config.send_welcome = true;
 
     let text = '';
     if (typeof window.buildMessageData === 'function' && typeof window.tplConfirmation === 'function' && b.booking_id) {
@@ -767,6 +765,7 @@ The Unique Haven Homes Property Management`;
         `_The Unique Haven Homes Luxury Stays_`;
     }
 
+    console.log('📤 [triggerGuestBookingPass] Dispatching pass to:', b.phone);
     const res = await dispatchWhatsAppMessage({
       to: b.phone,
       isGroup: false,
@@ -775,6 +774,7 @@ The Unique Haven Homes Property Management`;
       bookingId: b.booking_id,
       guestName: b.guest_name || 'Guest'
     });
+    console.log('📬 [triggerGuestBookingPass] Result:', res);
     if (res && res.ok && b.booking_id) {
       window._dispatchedBkPasses.add(b.booking_id);
     }
