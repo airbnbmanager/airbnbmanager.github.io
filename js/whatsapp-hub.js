@@ -20,8 +20,8 @@
 
     // 3 Essential Auto-Dispatches for New Bookings
     send_welcome: true, // 🔑 Direct Guest Booking Pass (Active)
-    send_booking_group: true, // 🛎️ 📒Booking Data Group Alert (Active)
-    send_investor_booking: true, // 💼 Property Investor Group Alert (Active)
+    send_booking_group: false, // 🛎️ 📒Booking Data Group Alert (OFF by default — only fires if enabled)
+    send_investor_booking: false, // 💼 Property Investor Group Alert (OFF by default — only fires if enabled)
     send_housekeeping_checkout: false, // OFF
     send_investor_reports: false, // OFF
     send_arrival: false, // OFF
@@ -170,7 +170,7 @@
     // Preserve user explicit toggle choices (STRICT: never override false to true!)
     if (HUB.config.auto_send_enabled === undefined) HUB.config.auto_send_enabled = true;
     if (HUB.config.send_welcome === undefined) HUB.config.send_welcome = true;
-    if (HUB.config.send_booking_group === undefined) HUB.config.send_booking_group = true;
+    if (HUB.config.send_booking_group === undefined) HUB.config.send_booking_group = false;
     if (HUB.config.send_investor_booking === undefined) HUB.config.send_investor_booking = false;
 
     if (!HUB.config.booking_group_id) {
@@ -409,20 +409,32 @@
     await loadConfig();
 
     // 1. MASTER ON/OFF CHECK
-    if (!HUB.config.auto_send_enabled) {
+    if (HUB.config.auto_send_enabled !== true) {
       console.log('🛑 [WhatsApp Hub] Auto-send is MASTER OFF. Skipping message for:', to);
       return { ok: false, reason: 'master_off' };
     }
 
     // 2. GRANULAR TOGGLE CHECK
-    if (type === 'new_booking_group' && HUB.config.send_booking_group === false) {
-      console.log('🛑 [WhatsApp Hub] Booking Group alerts are OFF.');
+    const isBookingGroup = String(to).includes('120363425834560086') ||
+                           String(to) === String(HUB.config.booking_group_id) ||
+                           type === 'new_booking_group' ||
+                           type === 'booking_group_alert' ||
+                           (text && text.includes('BOOKING DATA'));
+
+    if (isBookingGroup && HUB.config.send_booking_group !== true) {
+      console.log('🛑 [WhatsApp Hub] Booking Group alerts are OFF. Dropping dispatch for:', to);
       return { ok: false, reason: 'subtoggle_off' };
     }
-    if (type === 'new_booking_investor' && HUB.config.send_investor_booking === false) {
-      console.log('🛑 [WhatsApp Hub] Investor Booking alerts are OFF.');
+
+    const isInvestorGroup = type === 'new_booking_investor' ||
+                            type === 'investor_report' ||
+                            (text && (text.includes('Investor') || text.includes('INVESTOR')));
+
+    if (isInvestorGroup && HUB.config.send_investor_booking !== true) {
+      console.log('🛑 [WhatsApp Hub] Investor Booking alerts are OFF. Dropping dispatch for:', to);
       return { ok: false, reason: 'subtoggle_off' };
     }
+
     if (type === 'housekeeping_checkout' && !HUB.config.send_housekeeping_checkout) {
       console.log('🛑 [WhatsApp Hub] Housekeeping Checkout alerts are OFF.');
       return { ok: false, reason: 'subtoggle_off' };
@@ -431,7 +443,8 @@
       console.log('🛑 [WhatsApp Hub] Investor Group monthly reports are OFF.');
       return { ok: false, reason: 'subtoggle_off' };
     }
-    if (type === 'guest_welcome' && HUB.config.send_welcome === false) {
+    if (type === 'guest_welcome' && HUB.config.send_welcome !== true) {
+      console.log('🛑 [WhatsApp Hub] Guest Welcome Pass is OFF.');
       return { ok: false, reason: 'subtoggle_off' };
     }
     if (type === 'checkout_reminder' && !HUB.config.send_checkout) {
@@ -570,12 +583,12 @@
     }
     await loadConfig();
 
-    if (!HUB.config.auto_send_enabled) {
+    if (HUB.config.auto_send_enabled !== true) {
       console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
       return;
     }
-    if (HUB.config.send_booking_group === false) {
-      console.log('ℹ️ Booking group alert toggle is OFF in WhatsApp Hub.');
+    if (HUB.config.send_booking_group !== true) {
+      console.log('ℹ️ Booking group alert toggle is OFF in WhatsApp Hub (must be explicitly true). Skipping.');
       return;
     }
 
@@ -636,12 +649,12 @@
     }
     await loadConfig();
 
-    if (!HUB.config.auto_send_enabled) {
+    if (HUB.config.auto_send_enabled !== true) {
       console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub.');
       return;
     }
-    if (HUB.config.send_investor_booking === false) {
-      console.log('ℹ️ Investor booking alert toggle is OFF in WhatsApp Hub.');
+    if (HUB.config.send_investor_booking !== true) {
+      console.log('ℹ️ Investor booking alert toggle is OFF in WhatsApp Hub (must be explicitly true). Skipping.');
       return;
     }
 
@@ -768,12 +781,12 @@ The Unique Haven Homes Property Management`;
     }
 
     await loadConfig();
-    if (!HUB.config.auto_send_enabled) {
+    if (HUB.config.auto_send_enabled !== true) {
       console.log('ℹ️ Master automation is PAUSED in WhatsApp Hub. Skipping guest pass.');
       return;
     }
-    if (HUB.config.send_welcome === false) {
-      console.log('ℹ️ Guest booking pass toggle is OFF in WhatsApp Hub. Skipping.');
+    if (HUB.config.send_welcome !== true) {
+      console.log('ℹ️ Guest booking pass toggle is OFF in WhatsApp Hub (must be explicitly true). Skipping.');
       return;
     }
 

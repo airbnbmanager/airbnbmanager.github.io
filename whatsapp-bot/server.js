@@ -1115,6 +1115,81 @@ app.post('/api/whatsapp/send-meta', async (req, res) => {
   }
 });
 
+// ==================== GATEWAY AUTOMATION FIREWALL ====================
+// Strict server-side enforcement of CRM settings (prevents disabled alerts from ever leaving the server)
+const recentDispatches = new Map();
+
+function isDuplicateDispatch(to, text, bookingId) {
+  const key = `${to}_${bookingId || (text ? text.substring(0, 50) : '')}`;
+  const now = Date.now();
+  const lastTime = recentDispatches.get(key);
+  if (lastTime && (now - lastTime) < 45000) { // 45 seconds debounce
+    return true;
+  }
+  recentDispatches.set(key, now);
+  if (recentDispatches.size > 200) {
+    for (const [k, t] of recentDispatches.entries()) {
+      if (now - t > 60000) recentDispatches.delete(k);
+    }
+  }
+  return false;
+}
+
+function verifyGatewayFirewall(to, text, type, isGroupMsg) {
+  const cfg = loadPersistentConfig();
+  if (!cfg) return { allowed: true };
+
+  // 1. MASTER AUTOMATION CHECK
+  if (cfg.auto_send_enabled === false) {
+    return { allowed: false, reason: 'master_automation_paused' };
+  }
+
+  // 2. BOOKING DATA GROUP ALERT CHECK
+  const isBookingGroupTarget = String(to).includes('120363425834560086') ||
+                               String(to) === String(cfg.booking_group_id) ||
+                               type === 'new_booking_group' ||
+                               type === 'booking_group_alert' ||
+                               (text && text.includes('BOOKING DATA'));
+
+  if (isBookingGroupTarget) {
+    if (cfg.send_booking_group === false || cfg.send_booking_group === 'disabled' || cfg.send_booking_group === 'off') {
+      return { allowed: false, reason: 'booking_data_group_alerts_disabled' };
+    }
+  }
+
+  // 3. INVESTOR GROUP ALERT CHECK
+  const isInvestorTarget = type === 'new_booking_investor' ||
+                           type === 'investor_report' ||
+                           (text && (text.includes('Investor') || text.includes('INVESTOR')));
+
+  if (isInvestorTarget) {
+    if (cfg.send_investor_booking === false || cfg.send_investor_booking === 'disabled' || cfg.send_investor_booking === 'off') {
+      return { allowed: false, reason: 'investor_group_alerts_disabled' };
+    }
+  }
+
+  // 4. PROPERTY-WISE INVESTOR GROUP CHECK
+  if (isGroupMsg && cfg.investor_groups) {
+    for (const [propKey, mappedTarget] of Object.entries(cfg.investor_groups)) {
+      if (mappedTarget === 'disabled' || mappedTarget === 'off' || mappedTarget === '') {
+        if (text && text.toLowerCase().includes(propKey.toLowerCase())) {
+          return { allowed: false, reason: `property_${propKey}_alerts_silenced` };
+        }
+      }
+    }
+  }
+
+  // 5. GUEST CONFIRMATION PASS CHECK
+  const isGuestPass = !isGroupMsg && (type === 'guest_welcome' || type === 'guest_confirmation' || (text && (text.includes('BOOKING CONFIRMED') || text.includes('Namaste') || text.includes('Dear'))));
+  if (isGuestPass) {
+    if (cfg.send_welcome === false || cfg.send_welcome === 'disabled' || cfg.send_welcome === 'off') {
+      return { allowed: false, reason: 'guest_pass_disabled' };
+    }
+  }
+
+  return { allowed: true };
+}
+
 // 9. Standard Send Message API (With Smart Dual-Engine Fallback)
 app.post('/send-message', async (req, res) => {
   const { to, message, isGroup } = req.body;
@@ -1123,6 +1198,29 @@ app.post('/send-message', async (req, res) => {
   }
 
   const isGroupMsg = !!isGroup || String(to).includes('@g.us') || String(to).includes('-');
+
+  // 🛡️ GATEWAY FIREWALL ENFORCEMENT (Stops disabled alerts at hardware/server level)
+  const firewall = verifyGatewayFirewall(to, message, req.body.type, isGroupMsg);
+  if (!firewall.allowed) {
+    console.log(`🛑 [GATEWAY FIREWALL BLOCKED] Target: ${to} | Reason: ${firewall.reason}`);
+    return res.json({
+      ok: false,
+      blocked: true,
+      reason: firewall.reason,
+      message: `Blocked by WhatsApp Hub automation settings (${firewall.reason})`
+    });
+  }
+
+  // 🛡️ Deduplication Guard (Prevents multi-tab / duplicate events)
+  if (isDuplicateDispatch(to, message, req.body.bookingId)) {
+    console.log(`⏭️ [GATEWAY DEBOUNCE] Dropped duplicate message for ${to} (${req.body.bookingId})`);
+    return res.json({
+      ok: true,
+      deduplicated: true,
+      recipient: to,
+      message: 'Duplicate message already sent in last 45s'
+    });
+  }
 
   // 🛡️ DUAL-ENGINE FALLBACK: If Baileys is offline and recipient is a guest/individual phone:
   if (!isGroupMsg && (connectionStatus !== 'connected' || !sock) && META_ACCESS_TOKEN) {
@@ -1243,11 +1341,35 @@ app.post('/send-group', async (req, res) => {
   if (!groupId || !message) {
     return res.status(400).json({ ok: false, error: 'groupId and message are required.' });
   }
+
+  const to = groupId.includes('@g.us') ? groupId : (groupId + '@g.us');
+
+  // 🛡️ GATEWAY FIREWALL ENFORCEMENT
+  const firewall = verifyGatewayFirewall(to, message, req.body.type || 'group_alert', true);
+  if (!firewall.allowed) {
+    console.log(`🛑 [GATEWAY FIREWALL BLOCKED] Group: ${to} | Reason: ${firewall.reason}`);
+    return res.json({
+      ok: false,
+      blocked: true,
+      reason: firewall.reason,
+      message: `Blocked by WhatsApp Hub automation settings (${firewall.reason})`
+    });
+  }
+
+  // Deduplication guard
+  if (isDuplicateDispatch(to, message, req.body.bookingId)) {
+    console.log(`⏭️ [GATEWAY DEBOUNCE] Dropped duplicate group message for ${to} (${req.body.bookingId})`);
+    return res.json({
+      ok: true,
+      deduplicated: true,
+      recipient: to,
+      message: 'Duplicate group message already sent in last 45s'
+    });
+  }
+
   if (connectionStatus !== 'connected' || !sock) {
     return res.status(503).json({ ok: false, error: 'WhatsApp is not connected.' });
   }
-
-  const to = groupId.includes('@g.us') ? groupId : (groupId + '@g.us');
   try {
     const result = await sock.sendMessage(to, { text: message });
     const msgId = result?.key?.id;
