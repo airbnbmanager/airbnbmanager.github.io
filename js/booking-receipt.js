@@ -233,7 +233,7 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
   }
 
   // 1. Fetch Complete Booking Data for Receipt
-  async function fetchBookingReceiptData(bookingIdOrPhone) {
+  async function fetchBookingReceiptData(bookingIdOrPhone, options = {}) {
     let client = window.sb;
     if (!client && typeof supabase !== 'undefined') {
       const url = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : window.SUPABASE_URL;
@@ -262,6 +262,63 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
         .maybeSingle();
       if (error) throw error;
       booking = data;
+
+      // 🌟 AUTOMATIC GROUPING DETECTION:
+      // If this booking belongs to a Multi-Property Group or has sibling bookings for the same phone on same/overlapping dates,
+      // automatically group them into a consolidated group receipt (unless forceSingle is explicitly requested)!
+      if (booking && !options?.forceSingle) {
+        let siblingBks = null;
+
+        // 1. Check if stay_group_id links multiple bookings
+        if (booking.stay_group_id && !booking.stay_group_id.startsWith('B')) {
+          const { data: gData } = await client.from('guest_register')
+            .select('*, rooms(*)')
+            .eq('stay_group_id', booking.stay_group_id)
+            .eq('is_cancelled', false)
+            .order('check_in', { ascending: true });
+          if (gData && gData.length > 1) {
+            siblingBks = gData;
+          }
+        }
+
+        // 2. Auto-detect siblings by phone and matching/overlapping stay dates
+        if (!siblingBks && booking.phone) {
+          const pDigits = cleanPhone(booking.phone);
+          const last10 = pDigits.slice(-10);
+          if (last10.length === 10) {
+            const { data: pData } = await client.from('guest_register')
+              .select('*, rooms(*)')
+              .or(`phone.ilike.%${last10}%,phone.eq.${pDigits}`)
+              .eq('is_cancelled', false)
+              .order('check_in', { ascending: true });
+
+            if (pData && pData.length > 1) {
+              const bCi = booking.check_in || '';
+              const bCo = booking.check_out || bCi;
+              const overlapping = pData.filter(b => {
+                const ci = b.check_in || '';
+                const co = b.check_out || ci;
+                return (ci === bCi) || (ci <= bCo && co >= bCi);
+              });
+              if (overlapping.length > 1) {
+                siblingBks = overlapping;
+              }
+            }
+          }
+        }
+
+        // If multiple sibling properties are found, automatically return consolidated multiData!
+        if (siblingBks && siblingBks.length > 1) {
+          const multi = await fetchMultiBookingReceiptData(siblingBks.map(b => b.booking_id));
+          if (multi && multi.bookings && multi.bookings.length > 1) {
+            return {
+              isMultiGroup: true,
+              multiData: multi,
+              originalBooking: booking
+            };
+          }
+        }
+      }
     } else {
       // Search by phone or query
       const digits = cleanPhone(bookingIdOrPhone);
@@ -1860,7 +1917,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
   }
 
   // 5. Open Booking Receipt Interactive Modal
-  async function openBookingReceiptModal(bookingIdOrPhone) {
+  async function openBookingReceiptModal(bookingIdOrPhone, options = {}) {
     if (!bookingIdOrPhone) {
       alert('Please specify a Booking ID or Phone number.');
       return;
@@ -1880,7 +1937,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     document.body.appendChild(loadingEl);
 
     try {
-      const res = await fetchBookingReceiptData(bookingIdOrPhone);
+      const res = await fetchBookingReceiptData(bookingIdOrPhone, options);
       loadingEl.remove();
 
       if (!res) {
@@ -1941,27 +1998,45 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
       } else if (isBookingId) {
         // First check if this booking has a stay_group_id
         const { data: singleBk } = await client.from('guest_register')
-          .select('booking_id, stay_group_id, phone, guest_name, check_in')
+          .select('booking_id, stay_group_id, phone, guest_name, check_in, check_out')
           .eq('booking_id', str)
           .maybeSingle();
 
-        if (singleBk?.stay_group_id) {
+        if (singleBk?.stay_group_id && !singleBk.stay_group_id.startsWith('B')) {
           const { data, error } = await client.from('guest_register')
             .select('*, rooms(*)')
             .eq('stay_group_id', singleBk.stay_group_id)
+            .eq('is_cancelled', false)
             .order('check_in', { ascending: true });
           if (error) throw error;
           bookings = data || [];
-        } else if (singleBk?.phone) {
+        }
+
+        // If not found or only 1 found, check sibling bookings with same phone & matching stay dates
+        if ((!bookings || bookings.length <= 1) && singleBk?.phone) {
           const pDigits = cleanPhone(singleBk.phone);
           const last10 = pDigits.slice(-10);
           const { data, error } = await client.from('guest_register')
             .select('*, rooms(*)')
             .or(`phone.eq.${singleBk.phone},phone.eq.${pDigits},phone.ilike.%${last10}%`)
+            .eq('is_cancelled', false)
             .order('check_in', { ascending: true });
-          if (error) throw error;
-          bookings = data || [];
-        } else {
+          if (!error && data && data.length > 1) {
+            const bCi = singleBk.check_in || '';
+            const bCo = singleBk.check_out || bCi;
+            const overlapping = data.filter(b => {
+              const ci = b.check_in || '';
+              const co = b.check_out || ci;
+              return (ci === bCi) || (ci <= bCo && co >= bCi);
+            });
+            if (overlapping.length > 1) {
+              bookings = overlapping;
+            } else if (!bookings || !bookings.length) {
+              bookings = data;
+            }
+          }
+        }
+        if (!bookings || !bookings.length) {
           const { data } = await client.from('guest_register')
             .select('*, rooms(*)')
             .eq('booking_id', str);
@@ -2544,9 +2619,31 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
               💬 Send on WhatsApp
             </button>
+            <div style="position:relative;display:inline-block;">
+              <button type="button" class="btn-sm" style="background:#1E293B;color:#F8FAFC;font-weight:700;border:1px solid #475569;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="const d=document.getElementById('indivRoomReceiptDropdown');if(d)d.style.display=d.style.display==='none'?'block':'none';">
+                🏠 Single Flat Slips ▼
+              </button>
+              <div id="indivRoomReceiptDropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:#fff;border:1.5px solid #CBD5E1;border-radius:8px;box-shadow:0 12px 28px rgba(0,0,0,0.2);min-width:260px;z-index:99999;overflow:hidden;">
+                <div style="background:#F1F5F9;padding:8px 12px;font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;">
+                  View individual flat receipt:
+                </div>
+                ${(data.bookings || []).map(b => {
+                  const pName = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Flat';
+                  const uNo = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+                  return `
+                    <div style="padding:10px 12px;cursor:pointer;font-size:12px;font-weight:700;color:#0F172A;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;"
+                      onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'"
+                      onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${b.booking_id}', { forceSingle: true })">
+                      <span>${escapeHtml(pName)}${escapeHtml(uNo)}</span>
+                      <span style="color:#059669;font-weight:800;">₹${Number(b.total_amount||0).toLocaleString('en-IN')} →</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
             ${data.phone ? `
-              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="Combine all bookings for this guest phone across all dates">
-                📱 All Stays of Guest
+              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="View all stays for this guest">
+                📱 All Stays (${escapeHtml(data.guestName || 'Guest')})
               </button>
             ` : ''}
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
@@ -2577,79 +2674,145 @@ ${propertiesList}
     document.body.appendChild(modal);
   }
 
-  // Helper when phone has multiple bookings (e.g. 9560172711 has multiple bookings!)
+  // Helper when phone has multiple bookings (e.g. 9560172711 or 9044276377 has multiple bookings!)
   function showBookingPickerModal(bookings) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.style.zIndex = '99999';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
-    const bIds = bookings.map(b => b.booking_id);
     const guestName = bookings[0]?.guest_name || 'Guest';
+    const guestPhone = bookings[0]?.phone || '';
+    const grandTotal = bookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+    const allIds = bookings.map(b => b.booking_id);
+
+    // Cluster bookings by Stay Session (stay_group_id or check_in date)
+    const sessionsMap = new Map();
+    for (const b of bookings) {
+      const key = (b.stay_group_id && !b.stay_group_id.startsWith('B'))
+        ? b.stay_group_id
+        : `${b.check_in || 'stay'}_${b.check_out || ''}`;
+      if (!sessionsMap.has(key)) {
+        sessionsMap.set(key, []);
+      }
+      sessionsMap.get(key).push(b);
+    }
+    const sessionList = Array.from(sessionsMap.entries());
+
+    // If only 1 stay session exists and it has multiple properties, open group receipt directly!
+    if (sessionList.length === 1 && sessionList[0][1].length > 1) {
+      const singleSessionKey = sessionList[0][0];
+      const singleSessionBks = sessionList[0][1];
+      window.openMultiPropertyReceiptModal(singleSessionKey.startsWith('GRP') ? singleSessionKey : singleSessionBks.map(b => b.booking_id));
+      return;
+    }
 
     modal.innerHTML = `
-      <div class="modal-box" style="max-width:620px;padding:24px;border-radius:14px;background:#fff;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;">
+      <div class="modal-box" style="max-width:680px;width:95%;padding:22px;border-radius:14px;background:#fff;max-height:92vh;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1.5px solid #E2E8F0;padding-bottom:10px;">
           <div>
-            <h3 style="margin:0;font-size:17px;font-weight:900;color:#0F172A;">Multiple Bookings Found</h3>
-            <div style="font-size:12px;color:#64748B;">Found ${bookings.length} reservations for <strong>${escapeHtml(guestName)}</strong>:</div>
+            <h3 style="margin:0;font-size:17px;font-weight:900;color:#0F172A;display:flex;align-items:center;gap:6px;">
+              <span>🏨 Reservations Found</span>
+              <span style="background:#EEF2FF;color:#4F46E5;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:800;">${bookings.length} Bookings · ${sessionList.length} Stays</span>
+            </h3>
+            <div style="font-size:12px;color:#64748B;margin-top:2px;">Guest: <strong>${escapeHtml(guestName)}</strong> · Phone: <strong>${escapeHtml(guestPhone)}</strong></div>
           </div>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="font-size:20px;background:none;border:none;cursor:pointer;">✕</button>
         </div>
 
-        <!-- 🌟 PROMINENT COMBINED MULTI-PROPERTY RECEIPT BANNER -->
-        <div style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(49,46,129,0.25);">
-          <div>
-            <div style="font-weight:900;font-size:14.5px;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
-              <span>📑 Consolidated Multi-Property Receipt</span>
-              <span style="background:#4F46E5;color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;">${bookings.length} Properties</span>
-            </div>
-            <div style="font-size:11.5px;color:#C7D2FE;margin-top:3px;">
-              Combine all ${bookings.length} properties of this guest into one single grand receipt with unified WhatsApp text
-            </div>
-          </div>
-          <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:800;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-size:12px;"
-            onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal(${JSON.stringify(bIds).replace(/"/g, '&quot;')})">
-            Open Combined Receipt →
-          </button>
-        </div>
+        <div style="flex:1;overflow-y:auto;padding-right:4px;">
+          ${sessionList.map(([grpKey, sBks]) => {
+            const isGroup = sBks.length > 1;
+            const sessionTot = sBks.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+            const firstCi = sBks[0]?.check_in;
+            const lastCo = sBks[0]?.check_out;
+            const sIds = sBks.map(b => b.booking_id);
 
-        <div style="font-size:11.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
-          Or Select An Individual Property Receipt:
-        </div>
+            if (isGroup) {
+              return `
+                <div style="background:#F8FAFC;border:1.5px solid #C7D2FE;border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(79,70,229,0.06);">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                    <div>
+                      <div style="font-weight:900;font-size:14.5px;color:#1E1B4B;display:flex;align-items:center;gap:7px;">
+                        <span>🏢 Multi-Property Group Stay</span>
+                        <span style="background:#4F46E5;color:#fff;font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:800;">${sBks.length} Homestays</span>
+                      </div>
+                      <div style="font-size:12px;color:#475569;margin-top:3px;">
+                        📅 <strong>${formatDate(firstCi)} → ${formatDate(lastCo)}</strong> · Ref: <code style="color:#4F46E5;font-weight:700;">${escapeHtml(grpKey)}</code>
+                      </div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:15px;font-weight:900;color:#059669;">₹${sessionTot.toLocaleString('en-IN')}</div>
+                      <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:11.5px;margin-top:4px;"
+                        onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal(${grpKey.startsWith('GRP') ? `'${escapeHtml(grpKey)}'` : JSON.stringify(sIds).replace(/"/g, '&quot;')})">
+                        📑 Open ${sBks.length}-Property Group Receipt →
+                      </button>
+                    </div>
+                  </div>
 
-        <div style="max-height:360px;overflow-y:auto;">
-          ${bookings.map(b => {
-            const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Property';
-            const unit = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
-            const n = calcNights(b.check_in, b.check_out);
-            return `
-              <div style="border:1.5px solid #CBD5E1;border-radius:10px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;"
-                onmouseover="this.style.borderColor='#0F172A';this.style.background='#F8FAFC';"
-                onmouseout="this.style.borderColor='#CBD5E1';this.style.background='#fff';"
-                onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${b.booking_id}')">
-                <div>
-                  <div style="font-weight:800;font-size:14px;color:#0F172A;">
-                    ${escapeHtml(b.guest_name)} · <span style="color:#0284C7;">${escapeHtml(prop)}${escapeHtml(unit)}</span>
-                  </div>
-                  <div style="font-size:12px;color:#64748B;margin-top:2px;">
-                    📅 ${formatDate(b.check_in)} → ${formatDate(b.check_out)} (${n} night${n > 1 ? 's' : ''})
-                  </div>
-                  <div style="font-size:11px;color:#94A3B8;margin-top:2px;">
-                    ID: ${b.booking_id} ${b.stay_group_id ? `· <span style="color:#6366F1;font-weight:700;">Group: ${escapeHtml(b.stay_group_id)}</span>` : ''} · Phone: ${b.phone || '-'}
+                  <!-- Sub-list of individual rooms in this stay group -->
+                  <div style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;margin:8px 0 4px;letter-spacing:0.3px;">Included Homestays (${sBks.length}):</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:6px;">
+                    ${sBks.map(b => {
+                      const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Property';
+                      const unit = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+                      return `
+                        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;">
+                          <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span style="font-weight:700;font-size:11.5px;color:#0F172A;">${escapeHtml(prop)}${escapeHtml(unit)}</span>
+                            <span style="font-size:10.5px;color:#059669;font-weight:700;margin-left:4px;">₹${Number(b.total_amount||0).toLocaleString('en-IN')}</span>
+                          </div>
+                          <button class="btn-sm" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;padding:3px 7px;font-size:10px;font-weight:700;border-radius:4px;cursor:pointer;margin-left:6px;flex-shrink:0;"
+                            onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${b.booking_id}', { forceSingle: true })" title="View individual flat receipt">
+                            Single Slip
+                          </button>
+                        </div>
+                      `;
+                    }).join('')}
                   </div>
                 </div>
-                <div style="text-align:right;">
-                  <div style="font-weight:900;font-size:15px;color:#059669;">
-                    ₹${Number(b.total_amount || 0).toLocaleString('en-IN')}
+              `;
+            } else {
+              const b = sBks[0];
+              const prop = b.rooms?.nickname || b.rooms?.property_name || b.room_id || 'Property';
+              const unit = b.rooms?.unit_no ? ` (${b.rooms.unit_no})` : '';
+              return `
+                <div style="border:1.5px solid #CBD5E1;border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;background:#fff;">
+                  <div>
+                    <div style="font-weight:800;font-size:14px;color:#0F172A;">
+                      🏠 ${escapeHtml(prop)}${escapeHtml(unit)} · <span style="font-size:12px;color:#64748B;">Single Homestay</span>
+                    </div>
+                    <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+                      📅 ${formatDate(b.check_in)} → ${formatDate(b.check_out)} · ID: ${b.booking_id}
+                    </div>
                   </div>
-                  <button class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;margin-top:4px;">
-                    Single Receipt →
-                  </button>
+                  <div style="text-align:right;">
+                    <div style="font-weight:900;font-size:14px;color:#059669;">₹${Number(b.total_amount || 0).toLocaleString('en-IN')}</div>
+                    <button class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;margin-top:4px;"
+                      onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${b.booking_id}', { forceSingle: true })">
+                      Open Receipt →
+                    </button>
+                  </div>
                 </div>
-              </div>
-            `;
+              `;
+            }
           }).join('')}
+
+          ${sessionList.length > 1 ? `
+            <div style="margin-top:14px;background:#F1F5F9;border:1.5px dashed #94A3B8;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div style="font-weight:800;font-size:13px;color:#1E1B4B;">💼 Grand Ledger Statement (All Stays Combined)</div>
+                <div style="font-size:11.5px;color:#64748B;">Total ${bookings.length} homestays across all ${sessionList.length} stay sessions</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-weight:900;font-size:15px;color:#0F172A;">₹${grandTotal.toLocaleString('en-IN')}</span>
+                <button type="button" class="btn-sm" style="background:#0F172A;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:11.5px;"
+                  onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal(${JSON.stringify(allIds).replace(/"/g, '&quot;')})">
+                  Grand Receipt →
+                </button>
+              </div>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
