@@ -322,11 +322,19 @@ window.BOOKING_RECEIPT_ENGINE = (function() {
     } else {
       // Search by phone or query
       const digits = cleanPhone(bookingIdOrPhone);
+      if (digits.length >= 10) {
+        // 🌟 ALL BOOKINGS EK SATH: Automatically fetch and consolidate all bookings for this guest phone!
+        const multi = await fetchMultiBookingReceiptData(digits);
+        if (multi && multi.bookings && multi.bookings.length > 0) {
+          return { isMultiGroup: true, multiData: multi };
+        }
+      }
+
       const { data, error } = await client.from('guest_register')
         .select('*, rooms(*)')
         .or(`phone.ilike.%${digits}%,booking_id.eq.${bookingIdOrPhone}`)
         .order('check_in', { ascending: false })
-        .limit(10);
+        .limit(30);
       if (error) throw error;
       if (!data || !data.length) return null;
       if (data.length === 1) {
@@ -2048,8 +2056,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         const { data, error } = await client.from('guest_register')
           .select('*, rooms(*)')
           .or(`phone.ilike.%${last10}%,phone.eq.${digits}`)
-          .order('check_in', { ascending: false })
-          .limit(30);
+          .order('check_in', { ascending: true })
+          .limit(50);
         if (error) throw error;
         bookings = data || [];
       }
@@ -2077,8 +2085,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     const primaryBooking = bookings[0];
     const guestName = primaryBooking.guest_name || 'Valued Guest';
     const phone = primaryBooking.phone || '';
-    const anyGroupId = bookings.find(b => b.stay_group_id)?.stay_group_id;
-    const stayGroupId = anyGroupId || primaryBooking.stay_group_id || `GRP-${cleanPhone(phone)}-${Date.now().toString().slice(-4)}`;
+    const isAllPhoneQuery = typeof identifier === 'string' && cleanPhone(identifier).length >= 10;
+    const anyGroupId = bookings.find(b => b.stay_group_id && !b.stay_group_id.startsWith('B'))?.stay_group_id;
+    const stayGroupId = isAllPhoneQuery ? `GRP-${cleanPhone(phone)}-ALL` : (anyGroupId || primaryBooking.stay_group_id || `GRP-${cleanPhone(phone)}-${Date.now().toString().slice(-4)}`);
 
     // Total guests
     const totalGuests = bookings.reduce((sum, b) => sum + Number(b.guests || 1), 0);
@@ -2642,8 +2651,8 @@ ${propertiesList}
               </div>
             </div>
             ${data.phone ? `
-              <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="this.closest('.modal-overlay').remove();window.openBookingReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="View all stays for this guest">
-                📱 All Stays (${escapeHtml(data.guestName || 'Guest')})
+              <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:900;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(245,158,11,0.35);" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="View all bookings of this guest together in one single grand receipt">
+                🌟 All Bookings Ek Sath (${escapeHtml(data.guestName || 'Guest')})
               </button>
             ` : ''}
             <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
@@ -2653,6 +2662,28 @@ ${propertiesList}
         </div>
 
         <textarea id="multiReceiptWaHidden" style="display:none;">${escapeHtml(waText)}</textarea>
+
+        ${(data.phone && !data.stayGroupId?.includes('ALL')) ? `
+          <div style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 12px rgba(49,46,129,0.2);">
+            <div>
+              <div style="font-weight:900;font-size:13.5px;color:#FDE047;display:flex;align-items:center;gap:6px;">
+                <span>🌟 ALL BOOKINGS EK SATH AVAILABLE</span>
+              </div>
+              <div style="font-size:11.5px;color:#C7D2FE;margin-top:2px;">
+                Guest <strong>${escapeHtml(data.guestName)}</strong> ki sabhi dates ki bookings ka consolidated receipt ek sath dekhne ke liye yahan click karein:
+              </div>
+            </div>
+            <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:900;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:12.5px;box-shadow:0 2px 6px rgba(245,158,11,0.35);"
+              onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')">
+              📑 RECEIPT: ALL BOOKINGS EK SATH →
+            </button>
+          </div>
+        ` : `
+          <div style="background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:8px;padding:6px 12px;margin-bottom:10px;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:space-between;">
+            <span>✅ Sabhi Bookings Ek Sath (All Dates Consolidated)</span>
+            <span>Total ${data.bookings.length} Homestays · ₹${(data.totalAmount || 0).toLocaleString('en-IN')}</span>
+          </div>
+        `}
 
         <!-- Printable Document View Wrapper -->
         <div style="flex:1;overflow-y:auto;background:#fff;border-radius:10px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);border:1px solid #E2E8F0;" id="multiReceiptPrintArea">
@@ -2721,6 +2752,23 @@ ${propertiesList}
         </div>
 
         <div style="flex:1;overflow-y:auto;padding-right:4px;">
+          <!-- 🌟 PROMINENT TOP BANNER: ALL BOOKINGS EK SATH -->
+          <div style="background:linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(49,46,129,0.25);">
+            <div>
+              <div style="font-weight:900;font-size:15px;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
+                <span>📑 RECEIPT: ALL BOOKINGS EK SATH</span>
+                <span style="background:#F59E0B;color:#0F172A;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:900;">${bookings.length} Homestays · ₹${grandTotal.toLocaleString('en-IN')}</span>
+              </div>
+              <div style="font-size:12px;color:#C7D2FE;margin-top:4px;">
+                Guest <strong>${escapeHtml(guestName)}</strong> ki sabhi ${bookings.length} bookings ka single grand receipt ek sath open karein (All Dates Combined)
+              </div>
+            </div>
+            <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:900;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;white-space:nowrap;font-size:13px;box-shadow:0 2px 8px rgba(245,158,11,0.35);"
+              onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(guestPhone))}')">
+              🌟 Open All Bookings Ek Sath →
+            </button>
+          </div>
+
           ${sessionList.map(([grpKey, sBks]) => {
             const isGroup = sBks.length > 1;
             const sessionTot = sBks.reduce((s, b) => s + Number(b.total_amount || 0), 0);
