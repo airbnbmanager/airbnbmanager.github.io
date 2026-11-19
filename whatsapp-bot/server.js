@@ -38,12 +38,92 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const AUTH_FOLDER = path.join(__dirname, 'auth_session');
 const CHATS_FILE = path.join(AUTH_FOLDER, 'chats_store.json');
+const AUDIT_FILE = path.join(AUTH_FOLDER, 'audit_logs.json');
 
 let sock = null;
 let connectionStatus = 'disconnected'; // 'disconnected' | 'connecting' | 'connected'
 let lastQr = null;
 let isStarting = false;
 let botBootTimestamp = Math.floor(Date.now() / 1000); // 🛡️ Timestamp barrier: ignores ALL previous/backlog messages!
+
+// ─── AUDIT LOG STORE (Zero-loss persistent tracking of all automated & manual WhatsApp messages) ───
+let auditLogs = [];
+
+function loadAuditLogs() {
+  try {
+    if (fs.existsSync(AUDIT_FILE)) {
+      auditLogs = JSON.parse(fs.readFileSync(AUDIT_FILE, 'utf8')) || [];
+      console.log(`📜 Loaded ${auditLogs.length} persistent WhatsApp delivery audit logs.`);
+    }
+  } catch (err) {
+    auditLogs = [];
+  }
+}
+
+function saveAuditLogs() {
+  try {
+    if (!fs.existsSync(AUTH_FOLDER)) fs.mkdirSync(AUTH_FOLDER, { recursive: true });
+    fs.writeFileSync(AUDIT_FILE, JSON.stringify(auditLogs.slice(0, 500), null, 2));
+  } catch (err) {
+    console.warn('⚠️ Could not save audit logs:', err.message);
+  }
+}
+
+function recordAuditLog({ id, to, isGroup, text, type, bookingId, guestName, propertyName, status, error, gateway }) {
+  const isGrp = !!isGroup || String(to).includes('@g.us');
+  const cleanPhone = String(to).replace(/\D/g, '');
+
+  let detectedName = guestName;
+  if (!detectedName && text) {
+    const m = text.match(/Dear\s+\*?([^*\n\r]+)\*?/i) || text.match(/Namaste\s+\*?([^*\n\r]+)\*?/i);
+    if (m && m[1]) detectedName = m[1].replace(/ji$/i, '').trim();
+  }
+
+  let detectedProp = propertyName;
+  if (!detectedProp && text) {
+    const pm = text.match(/Property:\*?\s+([^\n\r]+)/i);
+    if (pm && pm[1]) detectedProp = pm[1].trim();
+  }
+
+  let detectedType = type;
+  if (!detectedType && text) {
+    if (text.includes('BOOKING CONFIRMED — THE UNIQUE HAVEN HOMES') || text.includes('BOOKING CONFIRMED')) {
+      detectedType = 'guest_confirmation';
+    } else if (text.includes('Booking Data') || text.includes('BOOKING CONFIRMED — GROUP')) {
+      detectedType = 'new_booking_group';
+    } else if (text.includes('Investor')) {
+      detectedType = 'investor_report';
+    } else if (text.includes('Housekeeping') || text.includes('Checkout Alert')) {
+      detectedType = 'housekeeping_checkout';
+    } else if (text.includes('Advance Paid') || text.includes('Receipt')) {
+      detectedType = 'booking_receipt';
+    } else {
+      detectedType = isGrp ? 'group_alert' : 'direct_message';
+    }
+  }
+
+  const entry = {
+    id: id || ('walog_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)),
+    booking_id: bookingId || (text ? (text.match(/B\d{10,}/) || [])[0] : null),
+    guest_name: detectedName || (isGrp ? 'WhatsApp Group' : 'Guest'),
+    property_name: detectedProp || null,
+    phone: isGrp ? to : (cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone),
+    template_name: detectedType || 'guest_confirmation',
+    message_preview: text || '',
+    triggered_by: 'automation',
+    status: status || 'sent',
+    error_message: error || null,
+    gateway_used: gateway || 'Mac Mini (+91 9194109911)',
+    sent_at: new Date().toISOString()
+  };
+
+  auditLogs.unshift(entry);
+  if (auditLogs.length > 500) auditLogs.pop();
+  saveAuditLogs();
+  return entry;
+}
+
+loadAuditLogs();
 
 // ─── META OFFICIAL CLOUD API CONFIGURATION ───
 let META_WABA_ID = process.env.META_WABA_ID || '2158082111408544';
@@ -1049,9 +1129,21 @@ app.post('/send-message', async (req, res) => {
     try {
       console.log(`🔀 Baileys offline. Smart failover: Sending guest message to ${to} via Meta Cloud API...`);
       const metaRes = await sendMetaMessage(to, message);
+      const metaId = metaRes?.messages?.[0]?.id;
+      recordAuditLog({
+        id: metaId,
+        to,
+        isGroup: false,
+        text: message,
+        type: req.body.type,
+        bookingId: req.body.bookingId,
+        guestName: req.body.guestName,
+        status: 'sent',
+        gateway: 'Meta Cloud API'
+      });
       return res.json({
         ok: true,
-        messageId: metaRes?.messages?.[0]?.id,
+        messageId: metaId,
         sentVia: 'meta_fallback',
         recipient: to,
         timestamp: new Date().toISOString()
@@ -1062,18 +1154,42 @@ app.post('/send-message', async (req, res) => {
   }
 
   if (connectionStatus !== 'connected' || !sock) {
+    recordAuditLog({
+      to,
+      isGroup: isGroupMsg,
+      text: message,
+      type: req.body.type,
+      bookingId: req.body.bookingId,
+      guestName: req.body.guestName,
+      status: 'failed',
+      error: 'WhatsApp sender is not connected',
+      gateway: 'Mac Mini (+91 9194109911)'
+    });
     return res.status(503).json({ ok: false, error: 'WhatsApp sender is not connected. Please scan QR in WhatsApp Hub.' });
   }
 
   try {
     const jid = formatJid(to);
     const result = await sock.sendMessage(jid, { text: message });
+    const msgId = result?.key?.id;
+
+    recordAuditLog({
+      id: msgId,
+      to,
+      isGroup: isGroupMsg,
+      text: message,
+      type: req.body.type,
+      bookingId: req.body.bookingId,
+      guestName: req.body.guestName,
+      status: 'sent',
+      gateway: 'Mac Mini (+91 9194109911)'
+    });
 
     const cleanPhone = String(to).replace(/\D/g, '');
     let chat = chatsStore.get(cleanPhone);
     if (chat) {
       chat.history.push({
-        id: result?.key?.id || ('out_' + Date.now()),
+        id: msgId || ('out_' + Date.now()),
         fromMe: true,
         text: message,
         time: new Date().toISOString()
@@ -1084,12 +1200,23 @@ app.post('/send-message', async (req, res) => {
 
     res.json({
       ok: true,
-      messageId: result?.key?.id,
+      messageId: msgId,
       recipient: jid,
       timestamp: new Date().toISOString()
     });
   } catch (err) {
     console.error(`❌ Failed sending message to ${to}:`, err);
+    recordAuditLog({
+      to,
+      isGroup: isGroupMsg,
+      text: message,
+      type: req.body.type,
+      bookingId: req.body.bookingId,
+      guestName: req.body.guestName,
+      status: 'failed',
+      error: err.message,
+      gateway: 'Mac Mini (+91 9194109911)'
+    });
 
     // Secondary fallback for individual phone if Baileys threw socket error
     if (!isGroupMsg && META_ACCESS_TOKEN) {
@@ -1123,19 +1250,73 @@ app.post('/send-group', async (req, res) => {
   const to = groupId.includes('@g.us') ? groupId : (groupId + '@g.us');
   try {
     const result = await sock.sendMessage(to, { text: message });
+    const msgId = result?.key?.id;
+
+    recordAuditLog({
+      id: msgId,
+      to,
+      isGroup: true,
+      text: message,
+      type: req.body.type || 'group_alert',
+      bookingId: req.body.bookingId,
+      guestName: req.body.groupName || 'Staff Group',
+      status: 'sent',
+      gateway: 'Mac Mini (+91 9194109911)'
+    });
+
     res.json({
       ok: true,
-      messageId: result?.key?.id,
+      messageId: msgId,
       recipient: to,
       timestamp: new Date().toISOString()
     });
   } catch (err) {
     console.error(`❌ Failed sending group message to ${to}:`, err);
+    recordAuditLog({
+      to,
+      isGroup: true,
+      text: message,
+      type: req.body.type || 'group_alert',
+      bookingId: req.body.bookingId,
+      guestName: req.body.groupName || 'Staff Group',
+      status: 'failed',
+      error: err.message,
+      gateway: 'Mac Mini (+91 9194109911)'
+    });
     res.status(500).json({ ok: false, error: err.message });
   }
 });
 
-// 11. List WhatsApp Groups
+// 11. Delivery Audit Logs API (For Live Automation & Message Tracking Panel)
+app.get('/api/audit-logs', (req, res) => {
+  res.json({
+    ok: true,
+    total: auditLogs.length,
+    sender: 'The Unique Haven Homes (+91 9194109911)',
+    gatewayStatus: connectionStatus,
+    logs: auditLogs
+  });
+});
+
+app.post('/api/audit-logs/retry', async (req, res) => {
+  const { logId } = req.body;
+  const target = auditLogs.find(l => l.id === logId);
+  if (!target) return res.status(404).json({ ok: false, error: 'Audit log not found' });
+
+  try {
+    const jid = formatJid(target.phone);
+    const result = await sock.sendMessage(jid, { text: target.message_preview });
+    target.status = 'sent';
+    target.sent_at = new Date().toISOString();
+    target.error_message = null;
+    saveAuditLogs();
+    res.json({ ok: true, messageId: result?.key?.id });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 12. List WhatsApp Groups
 app.get('/groups', async (req, res) => {
   if (connectionStatus !== 'connected' || !sock) {
     return res.status(503).json({ ok: false, error: 'WhatsApp is not connected yet.' });

@@ -99,7 +99,7 @@
     templates: [],
     logs: [],
     scheduled: [],
-    activeTab: 'auto',
+    activeTab: 'log', // 📊 Default to Message Delivery & Automation Audit Tracker
     scheduler: null,
     gatewayConnected: false,
     gatewayUser: null
@@ -200,14 +200,34 @@
   async function loadLogs(limit = 100) {
     const local = getLocalLogs();
     let dbLogs = [];
+
+    // 1. Fetch live persistent logs from Mac Mini / active Gateway API
+    const gwCandidates = [
+      (HUB.config?.gateway_url || 'http://localhost:3000').replace(/\/+$/, ''),
+      'http://localhost:3000'
+    ];
+    for (const gwUrl of [...new Set(gwCandidates)]) {
+      try {
+        const res = await fetch(gwUrl + '/api/audit-logs');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok && Array.isArray(d.logs) && d.logs.length > 0) {
+            dbLogs = d.logs;
+            break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 2. Fetch Supabase logs if accessible
     try {
       if (window.sb) {
         const { data } = await sb.from('whatsapp_log').select('*').order('sent_at', { ascending: false }).limit(limit);
-        if (data) dbLogs = data;
+        if (data && data.length) dbLogs = dbLogs.concat(data);
       }
     } catch (e) {}
 
-    // Merge logs
+    // Merge logs deduplicating by ID or timestamp+phone
     const map = new Map();
     dbLogs.forEach(l => map.set(l.id || `${l.sent_at}_${l.phone}`, l));
     local.forEach(l => {
@@ -1756,13 +1776,13 @@ The Unique Haven Homes Property Management`;
         <!-- Scrollable Navigation Tabs -->
         <div class="hub-tabs-scroller" id="hubTabsScroller">
           ${[
-            { key: 'ai-chat', label: '🤖 AI Agent & Live Chat' },
-            { key: 'device', label: '📱 Link WhatsApp / Scan QR' },
-            { key: 'auto', label: '🎯 Controls & Triggers' },
+            { key: 'log', label: '📊 Message Delivery & Automation Audit' },
+            { key: 'auto', label: '🎯 Controls & Automation Rules' },
+            { key: 'device', label: '📱 Link WhatsApp / Status' },
+            { key: 'ai-chat', label: '🤖 Live WhatsApp Chat' },
             { key: 'settings', label: '⚙️ Settings & Group IDs' },
-            { key: 'scheduled', label: '⏰ Scheduled (' + HUB.scheduled.length + ')' },
-            { key: 'log', label: '📋 Message Log' },
-            { key: 'templates', label: '📝 Templates' }
+            { key: 'scheduled', label: '⏰ Scheduled Queue' },
+            { key: 'templates', label: '📝 Templates & Maps' }
           ].map(t => {
             const active = HUB.activeTab === t.key;
             return `<button class="hub-tab-pill ${active ? 'active' : ''}" data-tab="${t.key}" onclick="setHubTab('${t.key}')">${t.label}</button>`;
@@ -2287,6 +2307,69 @@ The Unique Haven Homes Property Management`;
     if (el && HUB.activeTab === 'log') el.innerHTML = renderLogTab();
   };
 
+  window.refreshHubDeliveryLogs = async function() {
+    const btn = document.getElementById('btnRefreshLogs');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Syncing...'; }
+    await loadLogs(150);
+    const el = document.getElementById('hubBody');
+    if (el && HUB.activeTab === 'log') el.innerHTML = renderLogTab();
+    if (window.fsn?.toast) fsn.toast('✅ Live WhatsApp delivery logs updated!');
+  };
+
+  window.openQuickSendTestModal = function() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:480px;width:95vw;padding:20px;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,0.18);">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E2E8F0;padding-bottom:10px;margin-bottom:14px;">
+          <h3 style="margin:0;font-size:16.5px;color:#0F172A;display:flex;align-items:center;gap:6px;">
+            💬 Send Test WhatsApp Message
+          </h3>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:700;color:#334155;display:block;margin-bottom:4px;">Mobile Number</label>
+          <input type="tel" id="quickTestPhone" value="9454470872" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;font-weight:600;" placeholder="e.g. 9454470872" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:700;color:#334155;display:block;margin-bottom:4px;">Message Text</label>
+          <textarea id="quickTestMsg" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;height:120px;font-family:system-ui,-apple-system,sans-serif;" placeholder="Type your WhatsApp message here...">Namaste! This is an automated test message from The Unique Haven Homes. 
+📍 Property: The Luxe Haven
+Google Maps: https://maps.app.goo.gl/b8YjBduoQxa98QhT6</textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button onclick="this.closest('.modal-overlay').remove()" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;">Cancel</button>
+          <button id="btnDoQuickSend" onclick="submitQuickSendTest(this)" style="background:#25D366;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+            🚀 Send via WhatsApp
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  };
+
+  window.submitQuickSendTest = async function(btn) {
+    const ph = document.getElementById('quickTestPhone')?.value?.trim();
+    const msg = document.getElementById('quickTestMsg')?.value?.trim();
+    if (!ph || !msg) { alert('Mobile number and message are required.'); return; }
+    btn.disabled = true; btn.textContent = '⏳ Sending...';
+    const res = await dispatchWhatsAppMessage({
+      to: ph,
+      isGroup: false,
+      text: msg,
+      type: 'direct_test',
+      guestName: 'Test Recipient'
+    });
+    btn.closest('.modal-overlay')?.remove();
+    if (res.ok) {
+      if (window.fsn) fsn.success('Delivered!', `WhatsApp message delivered to ${ph}`);
+      await refreshHubDeliveryLogs();
+    } else {
+      if (window.fsn) fsn.error('Send Failed', res.error || 'Could not send');
+    }
+  };
+
   function renderLogTab() {
     const allLogs = HUB.logs || [];
     const totalCount = allLogs.length;
@@ -2299,13 +2382,17 @@ The Unique Haven Homes Property Management`;
     let filtered = allLogs.filter(l => {
       if (filter === 'sent' && l.status !== 'sent') return false;
       if (filter === 'failed' && l.status !== 'failed') return false;
+      if (filter === 'passes' && !l.template_name?.includes('confirmation') && !l.template_name?.includes('welcome')) return false;
+      if (filter === 'groups' && !String(l.phone || '').includes('@g.us') && !l.template_name?.includes('group')) return false;
 
       if (query) {
         const name = (l.guest_name || '').toLowerCase();
         const phone = (l.phone || '').toLowerCase();
         const type = (l.template_name || '').toLowerCase();
         const text = (l.message_preview || '').toLowerCase();
-        if (!name.includes(query) && !phone.includes(query) && !type.includes(query) && !text.includes(query)) {
+        const prop = (l.property_name || '').toLowerCase();
+        const bId = (l.booking_id || '').toLowerCase();
+        if (!name.includes(query) && !phone.includes(query) && !type.includes(query) && !text.includes(query) && !prop.includes(query) && !bId.includes(query)) {
           return false;
         }
       }
@@ -2317,55 +2404,68 @@ The Unique Haven Homes Property Management`;
       
       let statusHtml = '';
       if (l.status === 'sent') {
-        statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:3px 8px;">✅ Sent</span>';
+        statusHtml = '<span class="badge" style="background:#DCFCE7;color:#15803D;font-weight:700;padding:4px 9px;border-radius:6px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;">✅ Sent</span>';
       } else if (l.status === 'failed') {
-        statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:3px 8px;">❌ Failed</span>';
+        statusHtml = '<span class="badge" style="background:#FEE2E2;color:#DC2626;font-weight:700;padding:4px 9px;border-radius:6px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;">❌ Failed</span>';
       } else {
         statusHtml = '<span class="badge yellow">⏳ Pending</span>';
       }
 
       const tNames = {
-        'guest_confirmation': '🎉 Guest Confirmation',
+        'guest_confirmation': '🎉 Guest Booking Pass',
+        'guest_welcome': '🎉 Guest Booking Pass',
         'new_booking_group': '🛎️ Booking Alert (Group)',
+        'booking_group_alert': '🛎️ Booking Alert (Group)',
         'housekeeping_checkout': '🧹 Housekeeping Checkout',
         'checkout_reminder': '👋 10 AM Checkout Reminder',
         'arrival_details': '🔑 Check-in & WiFi Pass',
         'investor_report': '📊 Investor Statement',
-        'airbnb_review': '⭐ Airbnb Review Link'
+        'booking_receipt': '🧾 Advance Payment Receipt',
+        'direct_test': '💬 Quick Test Message'
       };
       const typeLabel = tNames[l.template_name] || l.template_name;
       const isGroup = String(l.phone || '').includes('@g.us');
       const cleanPhone = (l.phone || '').replace(/\D/g, '');
+      const hasMap = (l.message_preview || '').includes('maps.app.goo.gl') || (l.message_preview || '').includes('maps.google.com');
+
+      let propName = l.property_name || '';
+      if (!propName && l.message_preview) {
+        const pm = l.message_preview.match(/Property:\*?\s+([^\n\r]+)/i);
+        if (pm && pm[1]) propName = pm[1].trim();
+      }
 
       return `
-        <tr style="border-bottom:1px solid #F1F5F9;">
+        <tr style="border-bottom:1px solid #F1F5F9;transition:background 0.15s ease;">
           <td data-label="Time" style="white-space:nowrap;font-size:12px;color:#64748B;">
             ${time}
           </td>
           <td data-label="Status">
             ${statusHtml}
           </td>
-          <td data-label="Message Type">
-            <strong style="font-size:12.5px;color:#0F172A;">${typeLabel}</strong>
+          <td data-label="Automated Action">
+            <strong style="font-size:12.5px;color:#0F172A;display:block;">${typeLabel}</strong>
+            ${hasMap ? '<span style="display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;color:#0284C7;background:#E0F2FE;padding:1px 6px;border-radius:4px;">📍 Google Map Attached</span>' : ''}
           </td>
-          <td data-label="Guest / Recipient">
-            <div style="font-weight:700;font-size:13px;color:#1E293B;">${escapeHtml(l.guest_name || 'Guest')}</div>
-            <div style="font-size:11.5px;color:#64748B;">
-              ${isGroup ? '<span style="color:#2563EB;">👥 Group</span>' : (cleanPhone ? `<a href="tel:${cleanPhone}" style="color:#64748B;text-decoration:none;">📞 +${cleanPhone}</a>` : '—')}
+          <td data-label="Recipient">
+            <div style="font-weight:800;font-size:13.5px;color:#1E293B;">${escapeHtml(l.guest_name || 'Guest')}</div>
+            <div style="font-size:11.5px;color:#64748B;margin-top:2px;">
+              ${isGroup ? '<span style="color:#2563EB;font-weight:700;">👥 Group</span>' : (cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#059669;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:3px;"><i class="ti ti-brand-whatsapp"></i> +${cleanPhone}</a>` : '—')}
             </div>
           </td>
-          <td data-label="Preview / Result" style="max-width:260px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};">
-            ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 65) + '...')}
+          <td data-label="Property / Reference">
+            <div style="font-weight:700;font-size:12.5px;color:#334155;">${escapeHtml(propName || 'Apartment')}</div>
+            ${l.booking_id ? `<span style="display:inline-block;font-size:11px;font-family:monospace;background:#F1F5F9;padding:1px 5px;border-radius:4px;color:#475569;margin-top:2px;">${escapeHtml(l.booking_id)}</span>` : ''}
+          </td>
+          <td data-label="Preview / Result" style="max-width:240px;font-size:11.5px;color:${l.error_message ? '#DC2626' : '#64748B'};line-height:1.4;">
+            ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 60) + '...')}
           </td>
           <td data-label="Action" style="white-space:nowrap;text-align:right;">
-            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;cursor:pointer;border-radius:6px;font-weight:600;" title="View exact message text">
-              👁️ View
+            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:5px 9px;font-size:11.5px;cursor:pointer;border-radius:6px;font-weight:700;" title="View exact message text">
+              👁️ View Message
             </button>
-            ${l.status === 'failed' ? `
-              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:4px 8px;font-size:11px;margin-left:4px;border-radius:6px;font-weight:700;" title="Retry live send">
-                🔄 Retry
-              </button>
-            ` : ''}
+            <button onclick="retryFailedMessage('${l.id}')" class="btn-sm" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;padding:5px 9px;font-size:11.5px;margin-left:4px;border-radius:6px;font-weight:700;cursor:pointer;" title="Resend to WhatsApp">
+              🔄 Resend
+            </button>
           </td>
         </tr>
       `;
@@ -2383,25 +2483,35 @@ The Unique Haven Homes Property Management`;
       }
 
       const tNames = {
-        'guest_confirmation': '🎉 Guest Confirmation',
+        'guest_confirmation': '🎉 Guest Booking Pass',
+        'guest_welcome': '🎉 Guest Booking Pass',
         'new_booking_group': '🛎️ Booking Alert (Group)',
+        'booking_group_alert': '🛎️ Booking Alert (Group)',
         'housekeeping_checkout': '🧹 Housekeeping Checkout',
         'checkout_reminder': '👋 10 AM Checkout Reminder',
         'arrival_details': '🔑 Check-in & WiFi Pass',
         'investor_report': '📊 Investor Statement',
-        'airbnb_review': '⭐ Airbnb Review Link'
+        'booking_receipt': '🧾 Advance Payment Receipt',
+        'direct_test': '💬 Quick Test Message'
       };
       const typeLabel = tNames[l.template_name] || l.template_name;
       const isGroup = String(l.phone || '').includes('@g.us');
       const cleanPhone = (l.phone || '').replace(/\D/g, '');
+      const hasMap = (l.message_preview || '').includes('maps.app.goo.gl') || (l.message_preview || '').includes('maps.google.com');
+
+      let propName = l.property_name || '';
+      if (!propName && l.message_preview) {
+        const pm = l.message_preview.match(/Property:\*?\s+([^\n\r]+)/i);
+        if (pm && pm[1]) propName = pm[1].trim();
+      }
 
       return `
-        <div class="hub-mobile-log-card">
+        <div class="hub-mobile-log-card" style="border:1px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
             <div>
-              <div style="font-weight:800;font-size:14px;color:#0F172A;">${escapeHtml(l.guest_name || 'Guest')}</div>
+              <div style="font-weight:800;font-size:14.5px;color:#0F172A;">${escapeHtml(l.guest_name || 'Guest')}</div>
               <div style="font-size:12px;color:#64748B;margin-top:2px;">
-                ${isGroup ? '<span style="color:#2563EB;font-weight:600;">👥 Group</span>' : (cleanPhone ? `<a href="tel:${cleanPhone}" style="color:#2563EB;text-decoration:none;font-weight:600;">📞 +${cleanPhone}</a>` : '—')}
+                ${isGroup ? '<span style="color:#2563EB;font-weight:700;">👥 Group</span>' : (cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="color:#059669;text-decoration:none;font-weight:700;">📞 +${cleanPhone}</a>` : '—')}
               </div>
             </div>
             <div style="text-align:right;">
@@ -2409,73 +2519,85 @@ The Unique Haven Homes Property Management`;
               <div style="font-size:11px;color:#94A3B8;margin-top:3px;">${time}</div>
             </div>
           </div>
-          <div style="display:inline-block;background:#F1F5F9;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;color:#334155;width:fit-content;">
-            ${typeLabel}
+          <div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span style="background:#F1F5F9;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;color:#334155;">
+              ${typeLabel}
+            </span>
+            ${propName ? `<span style="font-size:11.5px;font-weight:600;color:#475569;">🏠 ${escapeHtml(propName)}</span>` : ''}
+            ${hasMap ? '<span style="font-size:10.5px;font-weight:700;color:#0284C7;background:#E0F2FE;padding:1px 6px;border-radius:4px;">📍 Map Attached</span>' : ''}
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:12px;color:${l.error_message ? '#DC2626' : '#475569'};line-height:1.4;">
             ${l.error_message ? `<b>Error:</b> ${escapeHtml(l.error_message)}` : escapeHtml((l.message_preview || '').substring(0, 110) + ((l.message_preview || '').length > 110 ? '...' : ''))}
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:2px;">
-            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:600;">
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+            <button onclick="showFullMessageModal('${l.id}')" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:700;">
               👁️ View Full
             </button>
-            ${l.status === 'failed' ? `
-              <button onclick="retryFailedMessage('${l.id}')" class="btn-sm green-btn" style="padding:6px 12px;font-size:12px;border-radius:6px;font-weight:700;">
-                🔄 Retry
-              </button>
-            ` : ''}
+            <button onclick="retryFailedMessage('${l.id}')" class="btn-sm" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;padding:6px 12px;font-size:12px;border-radius:6px;font-weight:700;cursor:pointer;">
+              🔄 Resend
+            </button>
           </div>
         </div>
       `;
     }).join('');
 
     return `
-      <div class="card" style="padding:16px;">
+      <div class="card" style="padding:18px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
           <div>
-            <h3 style="margin:0;font-size:17px;color:#0F172A;display:flex;align-items:center;gap:8px;">
-              📋 Guest WhatsApp Delivery Tracker
+            <h3 style="margin:0;font-size:18px;color:#0F172A;display:flex;align-items:center;gap:8px;">
+              📊 Message Delivery & Automation Audit Tracker
             </h3>
-            <p style="margin:3px 0 0 0;font-size:12.5px;color:#64748B;">
-              Track which guest received automated passes, checkout reminders & alerts in real time.
+            <p style="margin:4px 0 0 0;font-size:12.5px;color:#64748B;">
+              Real-time audit log of automated booking passes, Google Maps links, and group alerts dispatched via WhatsApp.
             </p>
           </div>
-          <button onclick="loadLogs(100).then(()=>renderWhatsAppHub())" class="btn-sm" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">
-            🔄 Refresh Logs
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="openQuickSendTestModal()" class="btn-sm" style="background:#25D366;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              💬 Test Any Mobile Number
+            </button>
+            <button id="btnRefreshLogs" onclick="refreshHubDeliveryLogs()" class="btn-sm" style="background:#0F172A;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              🔄 Live Refresh
+            </button>
+          </div>
         </div>
 
         <!-- Metric Ribbon -->
-        <div class="hub-metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
-          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase;">TOTAL LOGGED</div>
-            <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">${totalCount}</div>
+        <div class="hub-metric-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;">TOTAL DELIVERED</div>
+            <div style="font-size:22px;font-weight:900;color:#0F172A;margin-top:2px;">${sentCount}</div>
           </div>
-          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:10.5px;font-weight:700;color:#15803D;text-transform:uppercase;">🟢 DELIVERED</div>
-            <div style="font-size:20px;font-weight:800;color:#15803D;margin-top:2px;">${sentCount}</div>
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:#15803D;text-transform:uppercase;letter-spacing:0.5px;">🏨 GUEST PASSES & MAPS</div>
+            <div style="font-size:22px;font-weight:900;color:#15803D;margin-top:2px;">${allLogs.filter(l => (l.template_name||'').includes('confirmation') || (l.template_name||'').includes('welcome')).length}</div>
           </div>
-          <div style="background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:10px;padding:12px;text-align:center;">
-            <div style="font-size:10.5px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 FAILED</div>
-            <div style="font-size:20px;font-weight:800;color:#DC2626;margin-top:2px;">${failedCount}</div>
+          <div style="background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.5px;">👥 GROUP ALERTS</div>
+            <div style="font-size:22px;font-weight:900;color:#1D4ED8;margin-top:2px;">${allLogs.filter(l => String(l.phone||'').includes('@g.us') || (l.template_name||'').includes('group')).length}</div>
+          </div>
+          <div style="background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:10px;padding:12px 14px;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:0.5px;">🔴 FAILED</div>
+            <div style="font-size:22px;font-weight:900;color:#DC2626;margin-top:2px;">${failedCount}</div>
           </div>
         </div>
 
-        <!-- Search & Filters -->
-        <div class="hub-log-toolbar">
-          <div class="hub-log-filters">
-            <button onclick="filterHubLogs('all')" class="btn-sm ${filter === 'all' ? '' : 'secondary'}" style="${filter === 'all' ? 'background:#0F172A;color:#fff;font-weight:700;' : ''}">All (${totalCount})</button>
-            <button onclick="filterHubLogs('sent')" class="btn-sm ${filter === 'sent' ? '' : 'secondary'}" style="${filter === 'sent' ? 'background:#16A34A;color:#fff;font-weight:700;' : ''}">🟢 Sent (${sentCount})</button>
-            <button onclick="filterHubLogs('failed')" class="btn-sm ${filter === 'failed' ? '' : 'secondary'}" style="${filter === 'failed' ? 'background:#DC2626;color:#fff;font-weight:700;' : ''}">🔴 Failed (${failedCount})</button>
+        <!-- Search & Filter Controls -->
+        <div class="hub-log-toolbar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div class="hub-log-filters" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="filterHubLogs('all')" class="btn-sm" style="${filter === 'all' ? 'background:#0F172A;color:#fff;font-weight:700;' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">All Messages (${totalCount})</button>
+            <button onclick="filterHubLogs('passes')" class="btn-sm" style="${filter === 'passes' ? 'background:#0284C7;color:#fff;font-weight:700;' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">🔑 Guest Passes</button>
+            <button onclick="filterHubLogs('groups')" class="btn-sm" style="${filter === 'groups' ? 'background:#6366F1;color:#fff;font-weight:700;' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">👥 Group Alerts</button>
+            <button onclick="filterHubLogs('failed')" class="btn-sm" style="${filter === 'failed' ? 'background:#DC2626;color:#fff;font-weight:700;' : 'background:#F1F5F9;color:#334155;border:1px solid #CBD5E1;'}">🔴 Failed (${failedCount})</button>
           </div>
 
-          <div class="hub-log-search-box">
+          <div class="hub-log-search-box" style="flex:1 1 240px;max-width:360px;">
             <input 
               type="text" 
-              placeholder="🔍 Search guest, phone, message..." 
+              placeholder="🔍 Search guest, phone, property..." 
               value="${escapeHtml(query)}"
               oninput="searchHubLogs(this.value)"
-              style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:12.5px;" 
+              style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:12.5px;" 
             />
           </div>
         </div>
@@ -2484,21 +2606,22 @@ The Unique Haven Homes Property Management`;
         ${filtered.length === 0 ? `
           <div style="text-align:center;padding:40px;color:#64748B;background:#F8FAFC;border-radius:10px;border:1px dashed #CBD5E1;">
             <div style="font-size:32px;margin-bottom:8px;">📭</div>
-            <div style="font-weight:700;font-size:14px;color:#1E293B;">No messages match your criteria</div>
+            <div style="font-weight:700;font-size:14px;color:#1E293B;">No automated messages match your criteria</div>
             <div style="font-size:12px;color:#94A3B8;margin-top:2px;">Try clearing filters or search box.</div>
           </div>
         ` : `
           <!-- Desktop/Tablet Table -->
           <div class="hub-desktop-table hub-table-responsive" style="margin:0;">
-            <table>
+            <table style="width:100%;border-collapse:collapse;">
               <thead>
-                <tr style="background:#F8FAFC;color:#64748B;font-size:11.5px;text-align:left;">
-                  <th style="padding:10px;">TIME</th>
-                  <th style="padding:10px;">STATUS</th>
-                  <th style="padding:10px;">MESSAGE TYPE</th>
-                  <th style="padding:10px;">GUEST / RECIPIENT</th>
-                  <th style="padding:10px;">PREVIEW / RESULT</th>
-                  <th style="padding:10px;text-align:right;">ACTION</th>
+                <tr style="background:#F8FAFC;color:#64748B;font-size:11.5px;text-align:left;border-bottom:1.5px solid #E2E8F0;">
+                  <th style="padding:10px 12px;">TIME</th>
+                  <th style="padding:10px 12px;">STATUS</th>
+                  <th style="padding:10px 12px;">AUTOMATED TRIGGER</th>
+                  <th style="padding:10px 12px;">RECIPIENT / GUEST</th>
+                  <th style="padding:10px 12px;">PROPERTY & REF</th>
+                  <th style="padding:10px 12px;">PREVIEW</th>
+                  <th style="padding:10px 12px;text-align:right;">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -2507,8 +2630,8 @@ The Unique Haven Homes Property Management`;
             </table>
           </div>
 
-          <!-- Mobile Cards View -->
-          <div class="hub-mobile-cards">
+          <!-- Mobile Cards -->
+          <div class="hub-mobile-cards" style="display:none;">
             ${mobileCards}
           </div>
         `}
