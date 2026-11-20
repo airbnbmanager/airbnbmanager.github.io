@@ -57,4 +57,10 @@ scripts/instagram-automation/output/
 *.csv
 **/*.csv
 
+# TV Tools & Credentials
+tv_*.pem
+tv_code.txt
+pair_tv.py
+tv_remote.py
+
 .venv/
