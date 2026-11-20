@@ -8,18 +8,21 @@ echo    Identity: The Unique Haven Homes (+91 9194109911)
 echo ================================================================
 echo.
 
-:: 1. Check Node.js
-where node >nul 2>nul
+:: 1. Change to bot directory
+cd /d "%~dp0"
+
+:: Ensure Node is in PATH if installed in standard location
+if exist "C:\Program Files\nodejs\node.exe" set "PATH=%PATH%;C:\Program Files\nodejs"
+
+:: 2. Check Node.js
+node -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js is not installed!
-    echo Please install Node.js (LTS version) from: https://nodejs.org
+    echo Please install Node.js LTS version from https://nodejs.org
     echo Then run this file again.
     pause
     exit /b 1
 )
-
-:: 2. Change to bot directory
-cd /d "%~dp0"
 
 :: 3. Check and install dependencies if missing
 if not exist "node_modules\" (
