@@ -585,9 +585,9 @@ window.whatsappDailyReport = whatsappDailyReport;
 // Tailored specifically for the "📑 Booking Data" WhatsApp Group
 // ══════════════════════════════════════════════════════════════════════
 window._blossomStatusSettings = {
-  includeTags: true,
+  includeTags: false,
   vacantLabel: 'Khali',
-  includeVillas: false,
+  includeVillas: true,
   useRedEmoji: true
 };
 
@@ -773,9 +773,6 @@ function generateBlossomStatusText(includeTags, vacantLabel, includeVillas, useR
   const { items } = computeBlossomUnitDetails();
 
   const lines = [];
-  if (includeTags) {
-    lines.push('@Arman Commander @Abraham Khan (Raja) @Mr. Firoz khan @Mr. Shahanshah Khan ');
-  }
   lines.push('📋 UPDATED BOOKING STATUS\n');
 
   items.forEach(item => {
