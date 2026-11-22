@@ -231,68 +231,22 @@ window.ICAL_SYNC = {
       const isBlockBooking = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
                                   b.booking_mode === 'Offline-Blocked' ||
                                   (b.guest_name && (b.guest_name.includes('Blocked') || b.guest_name.includes('🔒')));
-      const realBookings = (existing || []).filter(b => !isBlockBooking(b));
+      const realBookings = (existing || []).filter(b => !isBlockBooking(b) && !b.is_cancelled);
 
-      for (const event of events) {
-        if (!event.checkIn || !event.checkOut) continue;
+      // A. SHIELD REAL BOOKINGS: Proactively purge any dummy block in DB that collides with an active real booking
+      const clashingBlocks = (existing || []).filter(b => 
+        isBlockBooking(b) && realBookings.some(rb => rb.check_in < b.check_out && rb.check_out > b.check_in)
+      );
+      for (const cb of clashingBlocks) {
+        await sb.from('guest_register').delete().eq('booking_id', cb.booking_id);
+        const idx = existing.indexOf(cb);
+        if (idx >= 0) existing.splice(idx, 1);
+        console.log(`🧹 Auto-purged clashing dummy block ${cb.booking_id} over active real booking in ${room.room_id}`);
+      }
 
-        // 1. Handle Blocked / Unavailable Calendar Dates
-        if (event.isBlocked) {
-          // Split block into sub-ranges that do not overlap any active real guest booking
-          const subRanges = this.getFreeSubRanges(event.checkIn, event.checkOut, realBookings);
-          for (const sub of subRanges) {
-            const blockId = `BLK_${room.room_id}_${sub.checkIn.replace(/-/g, '')}_${sub.checkOut.replace(/-/g, '')}`;
-
-            // Check if already in DB or in-memory list
-            const existingBlk = (existing || []).find(b => b.booking_id === blockId);
-            if (existingBlk) {
-              result.skipped++;
-              continue;
-            }
-
-            const blockUid = event.uid ? `${event.uid}_${room.room_id}_${sub.checkIn.replace(/-/g, '')}` : null;
-            const { error: blkErr } = await sb.from('guest_register').insert({
-              booking_id: blockId,
-              room_id: room.room_id,
-              guest_name: '🔒 Blocked Slot',
-              check_in: sub.checkIn,
-              check_out: sub.checkOut,
-              total_amount: 0,
-              per_day_rate: 0,
-              booking_mode: 'Offline-Blocked',
-              payment_status: 'Blocked',
-              verification_status: 'approved',
-              guests: null,
-              ical_uid: blockUid,
-              synced_from_ical: true,
-              booked_by: `${channelName} Calendar Block`,
-              notes: `Blocked on ${channelName} calendar (${event.summary || 'Unavailable'}). Click to convert to real booking.`
-            });
-
-            if (!blkErr) {
-              result.created++;
-              if (blockUid) existingUids.add(blockUid);
-              existing.push({
-                booking_id: blockId,
-                room_id: room.room_id,
-                check_in: sub.checkIn,
-                check_out: sub.checkOut,
-                booking_mode: 'Offline-Blocked',
-                guest_name: '🔒 Blocked Slot',
-                total_amount: 0,
-                synced_from_ical: true,
-                booked_by: `${channelName} Calendar Block`,
-                ical_uid: blockUid
-              });
-            } else {
-              console.warn('[ICAL_SYNC] Block insert error:', blkErr);
-              result.skipped++;
-            }
-          }
-          continue;
-        }
-
-        // 2. Incoming REAL online reservation:
+      // B. Process REAL online reservations first
+      const realEvents = events.filter(e => !e.isBlocked && e.checkIn && e.checkOut);
+      for (const event of realEvents) {
         // Purge any dummy block that overlaps these dates so real booking takes over
         const dummyClashes = (existing || []).filter(b => 
           isBlockBooking(b) && b.check_in < event.checkOut && b.check_out > event.checkIn
@@ -319,7 +273,7 @@ window.ICAL_SYNC = {
           continue;
         }
 
-        // 3. Already synced check for real reservations
+        // Already synced check for real reservations
         if (existingUids.has(event.uid)) { result.skipped++; continue; }
         if (event.confirmationCode && existingCodes.has(event.confirmationCode)) { result.skipped++; continue; }
 
@@ -329,8 +283,7 @@ window.ICAL_SYNC = {
           continue;
         }
 
-        // 4. Handle REALTIME Online Booking
-        // Use deterministic booking ID so repeat syncs NEVER create duplicate rows!
+        // Handle REALTIME Online Booking
         const bookingId = event.confirmationCode 
           ? `BK_ABNB_${event.confirmationCode}`
           : `BK_SYNC_${room.room_id}_${event.checkIn.replace(/-/g, '')}`;
@@ -373,23 +326,140 @@ window.ICAL_SYNC = {
           result.created++;
           existingCodes.add(event.confirmationCode);
           existingUids.add(event.uid);
+          realBookings.push({
+            booking_id: bookingId,
+            room_id: room.room_id,
+            check_in: event.checkIn,
+            check_out: event.checkOut,
+            is_cancelled: false,
+            airbnb_confirmation_code: event.confirmationCode
+          });
         } else {
           result.skipped++;
         }
       }
 
-      // 5. Auto-cleanup: If a block was previously synced from this channel's iCal, but the host has unblocked it on Airbnb, remove the stale block
-      const allActiveBlockedNights = new Set();
-      events.filter(e => e.isBlocked).forEach(e => {
-        const d = new Date(e.checkIn + 'T00:00:00Z');
-        const end = new Date(e.checkOut + 'T00:00:00Z');
-        while (d < end) {
-          allActiveBlockedNights.add(d.toISOString().slice(0, 10));
-          d.setUTCDate(d.getUTCDate() + 1);
+      // C. Process BLOCKED / Unavailable Calendar Dates with FULL NORMALIZATION & DEDUPLICATION
+      const blockedEvents = events.filter(e => e.isBlocked && e.checkIn && e.checkOut);
+      const freeBlockedNights = new Set();
+      for (const ev of blockedEvents) {
+        // Collect nights that are NOT covered by ANY active real booking
+        const subRanges = this.getFreeSubRanges(ev.checkIn, ev.checkOut, realBookings);
+        for (const sub of subRanges) {
+          const d = new Date(sub.checkIn + 'T00:00:00Z');
+          const end = new Date(sub.checkOut + 'T00:00:00Z');
+          while (d < end) {
+            freeBlockedNights.add(d.toISOString().slice(0, 10));
+            d.setUTCDate(d.getUTCDate() + 1);
+          }
         }
-      });
-      const todayIso = new Date().toISOString().slice(0, 10);
+      }
 
+      // Reconstruct merged, contiguous, disjoint sub-ranges
+      const sortedNights = Array.from(freeBlockedNights).sort();
+      const mergedSubRanges = [];
+      if (sortedNights.length > 0) {
+        let curStart = sortedNights[0];
+        let curEnd = sortedNights[0];
+        for (let i = 1; i < sortedNights.length; i++) {
+          const nextExp = new Date(curEnd + 'T00:00:00Z');
+          nextExp.setUTCDate(nextExp.getUTCDate() + 1);
+          const nextExpStr = nextExp.toISOString().slice(0, 10);
+          if (sortedNights[i] === nextExpStr) {
+            curEnd = sortedNights[i];
+          } else {
+            const coDate = new Date(curEnd + 'T00:00:00Z');
+            coDate.setUTCDate(coDate.getUTCDate() + 1);
+            mergedSubRanges.push({ checkIn: curStart, checkOut: coDate.toISOString().slice(0, 10) });
+            curStart = sortedNights[i];
+            curEnd = sortedNights[i];
+          }
+        }
+        const coDate = new Date(curEnd + 'T00:00:00Z');
+        coDate.setUTCDate(coDate.getUTCDate() + 1);
+        mergedSubRanges.push({ checkIn: curStart, checkOut: coDate.toISOString().slice(0, 10) });
+      }
+
+      // Apply merged sub-ranges into guest_register with zero duplicate creation
+      for (const sub of mergedSubRanges) {
+        // Check if an existing block already overlaps this range
+        const overlappingBlks = (existing || []).filter(b => 
+          isBlockBooking(b) && b.check_in < sub.checkOut && b.check_out > sub.checkIn
+        );
+
+        if (overlappingBlks.length > 0) {
+          // Check if an existing block already covers the entire range
+          const perfectCover = overlappingBlks.find(b => b.check_in <= sub.checkIn && b.check_out >= sub.checkOut);
+          if (perfectCover) {
+            result.skipped++;
+            // Delete any redundant smaller blocks inside this range
+            for (const ob of overlappingBlks) {
+              if (ob.booking_id !== perfectCover.booking_id && ob.check_in >= perfectCover.check_in && ob.check_out <= perfectCover.check_out) {
+                await sb.from('guest_register').delete().eq('booking_id', ob.booking_id);
+                const idx = existing.indexOf(ob);
+                if (idx >= 0) existing.splice(idx, 1);
+              }
+            }
+            continue;
+          }
+
+          // Otherwise update primary block to full merged span and delete duplicates
+          const primary = overlappingBlks[0];
+          await sb.from('guest_register').update({
+            check_in: sub.checkIn,
+            check_out: sub.checkOut
+          }).eq('booking_id', primary.booking_id);
+          primary.check_in = sub.checkIn;
+          primary.check_out = sub.checkOut;
+
+          for (let i = 1; i < overlappingBlks.length; i++) {
+            const ob = overlappingBlks[i];
+            await sb.from('guest_register').delete().eq('booking_id', ob.booking_id);
+            const idx = existing.indexOf(ob);
+            if (idx >= 0) existing.splice(idx, 1);
+          }
+          result.skipped++;
+          continue;
+        }
+
+        // No existing block overlaps this merged range -> insert brand new clean block
+        const blockId = `BLK_${room.room_id}_${sub.checkIn.replace(/-/g, '')}_${sub.checkOut.replace(/-/g, '')}`;
+        const { error: blkErr } = await sb.from('guest_register').insert({
+          booking_id: blockId,
+          room_id: room.room_id,
+          guest_name: '🔒 Blocked Slot',
+          check_in: sub.checkIn,
+          check_out: sub.checkOut,
+          total_amount: 0,
+          per_day_rate: 0,
+          booking_mode: 'Offline-Blocked',
+          payment_status: 'Blocked',
+          verification_status: 'approved',
+          guests: null,
+          synced_from_ical: true,
+          booked_by: `${channelName} Calendar Block`,
+          notes: `Blocked on ${channelName} calendar. Click to convert to real booking.`
+        });
+        if (!blkErr) {
+          result.created++;
+          existing.push({
+            booking_id: blockId,
+            room_id: room.room_id,
+            check_in: sub.checkIn,
+            check_out: sub.checkOut,
+            booking_mode: 'Offline-Blocked',
+            guest_name: '🔒 Blocked Slot',
+            total_amount: 0,
+            synced_from_ical: true,
+            booked_by: `${channelName} Calendar Block`
+          });
+        } else {
+          result.skipped++;
+        }
+      }
+
+      // D. Auto-cleanup: If a block was previously synced from this channel's iCal, but has been unblocked on the OTA, remove the stale block
+      const todayIso = new Date().toISOString().slice(0, 10);
       const staleBlocks = (existing || []).filter(b => {
         if (!b.check_out || b.check_out < todayIso) return false;
         const isChannelBlock = (b.booking_id && String(b.booking_id).startsWith('BLK_')) &&
@@ -403,7 +473,7 @@ window.ICAL_SYNC = {
         const bEnd = new Date(b.check_out + 'T00:00:00Z');
         let hasActiveNight = false;
         while (bStart < bEnd) {
-          if (allActiveBlockedNights.has(bStart.toISOString().slice(0, 10))) {
+          if (freeBlockedNights.has(bStart.toISOString().slice(0, 10))) {
             hasActiveNight = true;
             break;
           }
@@ -473,11 +543,13 @@ window.ICAL_SYNC = {
     cutoff.setDate(cutoff.getDate() - 7);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     
+    // Safe guard: ONLY delete dummy 0-amount blocked slots older than 7 days, NEVER real revenue bookings!
     const { data: stale, error } = await sb.from('guest_register')
       .select('booking_id')
       .lt('check_out', cutoffStr)
       .eq('total_amount', 0)
-      .eq('synced_from_ical', true);
+      .eq('synced_from_ical', true)
+      .or('booking_id.ilike.BLK_%,booking_mode.eq.Offline-Blocked,guest_name.ilike.%Blocked%');
     
     if (stale && stale.length > 0) {
       const ids = stale.map(s => s.booking_id);

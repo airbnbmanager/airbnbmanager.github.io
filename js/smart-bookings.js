@@ -369,16 +369,10 @@ async function renderSmartManageBookings(forceRefresh = false) {
     }
   }
 
-  // Auto-cancel ghost duplicate bookings in Supabase asynchronously
-  if (toCancelGhostIds.size > 0 && typeof sb !== 'undefined') {
+  // Log ghost duplicate bookings without destructive database cancellation
+  if (toCancelGhostIds.size > 0) {
     const ghostList = Array.from(toCancelGhostIds);
-    console.warn('[SmartBookings] Auto-purging duplicate online bookings on same room:', ghostList);
-    sb.from('guest_register')
-      .update({ is_cancelled: true, notes: 'Auto-cancelled: Duplicate online booking collision detected on same room' })
-      .in('booking_id', ghostList)
-      .then(({ error }) => {
-        if (error) console.error('[SmartBookings] Failed auto-cancelling duplicate online booking:', error);
-      });
+    console.warn('[SmartBookings] Duplicate online booking collisions detected in view:', ghostList);
   }
 
   let activeBookings = keptOnlineMap;

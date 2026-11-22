@@ -500,7 +500,15 @@ async function renderReports() {
                 const rent = r.rent_per_night || 5200;
                 const propLabel = (r.unit_no ? r.unit_no + ' — ' : '') + (r.nickname || r.property_name || r.unit_no);
                 const thumbHtml = getPropThumb(r);
-                const propBookings = allBks.filter(b => b.room_id === r.room_id && b.check_out > tDates[0] && b.check_in <= tDates[tDates.length - 1]);
+                const rawPropBookings = allBks.filter(b => b.room_id === r.room_id && b.check_out > tDates[0] && b.check_in <= tDates[tDates.length - 1]);
+                const propRealBookings = rawPropBookings.filter(b => !isBkBlocked(b));
+                // Proactive shield: Filter out any dummy block that collides with an active real guest booking
+                const propBookings = rawPropBookings.filter(b => {
+                  if (!isBkBlocked(b)) return true;
+                  return !propRealBookings.some(rb => rb.check_in < b.check_out && rb.check_out > b.check_in);
+                });
+                // Sort so blocked slots render first and real guest bookings render on top
+                propBookings.sort((a, b) => (isBkBlocked(a) ? -1 : 1) - (isBkBlocked(b) ? -1 : 1));
 
                 return `
                   <tr class="hh-timeline-row">
@@ -613,7 +621,7 @@ async function renderReports() {
 
                           return `
                             <div class="hh-gantt-bar ${channel}"
-                                 style="left:${leftPx}px;width:${widthPx}px;border-radius:${isCutStart ? '0 8px 8px 0' : (isCutEnd ? '8px 0 0 8px' : '8px')};"
+                                 style="left:${leftPx}px;width:${widthPx}px;z-index:${isBlocked ? 8 : 18};border-radius:${isCutStart ? '0 8px 8px 0' : (isCutEnd ? '8px 0 0 8px' : '8px')};"
                                  onclick="window.openBookingDetails('${b.booking_id}')">
                               <div class="hh-gantt-top-row">
                                 <span class="hh-gantt-guest">
@@ -1600,6 +1608,21 @@ async function showBookingPopup(roomId, dateStr, directBookingId) {
       calCreateBooking(roomId, dateStr);
     }
     return;
+  }
+
+  // 🛡️ DEDUPLICATION & DIRECT BOOKING PRECEDENCE SHIELD:
+  // If both real guest booking(s) and dummy blocked slot(s) exist on this date:
+  // Real guest bookings take absolute precedence! Ignore phantom dummy block(s).
+  const isBlockedBk = b => (b.booking_id && String(b.booking_id).startsWith('BLK_')) ||
+                           (b.guest_name || '').toLowerCase().includes('blocked') ||
+                           b.booking_mode === 'Offline-Blocked';
+
+  const realGuestBookings = bookings.filter(b => !isBlockedBk(b));
+  if (realGuestBookings.length > 0) {
+    bookings = realGuestBookings;
+  } else {
+    // If only blocked slots exist on this date, deduplicate so manager sees at most 1 Blocked Slot
+    bookings = [bookings[0]];
   }
 
   if (bookings.length > 1) {

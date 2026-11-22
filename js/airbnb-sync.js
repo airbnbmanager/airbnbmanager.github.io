@@ -1423,6 +1423,7 @@ window.clearDummyBlocks = async function() {
   try {
     const { data: blocks } = await sb.from('guest_register')
       .select('booking_id')
+      .eq('total_amount', 0)
       .or('booking_id.ilike.BLK_%,booking_mode.eq.Offline-Blocked,guest_name.ilike.%Blocked%');
 
     if (!blocks || blocks.length === 0) {
