@@ -579,9 +579,7 @@ window.toggleEmpStatus = async function(empId, name, currentlyActive) {
     updatePayload.in_whatsapp_template = false;
   }
 
-  const { error } = (typeof window.safeDbUpdate === 'function')
-    ? await window.safeDbUpdate('employees', updatePayload, 'emp_id', empId)
-    : await sb.from('employees').update(updatePayload).eq('emp_id', empId);
+  const { error } = await sb.from('employees').update(updatePayload).eq('emp_id', empId);
 
   if (error) {
     if (window.fsn) fsn.error('Error', error.message);
@@ -1027,13 +1025,7 @@ async function saveEmp() {
   if (_btn) _btn.textContent = '⏳ Saving record...';
   const isActive = document.getElementById('eActive')?.checked !== false;
 
-  const addrVal = document.getElementById('eAddr')?.value?.trim() || '';
-  let notesVal = document.getElementById('eNotes')?.value?.trim() || '';
-  if (addrVal && !notesVal.includes(addrVal)) {
-    notesVal = notesVal ? `${notesVal} | Address: ${addrVal}` : `Address: ${addrVal}`;
-  }
-
-  const newEmpPayload = {
+  const { error } = await sb.from('employees').insert({
     emp_id: empId,
     name,
     phone: document.getElementById('ePhone')?.value?.trim() || null,
@@ -1047,18 +1039,14 @@ async function saveEmp() {
     assigned_rooms: selectedRooms || null,
     id_proof_type: document.getElementById('eIdType')?.value || null,
     id_proof_no: document.getElementById('eIdNo')?.value?.trim() || null,
-    address: addrVal || null,
+    address: document.getElementById('eAddr')?.value?.trim() || null,
     emergency_contact: document.getElementById('eEmergency')?.value?.trim() || null,
     id_proof_photo_front: frontPath,
     id_proof_photo_back: backPath,
     status: isActive ? 'Active' : 'Inactive',
     is_active: isActive,
-    notes: notesVal || null,
-  };
-
-  const { error } = (typeof window.safeDbInsert === 'function')
-    ? await window.safeDbInsert('employees', newEmpPayload)
-    : await sb.from('employees').insert(newEmpPayload);
+    notes: document.getElementById('eNotes')?.value?.trim() || null,
+  });
 
   // Save salary model
   const newSalType = document.getElementById('eSalaryType')?.value || 'fixed';
@@ -1264,7 +1252,7 @@ async function editEmp(id) {
 
       <div class="form-grid">
         <div class="form-group"><label>ID Number</label><input id="eIdNo" value="${escapeHtml(e.id_proof_no || '')}" /></div>
-        <div class="form-group"><label>Residential Address</label><input id="eAddr" value="${escapeHtml(e.address || (e.notes && e.notes.match(/Address:\s*([^|]+)/i) ? e.notes.match(/Address:\s*([^|]+)/i)[1].trim() : ''))}" /></div>
+        <div class="form-group"><label>Residential Address</label><input id="eAddr" value="${escapeHtml(e.address || '')}" /></div>
       </div>
 
       <div class="form-group">
@@ -1382,12 +1370,6 @@ async function updEmp(id) {
   const statusVal = document.getElementById('eStatus')?.value || 'Active';
   const isActive = statusVal === 'Active';
 
-  const editAddrVal = document.getElementById('eAddr')?.value?.trim() || '';
-  let editNotesVal = document.getElementById('eNotes')?.value?.trim() || '';
-  if (editAddrVal && !editNotesVal.includes(editAddrVal)) {
-    editNotesVal = editNotesVal ? `${editNotesVal} | Address: ${editAddrVal}` : `Address: ${editAddrVal}`;
-  }
-
   const obj = {
     name,
     phone: document.getElementById('ePhone')?.value?.trim() || null,
@@ -1401,11 +1383,11 @@ async function updEmp(id) {
     assigned_rooms: selectedRooms || null,
     id_proof_type: document.getElementById('eIdType')?.value || null,
     id_proof_no: document.getElementById('eIdNo')?.value?.trim() || null,
-    address: editAddrVal || null,
+    address: document.getElementById('eAddr')?.value?.trim() || null,
     emergency_contact: document.getElementById('eEmergency')?.value?.trim() || null,
     status: statusVal,
     is_active: isActive,
-    notes: editNotesVal || null,
+    notes: document.getElementById('eNotes')?.value?.trim() || null,
   };
   if (!isActive) {
     obj.in_whatsapp_template = false;
@@ -1462,9 +1444,7 @@ async function updEmp(id) {
     obj.per_flat_rate = 0;
   }
 
-  const { error } = (typeof window.safeDbUpdate === 'function')
-    ? await window.safeDbUpdate('employees', obj, 'emp_id', id)
-    : await sb.from('employees').update(obj).eq('emp_id', id);
+  const { error } = await sb.from('employees').update(obj).eq('emp_id', id);
 
   if (error) {
     if (errEl) errEl.innerHTML = `<div class="error">${error.message}</div>`;

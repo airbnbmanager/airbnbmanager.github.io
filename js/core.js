@@ -1688,8 +1688,7 @@ function renderShell(content, activePage = 'dashboard') {
         { id: 'attendance', label: '📋 Attendance' },
         { id: 'tasks', label: '🧰 Tasks' },
         { id: 'employee-pay-report', label: '💰 Employee Pay Report' },
-        { id: 'advance', label: '💵 Staff Advances' },
-        { id: 'my-ledger', label: '💼 Cash & Receiver Ledger' }
+        { id: 'advance', label: '💵 Staff Advances' }
       ]
     },
     {
