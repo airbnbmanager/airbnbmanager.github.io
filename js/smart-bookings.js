@@ -1606,11 +1606,43 @@ window.openBookingDrawer = async function(bookingId) {
           ` : ''}
 
           <!-- Top Contact & Communication Card -->
-          <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-size:12px;color:var(--muted);font-weight:600;">Guest Phone</div>
-              <div style="font-size:16px;font-weight:700;color:var(--dark);">${escapeHtml(b.phone || 'No phone')}</div>
-            </div>
+          ${(() => {
+            const altMatch = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i);
+            const altPh = altMatch ? altMatch[1].trim() : '';
+            return `
+              <div style="background:#F8FAFC;border:1.5px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Primary Phone</div>
+                    <div style="font-size:16px;font-weight:800;color:var(--dark);">${escapeHtml(b.phone || 'No phone')}</div>
+                  </div>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:34px;padding:0 12px;border-radius:8px;font-size:12px;display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Primary">
+                      💬 WhatsApp
+                    </button>
+                    ${b.phone ? `
+                      <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:34px;height:34px;border-radius:8px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Primary">📞</a>
+                    ` : ''}
+                  </div>
+                </div>
+
+                ${altPh ? `
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px dashed #CBD5E1;">
+                    <div>
+                      <div style="font-size:11px;color:#4F46E5;font-weight:800;text-transform:uppercase;">📱 Alternate Phone</div>
+                      <div style="font-size:14.5px;font-weight:800;color:#1E1B4B;">${escapeHtml(altPh)}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(altPh)}', '${escapeHtml(b.guest_name || '')}', this)" style="height:32px;padding:0 10px;border-radius:8px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;background:#10B981;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Alternate">
+                        💬 WA Alt
+                      </button>
+                      <a href="tel:${altPh}" class="sbk-action-btn call" style="width:32px;height:32px;border-radius:8px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Alternate">📞</a>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          })()}
             <div style="display:flex;gap:8px;align-items:center;">
               <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:36px;padding:0 12px;border-radius:8px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Guest">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
@@ -2413,6 +2445,17 @@ async function renderSmartAddBooking(prefillOpts) {
               onfocus="this.select()"
               style="font-size:15px;font-weight:700;" />
           </div>
+        </div>
+
+        <div class="form-group" style="margin-top:8px;">
+          <label style="font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px;">
+            <span>📱 Alternate / Second Mobile No</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:500;">(Optional — WhatsApp, Family, Office)</span>
+          </label>
+          <input id="guestAltPhone" type="tel" inputmode="numeric" placeholder="Second mobile (e.g. 9876543210)" value="${pre.guestAltPhone || ''}"
+            oninput="window.handleSmartPhoneInput ? window.handleSmartPhoneInput(this) : (window.onSmartPhoneInput && window.onSmartPhoneInput(this.value))"
+            style="font-size:14px;font-weight:600;" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Guest can be looked up &amp; contacted via either phone number.</div>
         </div>
 
         ${wizardMode === 'multi' ? `
@@ -3313,6 +3356,23 @@ window.onSmartPhoneInput = async function(val) {
               💰 Lifetime Revenue: <strong>₹${totalSpent.toLocaleString('en-IN')}</strong> · 
               🏡 Last Stay: <strong>${escapeHtml(lastProp)}</strong> (${escapeHtml(mostRecent.check_in || '-')})
             </div>
+            <div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,0.08);border-radius:8px;border:1px dashed rgba(255,255,255,0.2);">
+              <div style="font-size:11px;font-weight:800;color:#F8FAFC;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+                <span>🏠 Previous Properties Stayed (${totalStays}):</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                ${pastStays.slice(0, 4).map(p => {
+                  const rNick = p.rooms?.nickname || p.rooms?.property_name || p.room_id || 'Homestay';
+                  const dates = (p.check_in && p.check_out) ? `${formatDate(p.check_in)} → ${formatDate(p.check_out)}` : (p.check_in || '-');
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);padding:5px 8px;border-radius:6px;font-size:11.5px;color:#F1F5F9;">
+                      <span>🏠 <strong>${escapeHtml(rNick)}</strong> (${escapeHtml(dates)})</span>
+                      <span style="font-weight:800;color:#34D399;">₹${(Number(p.total_amount) || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
           </div>
           <div class="rg-actions">
             <button type="button" class="rg-btn primary" onclick="window.autoFillReturningGuestDetails ? window.autoFillReturningGuestDetails('${clean}') : window.reusePastGuestIds('${clean}')" title="Fill name, IDs, and link saved documents">
@@ -3583,6 +3643,10 @@ window.saveSmartBooking = async function() {
     }
 
     let smartNotes = document.getElementById('bkNotes')?.value?.trim() || '';
+    const altPh = document.getElementById('guestAltPhone')?.value?.trim();
+    if (altPh) {
+      smartNotes = smartNotes ? `${smartNotes} | [ALT_PHONE: ${altPh}]` : `[ALT_PHONE: ${altPh}]`;
+    }
 
     if (isReview) {
       smartNotes = smartNotes ? `${smartNotes} | [⭐ Review Booking]` : '[⭐ Review Booking]';

@@ -2393,8 +2393,25 @@ function renderShell(content, activePage = 'dashboard') {
     return { raw: str, digits, core10, formatted };
   };
 
-  window.matchPhoneSearch = function(query, targetPhone) {
-    if (!query || !targetPhone) return false;
+  window.matchPhoneSearch = function(query, targetPhone, altPhone) {
+    if (!query) return false;
+    if (typeof targetPhone === 'string' && (targetPhone.includes(',') || targetPhone.includes('/') || targetPhone.includes('[ALT_PHONE:'))) {
+      const parts = targetPhone.replace(/\[ALT_PHONE:\s*([^\]]+)\]/gi, ',,').split(/[,/\s;]+/);
+      for (const p of parts) {
+        if (p && window.matchPhoneSearch(query, p)) return true;
+      }
+    }
+    if (altPhone) {
+      if (typeof altPhone === 'string' && (altPhone.includes(',') || altPhone.includes('/') || altPhone.includes('[ALT_PHONE:'))) {
+        const parts = altPhone.replace(/\[ALT_PHONE:\s*([^\]]+)\]/gi, ',,').split(/[,/\s;]+/);
+        for (const p of parts) {
+          if (p && window.matchPhoneSearch(query, p)) return true;
+        }
+      } else if (window.matchPhoneSearch(query, altPhone)) {
+        return true;
+      }
+    }
+    if (!targetPhone) return false;
     const qStr = String(query).trim().toLowerCase();
     const tStr = String(targetPhone).trim().toLowerCase();
     if (tStr.includes(qStr)) return true;

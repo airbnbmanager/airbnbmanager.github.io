@@ -3171,12 +3171,24 @@ async function renderAddBooking(prefillOpts) {
           <div id="guestNameSuggestions" class="guest-name-suggestions" style="display:none;"></div>
         </div>
         <div class="form-group">
-          <label>Phone (+91 / 0 / 10 digits)</label>
+          <label>Primary Phone (+91 / 0 / 10 digits)</label>
           <input id="guestPhone" type="tel" placeholder="Mobile (e.g. 9876543210 or +91...)" value="${pre.guestPhone || ''}"
             oninput="window.handleGuestPhoneInput(this.value)"
             onblur="window.handleGuestPhoneInput(this.value)"
             onpaste="window.handleGuestPhonePaste(event, this)" />
-          <div id="guestRatingWarning" style="margin-top:6px;"></div>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:-6px;">
+        <div class="form-group">
+          <label>📱 Alternate / Second Mobile No (Optional)</label>
+          <input id="guestAltPhone" type="tel" placeholder="Second mobile / WhatsApp (e.g. 9123456789)" value="${pre.guestAltPhone || ''}"
+            oninput="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)"
+            onblur="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Guest can be looked up &amp; contacted via either phone number.</div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <div id="guestRatingWarning" style="width:100%;margin-bottom:2px;"></div>
         </div>
       </div>
 
@@ -4310,6 +4322,10 @@ async function saveBooking() {
     const vehicleName = hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null;
     const vehicleNumber = hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null;
     let notes = document.getElementById('bkNotes').value.trim();
+    const altPh = document.getElementById('guestAltPhone')?.value?.trim();
+    if (altPh) {
+      notes = notes ? `${notes} | [ALT_PHONE: ${altPh}]` : `[ALT_PHONE: ${altPh}]`;
+    }
 
     // NEW: Read show_to_investor + hide_reason (admin toggle)
     const showToInvEl = document.getElementById('showToInvestor');
@@ -4997,13 +5013,27 @@ async function editBooking(bkId) {
           <div id="guestNameSuggestions" class="guest-name-suggestions" style="display:none;"></div>
         </div>
         <div class="form-group">
-          <label>Phone (+91 / 0 / 10 digits)</label>
+          <label>Primary Phone (+91 / 0 / 10 digits)</label>
           <input id="guestPhone" type="tel" inputmode="numeric" placeholder="10 digit mobile (or +91...)" value="${b.phone || ''}"
             onfocus="this.select()"
             oninput="window.handleGuestPhoneInput(this.value)"
             onblur="window.handleGuestPhoneInput(this.value)"
             onpaste="window.handleGuestPhonePaste(event, this)" />
-          <div id="guestRatingWarning" style="margin-top:6px;"></div>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:-6px;">
+        <div class="form-group">
+          <label>📱 Alternate / Second Mobile No (Optional)</label>
+          <input id="guestAltPhone" type="tel" inputmode="numeric" placeholder="Second mobile (e.g. 9123456789)" 
+            value="${(() => { const m = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i); return m ? m[1].trim() : ''; })()}"
+            onfocus="this.select()"
+            oninput="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)"
+            onblur="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Saved in notes as [ALT_PHONE: ...] for multi-phone lookup.</div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <div id="guestRatingWarning" style="width:100%;margin-bottom:2px;"></div>
         </div>
       </div>
       <div class="form-group" style="padding:12px;background:#FFFBEB;border-radius:8px;border:1.5px solid #FCD34D;">
@@ -5489,7 +5519,13 @@ async function updateBooking(bkId, parentBookingId = '', stayGroupId = '') {
     has_vehicle: hasVehicle,
     vehicle_name: hasVehicle ? (document.getElementById('vehicleName')?.value.trim() || null) : null,
     vehicle_number: hasVehicle ? (document.getElementById('vehicleNumber')?.value.trim() || null) : null,
-    notes: document.getElementById('bkNotes').value.trim() || null,
+    notes: (() => {
+      let n = document.getElementById('bkNotes')?.value?.trim() || '';
+      const alt = document.getElementById('guestAltPhone')?.value?.trim();
+      n = n.replace(/\[ALT_PHONE:\s*([^\]]+)\]/gi, '').trim();
+      if (alt) n = n ? `${n} | [ALT_PHONE: ${alt}]` : `[ALT_PHONE: ${alt}]`;
+      return n || null;
+    })(),
   };
 
   // Extract Security Deposit fields from edit form
@@ -8899,6 +8935,23 @@ window.checkReturningGuest = async function(rawPhone) {
             🏡 Last Stay: <strong>${escapeHtml(lastProperty)}</strong> (${escapeHtml(lastDates)})
           </div>
           ${notesPreviewHtml}
+          <div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,0.08);border-radius:8px;border:1px dashed rgba(255,255,255,0.2);">
+            <div style="font-size:11px;font-weight:800;color:#F8FAFC;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+              <span>🏠 Previous Properties Stayed (${totalStays}):</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              ${previous.slice(0, 4).map(p => {
+                const rNick = p.rooms?.nickname || p.rooms?.property_name || p.room_id || 'Homestay';
+                const dates = (p.check_in && p.check_out) ? `${formatDate(p.check_in)} → ${formatDate(p.check_out)}` : (p.check_in || '-');
+                return `
+                  <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);padding:5px 8px;border-radius:6px;font-size:11.5px;color:#F1F5F9;">
+                    <span>🏠 <strong>${escapeHtml(rNick)}</strong> (${escapeHtml(dates)})</span>
+                    <span style="font-weight:800;color:#34D399;">₹${(Number(p.total_amount) || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
         </div>
         <div class="rg-actions">
           <button type="button" class="rg-btn primary" onclick="window.autoFillReturningGuestDetails('${corePhone}')" title="Fill name, IDs, and link saved documents">
@@ -9017,8 +9070,14 @@ window.viewGuestStayHistory = function(corePhone) {
   document.body.appendChild(modal);
 };
 
-// Real-time debounce on typing guest phone
+// Real-time debounce on typing guest phone or alternate phone
 let _guestPhoneInputDebounce = null;
+window.handleGuestAltPhoneInput = function(val) {
+  clearTimeout(_guestPhoneInputDebounce);
+  _guestPhoneInputDebounce = setTimeout(() => {
+    window.checkReturningGuest(val);
+  }, 250);
+};
 window.handleGuestPhoneInput = function(val) {
   clearTimeout(_guestPhoneInputDebounce);
   _guestPhoneInputDebounce = setTimeout(() => {
