@@ -3192,6 +3192,19 @@ async function renderAddBooking(prefillOpts) {
         </div>
       </div>
 
+      <div class="form-grid" style="margin-top:-6px;">
+        <div class="form-group">
+          <label>📱 Alternate / Second Mobile No (Optional)</label>
+          <input id="guestAltPhone" type="tel" placeholder="Second mobile / WhatsApp (e.g. 9123456789)" value="${pre.guestAltPhone || ''}"
+            oninput="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)"
+            onblur="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Guest can be looked up &amp; contacted via either phone number.</div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <div id="guestRatingWarning" style="width:100%;margin-bottom:2px;"></div>
+        </div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group">
           <label>Property *</label>
@@ -5025,6 +5038,20 @@ async function editBooking(bkId) {
       <div class="form-grid" style="margin-top:-6px;">
         <div class="form-group">
           <label>📱 Alternate / Second Mobile No (Optional)</label>
+          <input id="guestAltPhone" type="tel" placeholder="Second mobile (e.g. 9123456789)" 
+            value="${(() => { const m = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i); return m ? m[1].trim() : ''; })()}"
+            oninput="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)"
+            onblur="window.handleGuestAltPhoneInput && window.handleGuestAltPhoneInput(this.value)" />
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Saved in notes as [ALT_PHONE: ...] for multi-phone lookup.</div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <div id="guestRatingWarning" style="width:100%;margin-bottom:2px;"></div>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:-6px;">
+        <div class="form-group">
+          <label>📱 Alternate / Second Mobile No (Optional)</label>
           <input id="guestAltPhone" type="tel" inputmode="numeric" placeholder="Second mobile (e.g. 9123456789)" 
             value="${(() => { const m = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i); return m ? m[1].trim() : ''; })()}"
             onfocus="this.select()"
@@ -6172,7 +6199,7 @@ window.populateReceivedByDropdown = async function(selectEl, mode, currentVal, c
 
   const isOD = (currentVal || '').toUpperCase().includes('OD') || (currentVal || '').toUpperCase().includes('UHHS') || (currentVal || '').toUpperCase().includes('TUHH');
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += `<option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 TUHH-OD (Praveen / Overdraft)</option>`;
+  html += `<option value="UHHS-OD" ${isOD ? 'selected' : ''}>🏦 TUHH-OD (Direct App / Overdraft)</option>`;
   html += '</optgroup>';
 
   if (mode === 'Cash') {
@@ -6727,6 +6754,18 @@ async function addPaymentWithDate(bkId) { showPaymentModal(bkId); }
 async function editPayment(payId, bkId) {
   const { data: pay } = await sb.from('payment_history').select('*').eq('id', payId).single();
   if (!pay) { fsn.error('Error', 'Not found'); return; }
+
+  let cleanNotes = (pay.notes || '')
+    .replace(/\s*\([^\)]*Received by:[^\)]*\)/gi, '')
+    .replace(/\s*\[[^\]]*Received By:[^\]]*\]/gi, '')
+    .trim();
+
+  let existingReceiver = pay.received_by || '';
+  if (!existingReceiver) {
+    const m = (pay.notes || '').match(/\(Received by:\s*([^\)]+)\)/i);
+    if (m) existingReceiver = m[1].trim();
+  }
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -6756,26 +6795,13 @@ async function editPayment(payId, bkId) {
         </button>
       </div>
       <div class="form-group"><label>Date</label><input id="editPayDate" type="date" value="${pay.payment_date || ''}" /></div>
-      <div class="form-group"><label>Notes</label><input id="editPayNotes" value="${pay.notes || ''}" /></div>
+      <div class="form-group"><label>Notes</label><input id="editPayNotes" value="${cleanNotes}" /></div>
       <button onclick="saveEditPayment(${payId},'${bkId}')" style="width:100%;margin-top:10px;">💾 Update</button>
     </div>`;
   document.body.appendChild(modal);
   // Pre-populate received_by dropdown
   setTimeout(async () => {
-    await window.onEditPayModeChange();
-    const dropdown = document.getElementById('editPayReceivedBy');
-    if (dropdown && pay.received_by) {
-      // Check if value exists in dropdown
-      const exists = Array.from(dropdown.options).some(o => o.value === pay.received_by);
-      if (exists) {
-        dropdown.value = pay.received_by;
-      } else {
-        // Not in list — use custom
-        dropdown.value = '__custom__';
-        const custom = document.getElementById('editPayReceivedByCustom');
-        if (custom) { custom.style.display = 'block'; custom.value = pay.received_by; }
-      }
-    }
+    await window.onEditPayModeChange(existingReceiver);
   }, 100);
 }
 
@@ -6798,12 +6824,17 @@ async function saveEditPayment(payId, bkId) {
   }
   
   const handoverStatus = (mode === 'Cash' && !['Firoz','Shahenshah'].includes(receivedBy)) ? 'in_hand' : 'handed_over';
+  let rawNotes = (document.getElementById('editPayNotes')?.value || '').trim();
+  rawNotes = rawNotes.replace(/\s*\([^\)]*Received by:[^\)]*\)/gi, '').replace(/\s*\[[^\]]*Received By:[^\]]*\]/gi, '').trim();
+  const finalNotes = (receivedBy && receivedBy !== 'UHHS-OD')
+    ? (rawNotes ? `${rawNotes} (Received by: ${receivedBy})` : `(Received by: ${receivedBy})`)
+    : (rawNotes || null);
   
   const payPatch = {
     amount: amount,
     payment_mode: mode,
     payment_date: document.getElementById('editPayDate')?.value || null,
-    notes: document.getElementById('editPayNotes')?.value?.trim() || null,
+    notes: finalNotes,
     received_by: receivedBy || null,
     handover_status: handoverStatus
   };
@@ -8339,7 +8370,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Direct App / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -8489,7 +8520,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Direct App / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -8637,7 +8668,7 @@ window.onAdvanceModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Direct App / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -8750,8 +8781,8 @@ console.log('✅ Advance Received-By dropdown module loaded');
 // ═══════════════════════════════════════════════════════════
 // 💰 EDIT PAYMENT — Received By dropdown handler
 // ═══════════════════════════════════════════════════════════
-window.onEditPayModeChange = async function() {
-  const mode = document.getElementById('editPayMode')?.value;
+window.onEditPayModeChange = async function(initialReceiver) {
+  const mode = document.getElementById('editPayMode')?.value || 'Cash';
   const dropdown = document.getElementById('editPayReceivedBy');
   const label = document.getElementById('editReceivedByLabel');
   const custom = document.getElementById('editPayReceivedByCustom');
@@ -8766,6 +8797,16 @@ window.onEditPayModeChange = async function() {
     else label.innerHTML = '💰 Received By *';
   }
   
+  let curr = initialReceiver;
+  if (!curr) {
+    curr = dropdown.value === '__custom__' ? (custom?.value?.trim() || '') : (dropdown.value || '');
+  }
+
+  if (typeof window.populateReceivedByDropdown === 'function') {
+    await window.populateReceivedByDropdown(dropdown, mode, curr, custom);
+    return;
+  }
+  
   // Load holders + employees (cached)
   const dataE = await loadReceiveByHolders();
   const finalH = dataE.owners;
@@ -8774,7 +8815,7 @@ window.onEditPayModeChange = async function() {
   
   let html = '<option value="">-- Select --</option>';
   html += '<optgroup label="🏦 Overdraft Account">';
-  html += '<option value="UHHS-OD">🏦 TUHH-OD (Praveen / Overdraft)</option>';
+  html += '<option value="UHHS-OD">🏦 TUHH-OD (Direct App / Overdraft)</option>';
   html += '</optgroup>';
   
   if (mode === 'Cash') {
@@ -8805,13 +8846,19 @@ window.onEditPayModeChange = async function() {
   html += '<option value="__custom__">➕ Custom Name...</option>';
   dropdown.innerHTML = html;
   
-  // Auto-select Firoz for online modes
-  if (mode === 'UPI' || mode === 'Bank' || mode === 'Airbnb Payout') {
+  if (curr) {
+    dropdown.value = curr;
+    if (dropdown.value !== curr && custom) {
+      dropdown.value = '__custom__';
+      custom.value = curr;
+      custom.style.display = 'block';
+    }
+  } else if (mode === 'UPI' || mode === 'Bank' || mode === 'Airbnb Payout') {
     if (finalH.includes('Firoz')) dropdown.value = 'Firoz';
     else if (finalH.length === 1) dropdown.value = finalH[0];
   }
   
-  if (custom) { custom.style.display = 'none'; custom.value = ''; }
+  if (!curr && custom) { custom.style.display = 'none'; custom.value = ''; }
 };
 
 window.onEditReceivedByChange = function() {
@@ -8860,7 +8907,7 @@ window.checkReturningGuest = async function(rawPhone) {
   try {
     const { data: previous, error } = await sb.from('guest_register')
       .select('booking_id, guest_name, phone, room_id, check_in, check_out, total_amount, client_rating, rating_notes, id_proof_type, id_proof_no, id_proof_photo_path, id_proof_photo_paths, id_proof_front_paths, id_proof_back_paths, vehicle_name, vehicle_number, rooms(nickname, property_name)')
-      .or(`phone.ilike.%${corePhone}%,phone.eq.${corePhone},phone.eq.+91${corePhone},phone.eq.91${corePhone},phone.eq.0${corePhone}`)
+      .or(`phone.ilike.%${corePhone}%,notes.ilike.%${corePhone}%`)
       .neq('is_cancelled', true)
       .order('check_in', { ascending: false })
       .limit(15);
@@ -9639,12 +9686,12 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       phone: '+91 82996 00709',
       label: 'Mr. Firoz Khan (Default)'
     },
-    praveen: {
-      id: 'praveen',
-      name: 'Mr. Praveen Singh',
-      upiId: '9454470872@apl',
-      phone: '+91 94544 70872',
-      label: 'Mr. Praveen Singh'
+    shahenshah: {
+      id: 'shahenshah',
+      name: 'Mr. Shahanshah Khan',
+      upiId: '9450055554@okbizaxis',
+      phone: '+91 94500 55554',
+      label: 'Mr. Shahanshah Khan'
     }
   };
   let currentPayee = 'firoz';
@@ -9737,9 +9784,9 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
               <div style="font-size:11px;font-weight:800;color:#312E81;">👑 Firoz (Default)</div>
               <div style="font-size:9.5px;color:#4338CA;font-family:monospace;margin-top:1px;font-weight:700;">8299600709@ybl</div>
             </button>
-            <button type="button" id="cpqrPayeePraveen" style="padding:6px 8px;border-radius:8px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
-              <div style="font-size:11px;font-weight:800;color:#0F172A;">Praveen</div>
-              <div style="font-size:9.5px;color:#64748B;font-family:monospace;margin-top:1px;">9454470872@apl</div>
+            <button type="button" id="cpqrPayeeShahenshah" style="padding:6px 8px;border-radius:8px;border:1.5px solid #CBD5E1;background:#FFFFFF;cursor:pointer;text-align:left;transition:all 0.2s;">
+              <div style="font-size:11px;font-weight:800;color:#0F172A;">Shahanshah</div>
+              <div style="font-size:9.5px;color:#64748B;font-family:monospace;margin-top:1px;">9450055554@okbizaxis</div>
             </button>
           </div>
         </div>
@@ -9851,7 +9898,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   const downloadBtn = overlay.querySelector('#cpqrDownloadBtn');
   const copyBtn = overlay.querySelector('#cpqrCopyBtn');
   const payeeFirozBtn = overlay.querySelector('#cpqrPayeeFiroz');
-  const payeePraveenBtn = overlay.querySelector('#cpqrPayeePraveen');
+  const payeeShahenshahBtn = overlay.querySelector('#cpqrPayeeShahenshah');
   const copyPublicLinkBtn = overlay.querySelector('#cpqrCopyPublicLinkBtn');
 
   if (initRoomId && roomSel) {
@@ -9868,19 +9915,19 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
       payeeFirozBtn.children[1].style.color = '#4338CA';
       payeeFirozBtn.children[1].style.fontWeight = '700';
 
-      payeePraveenBtn.style.border = '1.5px solid #CBD5E1';
-      payeePraveenBtn.style.background = '#FFFFFF';
-      payeePraveenBtn.style.boxShadow = 'none';
-      payeePraveenBtn.children[0].style.color = '#0F172A';
-      payeePraveenBtn.children[1].style.color = '#64748B';
-      payeePraveenBtn.children[1].style.fontWeight = 'normal';
+      payeeShahenshahBtn.style.border = '1.5px solid #CBD5E1';
+      payeeShahenshahBtn.style.background = '#FFFFFF';
+      payeeShahenshahBtn.style.boxShadow = 'none';
+      payeeShahenshahBtn.children[0].style.color = '#0F172A';
+      payeeShahenshahBtn.children[1].style.color = '#64748B';
+      payeeShahenshahBtn.children[1].style.fontWeight = 'normal';
     } else {
-      payeePraveenBtn.style.border = '2px solid #4F46E5';
-      payeePraveenBtn.style.background = '#EEF2FF';
-      payeePraveenBtn.style.boxShadow = '0 2px 8px rgba(79,70,229,0.15)';
-      payeePraveenBtn.children[0].style.color = '#312E81';
-      payeePraveenBtn.children[1].style.color = '#4338CA';
-      payeePraveenBtn.children[1].style.fontWeight = '700';
+      payeeShahenshahBtn.style.border = '2px solid #4F46E5';
+      payeeShahenshahBtn.style.background = '#EEF2FF';
+      payeeShahenshahBtn.style.boxShadow = '0 2px 8px rgba(79,70,229,0.15)';
+      payeeShahenshahBtn.children[0].style.color = '#312E81';
+      payeeShahenshahBtn.children[1].style.color = '#4338CA';
+      payeeShahenshahBtn.children[1].style.fontWeight = '700';
 
       payeeFirozBtn.style.border = '1.5px solid #CBD5E1';
       payeeFirozBtn.style.background = '#FFFFFF';
@@ -9893,7 +9940,7 @@ window.openCustomPaymentQRModal = async function(prefill = {}) {
   }
 
   payeeFirozBtn.addEventListener('click', () => setPayee('firoz'));
-  payeePraveenBtn.addEventListener('click', () => setPayee('praveen'));
+  payeeShahenshahBtn.addEventListener('click', () => setPayee('shahenshah'));
 
   if (copyPublicLinkBtn) {
     copyPublicLinkBtn.addEventListener('click', () => {

@@ -970,10 +970,6 @@ function renderBlossomStatusModalUI(repDate) {
           <input type="date" value="${repDate}" onchange="openBlossomSkylineDailyStatusModal(this.value)" style="padding:4px 10px;font-size:12.5px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;font-weight:600;color:var(--text,#0F172A);">
         </div>
         <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;font-weight:600;color:var(--text,#334155);flex-wrap:wrap;">
-          <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="chkBlossomTags" ${s.includeTags ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
-            <span>Owner Tags</span>
-          </label>
           <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;" title="Include 🔴 Red circle emoji on pending lines">
             <input type="checkbox" id="chkBlossomRedEmoji" ${s.useRedEmoji ? 'checked' : ''} onchange="window.updateBlossomStatusText()">
             <span>🔴 Red Marker</span>
@@ -1041,7 +1037,6 @@ function renderBlossomStatusModalUI(repDate) {
 }
 
 window.updateBlossomStatusText = function() {
-  const chkTags = document.getElementById('chkBlossomTags');
   const chkRed = document.getElementById('chkBlossomRedEmoji');
   const selVacant = document.getElementById('selBlossomVacant');
   const chkVillas = document.getElementById('chkBlossomVillas');
@@ -1049,12 +1044,12 @@ window.updateBlossomStatusText = function() {
   if (!txt) return;
 
   const s = window._blossomStatusSettings;
-  s.includeTags = chkTags ? chkTags.checked : true;
+  s.includeTags = false;
   s.useRedEmoji = chkRed ? chkRed.checked : true;
   s.vacantLabel = selVacant ? selVacant.value : 'Khali';
-  s.includeVillas = chkVillas ? chkVillas.checked : false;
+  s.includeVillas = chkVillas ? chkVillas.checked : true;
 
-  txt.value = generateBlossomStatusText(s.includeTags, s.vacantLabel, s.includeVillas, s.useRedEmoji);
+  txt.value = generateBlossomStatusText(false, s.vacantLabel, s.includeVillas, s.useRedEmoji);
 };
 
 window.insertBlossomSnippet = function(snippet) {

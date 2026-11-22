@@ -143,19 +143,47 @@ async function renderReports() {
 
   const reviewCount = realMb.filter(isReviewedBooking).length;
 
+  // Helper to map aliases (FLAT101, 101, GOM101) to canonical room_id
+  function getCanonicalRoomId(rid) {
+    if (!rid) return '';
+    const clean = String(rid).replace(/[\s\-_]/g, '').toUpperCase();
+    for (const r of displayRooms) {
+      const rClean = String(r.room_id || '').replace(/[\s\-_]/g, '').toUpperCase();
+      const uClean = String(r.unit_no || '').replace(/[\s\-_]/g, '').toUpperCase();
+      if (clean === rClean || (uClean && clean === uClean)) {
+        return r.room_id;
+      }
+    }
+    if (clean.endsWith('101') && !clean.startsWith('VIL') && !clean.startsWith('LUL')) return 'GOM-101';
+    if (clean.endsWith('102') && !clean.startsWith('VIL')) return 'GOM-102';
+    if (clean.endsWith('201')) return 'GOM-201';
+    if (clean.endsWith('202')) return 'GOM-202';
+    if (clean.endsWith('301')) return 'GOM-301';
+    if (clean.endsWith('302')) return 'GOM-302';
+    if (clean.endsWith('401')) return 'GOM-401';
+    if (clean.endsWith('402')) {
+      const f402 = displayRooms.find(r => r.room_id === 'Flat 402' || r.room_id === 'GOM-402');
+      return f402 ? f402.room_id : 'Flat 402';
+    }
+    if (clean.endsWith('501')) return 'GOM-501';
+    if (clean.endsWith('502')) return 'GOM-502';
+    return rid;
+  }
+
   // Occupancy for filtered rooms
   const bMap = {};
   allBks.forEach(b => {
     if (!b.check_in || !b.check_out || !b.room_id) return;
+    const canRid = getCanonicalRoomId(b.room_id);
     if (b.check_in === b.check_out) {
       // Same-day / Day-use booking (0 nights / 1 day)
-      const _bkey = `${b.room_id}_${b.check_in}`;
+      const _bkey = `${canRid}_${b.check_in}`;
       if (!bMap[_bkey]) bMap[_bkey] = [];
       bMap[_bkey].push(b);
     } else {
       let c = b.check_in;
       while (c < b.check_out) {
-        const _bkey = `${b.room_id}_${c}`;
+        const _bkey = `${canRid}_${c}`;
         if (!bMap[_bkey]) bMap[_bkey] = [];
         bMap[_bkey].push(b);
         c = dateAdd(c, 1);
@@ -163,15 +191,26 @@ async function renderReports() {
     }
   });
 
-  // Prioritize real guest bookings over placeholder blocked slots
+  // Prioritize real guest bookings over placeholder blocked slots & deduplicate
   Object.keys(bMap).forEach(k => {
-    bMap[k].sort((a, b) => {
-      const aBlocked = isBkBlocked(a);
-      const bBlocked = isBkBlocked(b);
-      if (aBlocked && !bBlocked) return 1;
-      if (!aBlocked && bBlocked) return -1;
-      return 0;
-    });
+    const list = bMap[k];
+    const realBks = list.filter(x => !isBkBlocked(x));
+    if (realBks.length > 0) {
+      // Real bookings always supersede dummy blocks on that cell
+      bMap[k] = realBks;
+    } else {
+      // Deduplicate dummy blocked slots so multiple iCal syncs don't stack duplicates
+      const uniqueBlks = [];
+      const seenIds = new Set();
+      list.forEach(blk => {
+        const idKey = blk.booking_id || `${blk.check_in}_${blk.check_out}`;
+        if (!seenIds.has(idKey)) {
+          seenIds.add(idKey);
+          uniqueBlks.push(blk);
+        }
+      });
+      bMap[k] = uniqueBlks.slice(0, 1);
+    }
   });
 
   const totalRoomNights = displayRooms.length * dim;

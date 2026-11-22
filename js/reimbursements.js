@@ -305,7 +305,7 @@ window.saveReimbursement = async function() {
       }
     }
 
-    const currentUser = SESSION.displayName || 'Praveen Singh';
+    const currentUser = SESSION.displayName || 'Operations';
     const initialStatus = 'Pending';
 
     const { data: newR, error } = await sb.from('reimbursements').insert({
@@ -340,7 +340,7 @@ window.saveReimbursement = async function() {
           amount: amt,
           txn_date: date,
           description: `Expense: ${desc} (${cat})`,
-          created_by: SESSION.displayName || 'Praveen'
+          created_by: SESSION.displayName || 'Operations'
         });
       } catch (e) {
         console.warn('account_transactions view insert skipped/unsupported:', e);
@@ -573,7 +573,7 @@ window.deleteReimbursement = async function(id) {
 window._companyCashData = null;
 
 window.loadAvailableCash = function(){}; window._old_load = async function() {
-  const currentUser = SESSION.displayName || 'Praveen Singh';
+  const currentUser = SESSION.displayName || 'Operations';
   
   const { data: payments } = await sb.from('payment_history')
     .select('id, amount, payment_date, payment_mode')

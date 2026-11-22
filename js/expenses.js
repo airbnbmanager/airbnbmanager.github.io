@@ -2908,10 +2908,10 @@ window.onExpPayModeChange = async function() {
     else label.innerHTML = '💵 Paid By *';
   }
   
-  // Only 2 options: Praveen + Company
+  // Options: Director / Personal + Company
   let html = '<option value="">-- Select --</option>';
-  html += '<option value="Praveen">🔵 Praveen (my pocket)</option>';
-  html += '<option value="Company">🏢 Company (company account)</option>';
+  html += '<option value="Director">💼 Director Paid (Owner Funds)</option>';
+  html += '<option value="Company">🏢 Company (Company Account)</option>';
   dropdown.innerHTML = html;
   
   if (mode === 'UPI' || mode === 'Bank') {

@@ -226,7 +226,7 @@ async function renderManageEmployees() {
             </span>
           </div>
           <div class="sub" style="margin-top:4px;">
-            Sole Property Manager: <strong>Praveen Singh</strong> &bull; On-ground operational staff: Caretakers, Cleaning Staff & Maids
+            Operations Management: <strong>Mr. Firoz Khan &amp; Mr. Shahanshah Khan</strong> &bull; On-ground operational staff: Caretakers, Cleaning Staff & Maids
           </div>
           ${SESSION.role === 'developer' ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">ID Proof Storage: ${(storageInfo?.files || 0)} files &bull; Limit: ${storageInfo?.label || '1 GB'}</div>` : ''}
         </div>
@@ -792,7 +792,7 @@ async function renderAddEmp() {
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:20px;">ℹ️</span>
         <div style="font-size:12.5px;color:#1E3A8A;line-height:1.4;">
-          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
+          <strong>Manager Note:</strong> Operations are overseen by <strong>Mr. Firoz Khan &amp; Mr. Shahanshah Khan</strong>. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
         </div>
       </div>
     </div>
@@ -818,7 +818,7 @@ async function renderAddEmp() {
         <div class="form-group">
           <label style="font-weight:700;color:var(--text);">Employee Salary System / Model *</label>
           <select id="eSalaryType" onchange="window.toggleEmpSalaryTypeInputs()" style="padding:10px;font-weight:700;border:1.5px solid var(--border);">
-            <option value="fixed" selected>💼 Type 1: Fixed Monthly Salary (e.g. Praveen, Arman, Shuaib, Aniket)</option>
+            <option value="fixed" selected>💼 Type 1: Fixed Monthly Salary (e.g. Arman, Shuaib, Aniket)</option>
             <option value="per_flat">🧹 Type 2: Per-Flat Cleaning Staff (e.g. Kanchan, Maids — ₹133/flat)</option>
           </select>
         </div>
@@ -1134,7 +1134,7 @@ async function editEmp(id) {
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:20px;">ℹ️</span>
         <div style="font-size:12.5px;color:#1E3A8A;line-height:1.4;">
-          <strong>Manager Note:</strong> <strong>Praveen Singh</strong> is the sole Manager across all properties. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
+          <strong>Manager Note:</strong> Operations are overseen by <strong>Mr. Firoz Khan &amp; Mr. Shahanshah Khan</strong>. On-ground staff roles should be assigned as <strong>Caretaker</strong>, <strong>Cleaning Staff</strong>, or <strong>Maid</strong>.
         </div>
       </div>
     </div>
@@ -1164,7 +1164,7 @@ async function editEmp(id) {
           <div class="form-group">
             <label style="font-weight:700;color:var(--text);">Employee Salary System / Model *</label>
             <select id="eSalaryType" onchange="window.toggleEmpSalaryTypeInputs()" style="padding:10px;font-weight:700;border:1.5px solid var(--border);">
-              <option value="fixed" ${!isCleaner ? 'selected' : ''}>💼 Type 1: Fixed Monthly Salary (e.g. Praveen, Arman, Shuaib, Aniket)</option>
+              <option value="fixed" ${!isCleaner ? 'selected' : ''}>💼 Type 1: Fixed Monthly Salary (e.g. Arman, Shuaib, Aniket)</option>
               <option value="per_flat" ${isCleaner ? 'selected' : ''}>🧹 Type 2: Per-Flat Cleaning Staff (e.g. Kanchan, Maids — ₹133/flat)</option>
             </select>
           </div>
@@ -4837,7 +4837,7 @@ window.printEmployeePaySlip = function(empId) {
           </div>
           <div>
             <div class="sig-line">Verified &amp; Approved By</div>
-            <div class="sig-sub">Praveen Singh (Manager)</div>
+            <div class="sig-sub">Director / Operations</div>
           </div>
           <div>
             <div class="sig-line">Employee Signature</div>
@@ -5033,7 +5033,7 @@ window.printEmployeePayReportConsolidated = function() {
         </div>
         <div>
           <div class="sig-line">Authorized Signatory / Manager</div>
-          <div class="sig-sub">Praveen Singh (The Unique Haven Homes Pvt. Ltd.)</div>
+          <div class="sig-sub">Director (The Unique Haven Homes Pvt. Ltd.)</div>
         </div>
       </div>
     </body>
