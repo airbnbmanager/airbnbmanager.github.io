@@ -1,0 +1,36 @@
+export type Language = 'en' | 'hi';
+
+export const translations = {
+  en: {
+    dashboard: 'Dashboard',
+    bookings: 'Bookings',
+    calendar: 'Calendar',
+    rooms: 'Properties',
+    guests: 'Guests',
+    payments: 'Payments',
+    reports: 'Reports',
+    settings: 'Settings',
+    today_checkins: 'Today Check-ins',
+    today_checkouts: 'Today Check-outs',
+    occupancy: 'Occupancy',
+    revenue: 'Revenue',
+    new_booking: 'New Booking',
+    search: 'Search...',
+  },
+  hi: {
+    dashboard: 'डैशबोर्ड',
+    bookings: 'बुकिंग्स',
+    calendar: 'कैलेंडर',
+    rooms: 'प्रॉपर्टीज',
+    guests: 'अतिथि',
+    payments: 'भुगतान',
+    reports: 'रिपोर्ट्स',
+    settings: 'सेटिंग्स',
+    today_checkins: 'आज के चेक-इन',
+    today_checkouts: 'आज के चेक-आउट',
+    occupancy: 'ऑक्यूपेंसी',
+    revenue: 'आय / रेवेन्यू',
+    new_booking: 'नई बुकिंग',
+    search: 'खोजें...',
+  },
+};

@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* =========================================================================
+     1. DEFAULT BASE TOKENS (Shared fallback)
+     ========================================================================= */
+  :root {
+    --radius: 0.75rem;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+  }
+
+  /* =========================================================================
+     2. VERSION: LUXURY HAVEN (Warm Boutique Hospitality - The New Version)
+     ========================================================================= */
+  :root[data-version="luxury"] {
+    --background: 36 33% 97%;      /* #FDFBF7 Warm Stone / Linen */
+    --foreground: 25 20% 12%;      /* #251E1A Deep Roasted Coffee */
+    --card: 0 0% 100%;
+    --card-foreground: 25 20% 12%;
+    --secondary: 35 25% 94%;
+    --secondary-foreground: 25 20% 25%;
+    --muted: 35 20% 93%;
+    --muted-foreground: 25 10% 48%;
+    --accent: 35 45% 91%;
+    --accent-foreground: 25 40% 18%;
+    --border: 35 18% 87%;
+    --input: 35 18% 87%;
+    --sidebar-background: 25 24% 10%; /* #1A1412 Warm Espresso */
+    --sidebar-foreground: 35 20% 88%;
+    --sidebar-accent: 25 20% 16%;
+    --sidebar-accent-foreground: 35 20% 88%;
+    --sidebar-border: 25 20% 17%;
+    --radius: 0.85rem;
+  }
+
+  :root[data-version="luxury"].dark {
+    --background: 25 20% 7%;       /* #120D0A Warm Obsidian */
+    --foreground: 35 25% 92%;
+    --card: 25 20% 10%;
+    --card-foreground: 35 25% 92%;
+    --secondary: 25 15% 15%;
+    --secondary-foreground: 35 20% 80%;
+    --muted: 25 15% 15%;
+    --muted-foreground: 35 10% 55%;
+    --accent: 25 20% 18%;
+    --accent-foreground: 35 25% 92%;
+    --border: 25 15% 18%;
+    --input: 25 15% 18%;
+    --sidebar-background: 25 25% 6%;
+    --sidebar-foreground: 35 20% 85%;
+    --sidebar-accent: 25 20% 12%;
+    --sidebar-accent-foreground: 35 20% 85%;
+    --sidebar-border: 25 20% 14%;
+  }
+
+  /* =========================================================================
+     3. VERSION: CLASSIC ENTERPRISE (HomeyIndia CRM - The Original Version)
+     ========================================================================= */
+  :root[data-version="classic"] {
+    --background: 210 40% 96%;     /* #F1F5F9 Cool Slate Page */
+    --foreground: 222 47% 11%;     /* #0F172A Slate Heading */
+    --card: 0 0% 100%;             /* #FFFFFF Pure White Card */
+    --card-foreground: 222 47% 11%;
+    --secondary: 214 32% 91%;      /* #E2E8F0 */
+    --secondary-foreground: 215 25% 27%;
+    --muted: 210 40% 93%;
+    --muted-foreground: 215 16% 47%;/* #64748B */
+    --accent: 210 40% 90%;
+    --accent-foreground: 222 47% 11%;
+    --border: 214 32% 88%;         /* Crisp Enterprise Slate Border */
+    --input: 214 32% 88%;
+    --sidebar-background: 222 47% 11%; /* #0F172A Deep Navy Sidebar */
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-accent: 217 33% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 18%;
+    --radius: 0.5rem;             /* Tighter, crisper enterprise corners */
+  }
+
+  :root[data-version="classic"].dark {
+    --background: 222 47% 8%;      /* #0A0F1D */
+    --foreground: 210 40% 98%;
+    --card: 217 33% 13%;          /* #161F30 */
+    --card-foreground: 210 40% 98%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 85%;
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 16%;
+  }
+
+  /* =========================================================================
+     4. COLOR THEME PALETTES
+     ========================================================================= */
+  /* A. Classic Sky Blue (#0284C7 / #0EA5E9) */
+  :root[data-color="sky"] {
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 199 89% 48%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 199 89% 48%;
+  }
+  :root[data-color="sky"].dark {
+    --primary: 199 89% 56%;
+    --ring: 199 89% 56%;
+    --sidebar-primary: 199 89% 56%;
+  }
+
+  /* B. Luxury Terracotta (#C2673B) */
+  :root[data-color="terracotta"] {
+    --primary: 20 65% 50%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 20 65% 50%;
+    --sidebar-primary: 20 65% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 20 65% 50%;
+  }
+  :root[data-color="terracotta"].dark {
+    --primary: 20 70% 55%;
+    --ring: 20 70% 55%;
+    --sidebar-primary: 20 70% 55%;
+  }
+
+  /* C. Forest Emerald (#059669) */
+  :root[data-color="emerald"] {
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 160 84% 39%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 160 84% 39%;
+  }
+  :root[data-color="emerald"].dark {
+    --primary: 160 70% 48%;
+    --ring: 160 70% 48%;
+    --sidebar-primary: 160 70% 48%;
+  }
+
+  /* D. Royal Indigo (#4F46E5) */
+  :root[data-color="indigo"] {
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 243 75% 59%;
+    --sidebar-primary: 243 75% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 243 75% 59%;
+  }
+  :root[data-color="indigo"].dark {
+    --primary: 243 85% 68%;
+    --ring: 243 85% 68%;
+    --sidebar-primary: 243 85% 68%;
+  }
+
+  /* E. Rose Blossom (#E11D48) */
+  :root[data-color="rose"] {
+    --primary: 346 77% 50%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 346 77% 50%;
+    --sidebar-primary: 346 77% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 346 77% 50%;
+  }
+  :root[data-color="rose"].dark {
+    --primary: 346 85% 60%;
+    --ring: 346 85% 60%;
+    --sidebar-primary: 346 85% 60%;
+  }
+}
+
+/* =========================================================================
+   5. TYPOGRAPHY & LAYOUT STYLING BY VERSION
+   ========================================================================= */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Headings in Luxury Version: Editorial Serif */
+  [data-version="luxury"] h1,
+  [data-version="luxury"] h2,
+  [data-version="luxury"] h3,
+  [data-version="luxury"] .font-display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  /* Headings in Classic Enterprise Version: Crisp Modern Sans-serif */
+  [data-version="classic"] h1,
+  [data-version="classic"] h2,
+  [data-version="classic"] h3,
+  [data-version="classic"] .font-display {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif !important;
+    letter-spacing: -0.015em;
+    font-weight: 700;
+  }
+
+  /* High-density operational borders in Classic version */
+  [data-version="classic"] .haven-card {
+    border-radius: 0.65rem !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer components {
+  .haven-card {
+    @apply bg-card border border-border rounded-xl shadow-sm transition-all duration-200;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 4px 12px -2px rgb(0 0 0 / 0.05);
+  }
+  .haven-card:hover {
+    box-shadow: 0 4px 16px -2px rgb(0 0 0 / 0.08);
+  }
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6;
+  }
+}
