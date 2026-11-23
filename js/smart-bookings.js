@@ -282,15 +282,26 @@ async function renderSmartManageBookings(forceRefresh = false) {
     window._bkPaidMap = paidMap;
     window._sbkState.cachedPaidMap = paidMap;
 
-    // Fetch all bookings
-    const { data: all, error } = await sb.from('guest_register')
-      .select('*, rooms(unit_no, nickname, property_name)')
-      .order('check_in', { ascending: false });
+    // Fetch all bookings with resilient chunked pagination
+    let allActiveBookings = [];
+    let pageFrom = 0;
+    const pageChunkSize = 1000;
+    while (true) {
+      const { data: chunk, error } = await sb.from('guest_register')
+        .select('*, rooms(unit_no, nickname, property_name)')
+        .order('check_in', { ascending: false })
+        .range(pageFrom, pageFrom + pageChunkSize - 1);
 
-    if (error) {
-      renderShell(`<div class="card"><div class="error">❌ Error loading bookings: ${escapeHtml(error.message)}</div></div>`, 'bookings');
-      return;
+      if (error) {
+        renderShell(`<div class="card"><div class="error">❌ Error loading bookings: ${escapeHtml(error.message)}</div></div>`, 'bookings');
+        return;
+      }
+      if (!chunk || !chunk.length) break;
+      allActiveBookings.push(...chunk);
+      if (chunk.length < pageChunkSize) break;
+      pageFrom += pageChunkSize;
     }
+    const all = allActiveBookings;
 
     // Fetch rooms
     const { data: rooms } = await sb.from('rooms').select('room_id, unit_no, nickname, property_name, rent_per_night').order('unit_no');

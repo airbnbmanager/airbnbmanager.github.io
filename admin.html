@@ -63,62 +63,65 @@
   <script src="config.js"></script>
 
   <!-- App Modules — order matters -->
-  <script src="js/core.js?v=490"></script>
-  <script src="js/user-audit.js?v=490"></script>
-  <script src="js/notifications.js?v=490"></script>
-  <script src="js/dashboard.js?v=490"></script>
-  <script src="js/daily-report.js?v=490"></script>
-  <script src="js/reminders.js?v=490"></script>
-  <script src="js/showcase-data.js?v=490"></script>
-  <script src="js/calendar.js?v=491"></script>
-  <script src="js/bookings.js?v=490"></script>
-  <script src="js/seasonal-pricing.js?v=490"></script>
-  <script src="js/smart-bookings.js?v=490"></script>
-  <script src="js/pos-terminal.js?v=490"></script>
+  <script src="js/core.js?v=492"></script>
+  <script src="js/user-audit.js?v=492"></script>
+  <script src="js/notifications.js?v=492"></script>
+  <script src="js/dashboard.js?v=492"></script>
+  <script src="js/daily-report.js?v=492"></script>
+  <script src="js/reminders.js?v=492"></script>
+  <script src="js/showcase-data.js?v=492"></script>
+  <script src="js/calendar.js?v=492"></script>
+  <script src="js/bookings.js?v=492"></script>
+  <script src="js/seasonal-pricing.js?v=492"></script>
+  <script src="js/smart-bookings.js?v=492"></script>
+  <script src="js/pos-terminal.js?v=492"></script>
   <script src="js/html2canvas.min.js"></script>
-  <script src="js/booking-receipt.js?v=490"></script>
-  <script src="js/gst-invoice.js?v=490"></script>
-  <script src="js/airbnb-audit-data.js?v=490"></script>
-  <script src="js/ca-audit-pack.js?v=490"></script>
-  <script src="js/per-day-calc.js?v=490"></script>
-  <script src="js/properties.js?v=490"></script>
-  <script src="js/employees.js?v=490"></script>
-  <script src="js/expenses.js?v=490"></script>
-  <script src="js/store.js?v=490"></script>
-  <script src="js/maintenance.js?v=490"></script>
-  <script src="js/investors.js?v=490"></script>
-  <script src="js/sop.js?v=490"></script>
-  <script src="js/whatsapp.js?v=490"></script>
-  <script src="js/reconciliation.js?v=490"></script>
+  <script src="js/booking-receipt.js?v=492"></script>
+  <script src="js/gst-invoice.js?v=492"></script>
+  <script src="js/airbnb-audit-data.js?v=492"></script>
+  <script src="js/ca-audit-pack.js?v=492"></script>
+  <script src="js/per-day-calc.js?v=492"></script>
+  <script src="js/properties.js?v=492"></script>
+  <script src="js/employees.js?v=492"></script>
+  <script src="js/expenses.js?v=492"></script>
+  <script src="js/store.js?v=492"></script>
+  <script src="js/maintenance.js?v=492"></script>
+  <script src="js/investors.js?v=492"></script>
+  <script src="js/sop.js?v=492"></script>
+  <script src="js/whatsapp.js?v=492"></script>
+  <script src="js/reconciliation.js?v=492"></script>
 
-  <script src="js/airbnb-sync.js?v=490"></script>
-  <script src="js/airbnb-importer.js?v=490"></script>
-  <script src="js/ical-sync.js?v=490"></script>
-  <script src="js/laundry.js?v=490"></script>
-  <script src="js/claims.js?v=490"></script>
-  <script src="js/reimbursements.js?v=490"></script>
-  <script src="js/property-setup.js?v=490"></script>
-  <script src="js/company-advances.js?v=490"></script>
-  <script src="js/my-ledger.js?v=490"></script>
-  <script src="js/employee-ledger.js?v=490"></script>
-  <script src="js/analytics.js?v=490"></script>
-  <script src="js/whatsapp-hub.js?v=490"></script>
+  <script src="js/airbnb-sync.js?v=492"></script>
+  <script src="js/airbnb-importer.js?v=492"></script>
+  <script src="js/ical-sync.js?v=492"></script>
+  <script src="js/laundry.js?v=492"></script>
+  <script src="js/claims.js?v=492"></script>
+  <script src="js/reimbursements.js?v=492"></script>
+  <script src="js/property-setup.js?v=492"></script>
+  <script src="js/company-advances.js?v=492"></script>
+  <script src="js/my-ledger.js?v=492"></script>
+  <script src="js/employee-ledger.js?v=492"></script>
+  <script src="js/analytics.js?v=492"></script>
+  <script src="js/whatsapp-hub.js?v=492"></script>
   <script src="js/showcase-admin.js?v=490"></script>
   <script src="js/review-followup.js?v=490"></script>
   <script src="js/command-palette.js?v=490"></script>
   <script src="js/help-guide.js?v=490"></script>
 
-  <!-- PWA Service Worker Registration (Silent Background Updates · No Intrusive Modals) -->
+  <!-- PWA Service Worker Registration (Silent Background Updates · Auto Cache Invalidation) -->
   <script>
     // Remove any leftover modal overlay immediately if present in DOM
     document.getElementById('mandatoryUpdateModalOverlay')?.remove();
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=492').then(reg => {
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
+          // Check for service worker updates periodically & on focus
+          try { reg.update(); } catch(e) {}
+          window.addEventListener('focus', () => { try { reg.update(); } catch(e) {} });
         }).catch(err => {
           console.warn('SW registration notice:', err.message);
         });

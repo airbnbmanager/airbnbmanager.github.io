@@ -64,6 +64,7 @@ async function renderReports() {
       .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
       .neq('is_cancelled', true)
       .neq('verification_status', 'rejected')
+      .order('check_in', { ascending: true })
       .range(pageFrom, pageFrom + pageChunkSize - 1);
 
     if (bErr || !chunk || !chunk.length) break;
