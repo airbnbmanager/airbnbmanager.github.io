@@ -54,9 +54,24 @@ async function renderReports() {
     }
   }
 
-  const bookings = await sb.from('guest_register')
-    .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
-    .neq('is_cancelled', true).neq('verification_status', 'rejected');
+  // 🚀 HIGH-CAPACITY RESILIENT PAGINATION: Supabase hard-caps single requests at 1,000 rows.
+  // When active bookings exceed 1,000, newer bookings were getting truncated and disappeared from the calendar.
+  let allActiveBookings = [];
+  let pageFrom = 0;
+  const pageChunkSize = 1000;
+  while (true) {
+    const { data: chunk, error: bErr } = await sb.from('guest_register')
+      .select('booking_id, room_id, check_in, check_out, check_in_time, check_out_time, guest_name, phone, booking_mode, total_amount, is_cancelled, verification_status, notes, has_vehicle, vehicle_name, vehicle_number, client_rating')
+      .neq('is_cancelled', true)
+      .neq('verification_status', 'rejected')
+      .range(pageFrom, pageFrom + pageChunkSize - 1);
+
+    if (bErr || !chunk || !chunk.length) break;
+    allActiveBookings.push(...chunk);
+    if (chunk.length < pageChunkSize) break;
+    pageFrom += pageChunkSize;
+  }
+  const bookings = { data: allActiveBookings };
 
   // 🏠 CARETAKER PROPERTY ENFORCEMENT: Filter rooms and bookings strictly to assigned properties
   if (window.SESSION?.role === 'caretaker') {
@@ -2479,7 +2494,7 @@ async function renderFYSummary(range = 'FY', propFilter = '', modeFilter = '') {
   else { let fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1; s = fy + '-04-01'; e = (fy + 1) + '-03-31'; label = `FY ${fy}-${fy + 1}`; }
 
   const [gs, ex, py] = await Promise.all([
-    sb.from('guest_register').select('booking_id,check_in,total_amount,room_id,guest_name,booking_mode,is_review_booking'),
+    sb.from('guest_register').select('booking_id,check_in,total_amount,room_id,guest_name,booking_mode,is_review_booking').gte('check_in', s).lte('check_in', e),
     sb.from('expenses').select('amount,month'),
     sb.from('payment_history').select('booking_id,amount'),
   ]);
