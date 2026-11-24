@@ -1761,14 +1761,7 @@ window.openBookingDrawer = async function(bookingId) {
 
           <!-- Financial Breakdown & Payment History -->
           <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <div style="font-size:13px;font-weight:700;color:var(--dark);">💰 Payment Ledger</div>
-              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <button class="btn-sm" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}', roomId: '${b.room_id || ''}', amount: ${bal > 0 ? Math.round(bal) : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;border:none;padding:5px 10px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Generate & Send Branded Payment QR for this Booking">💳 Send QR</button>
-                <button class="btn-sm" onclick="window.openPOSTerminal && window.openPOSTerminal({ room_id: '${b.room_id}', guest_name: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}' })" style="background:#0F172A;color:#fff;border:none;padding:5px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Add Concierge Services / Add-Ons for this Stay">🛎️ Add-Ons</button>
-                ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:5px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">+ Add Payment</button>` : ''}
-              </div>
-            </div>
+            <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px;">💰 Payment Ledger</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;background:#F8FAFC;padding:10px;border-radius:8px;margin-bottom:12px;">
               <div>
