@@ -1610,6 +1610,182 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     `;
   }
 
+  // 🌟 ULTRA HD 500 DPI PNG DIRECT DOWNLOAD HELPER
+  function setPngDpi(blobBuffer, dpi) {
+    const ppm = Math.round(dpi / 0.0254);
+    const physChunk = new Uint8Array(21);
+    const view = new DataView(physChunk.buffer);
+    view.setUint32(0, 9); // length: 9 bytes
+    physChunk[4] = 0x70; physChunk[5] = 0x48; physChunk[6] = 0x59; physChunk[7] = 0x73; // pHYs
+    view.setUint32(8, ppm);
+    view.setUint32(12, ppm);
+    physChunk[16] = 1; // unit: meter
+    
+    let crc = 0xFFFFFFFF;
+    for (let i = 4; i < 17; i++) {
+      let byte = physChunk[i];
+      crc ^= byte;
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (-(crc & 1) & 0xEDB88320);
+      }
+    }
+    view.setUint32(17, (crc ^ 0xFFFFFFFF) >>> 0);
+    
+    const result = new Uint8Array(blobBuffer.length + 21);
+    result.set(blobBuffer.subarray(0, 33), 0);
+    result.set(physChunk, 33);
+    result.set(blobBuffer.subarray(33), 33 + 21);
+    return result;
+  }
+
+  async function downloadReceiptPNG(elementId, filename = 'Payment_Slip_Combined', receiptData = null) {
+    const el = document.getElementById(elementId);
+    if (!el && !receiptData && !window._activeMultiReceiptData && !window._activeSingleReceiptData) {
+      alert('Receipt content not found.');
+      return;
+    }
+
+    try {
+      if (!window.html2canvas) {
+        await ensureHtml2Canvas();
+      }
+    } catch(e) {
+      console.warn('ensureHtml2Canvas warning:', e);
+    }
+
+    if (!window.html2canvas) {
+      alert('Could not initialize image renderer. Please reload the page.');
+      return;
+    }
+
+    if (window.fsn?.info) {
+      fsn.info('Rendering PNG', '📥 Generating ultra-crisp 500 DPI PNG receipt...');
+    }
+
+    const data = receiptData || window._activeMultiReceiptData || window._activeSingleReceiptData || null;
+
+    let tempWrapper = null;
+    try {
+      let captureEl = null;
+      const captureWidth = 860;
+
+      if (data) {
+        tempWrapper = document.createElement('div');
+        tempWrapper.id = 'uhh_download_receipt_render_wrapper';
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.width = '860px';
+        tempWrapper.style.maxWidth = '860px';
+        tempWrapper.style.boxSizing = 'border-box';
+        tempWrapper.style.zIndex = '-99999';
+        tempWrapper.style.background = '#ffffff';
+        tempWrapper.innerHTML = data.isMulti ? buildMultiPropertyReceiptHTML(data) : buildReceiptHTML(data);
+        document.body.appendChild(tempWrapper);
+        captureEl = tempWrapper.firstElementChild || tempWrapper;
+      } else if (el) {
+        const target = el.querySelector('.uhh-receipt-container') || el;
+        tempWrapper = target.cloneNode(true);
+        tempWrapper.id = 'uhh_download_receipt_render_wrapper';
+        tempWrapper.style.position = 'fixed';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.width = '860px';
+        tempWrapper.style.maxWidth = '860px';
+        tempWrapper.style.boxSizing = 'border-box';
+        tempWrapper.style.zIndex = '-99999';
+        tempWrapper.style.background = '#ffffff';
+        document.body.appendChild(tempWrapper);
+        captureEl = tempWrapper;
+      }
+
+      if (!captureEl) throw new Error('Target receipt element not found.');
+
+      // Wait for all images in captureEl to be ready
+      const imgs = Array.from(captureEl.querySelectorAll('img'));
+      await Promise.all(imgs.map(img => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise(res => {
+          img.onload = res;
+          img.onerror = res;
+          setTimeout(res, 300);
+        });
+      }));
+
+      await new Promise(r => setTimeout(r, 80));
+
+      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
+      const fullWidth = captureWidth;
+
+      // 🌟 TRUE 500 DPI RESOLUTION SCALE (500 / 96 = ~5.2x scale)
+      const canvas = await window.html2canvas(captureEl, {
+        scale: 5.2, // Ultra HD 500 DPI Clarity
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollY: 0,
+        scrollX: 0,
+        x: 0,
+        y: 0,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: Math.max(fullWidth, 1280),
+        windowHeight: fullHeight + 100
+      });
+
+      if (tempWrapper && tempWrapper.parentNode) {
+        tempWrapper.remove();
+        tempWrapper = null;
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('Could not generate receipt image blob.');
+          return;
+        }
+
+        const cleanBase = (filename || 'Payment_Slip_Combined').replace(/\.(pdf|png|jpe?g)$/i, '');
+
+        try {
+          const arrayBuffer = await blob.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          const dpiPngBuffer = setPngDpi(uint8, 500);
+          const finalBlob = new Blob([dpiPngBuffer], { type: 'image/png' });
+
+          const downloadUrl = URL.createObjectURL(finalBlob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = downloadUrl;
+          a.download = `${cleanBase}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
+
+          if (window.fsn?.success) {
+            fsn.success('Downloaded!', '✅ 500 DPI Ultra HD PNG receipt downloaded successfully.');
+          }
+        } catch(blobErr) {
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = downloadUrl;
+          a.download = `${cleanBase}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
+        }
+      }, 'image/png', 1.0);
+
+    } catch(err) {
+      if (tempWrapper && tempWrapper.parentNode) tempWrapper.remove();
+      console.error('Canvas capture error:', err);
+      alert('Error creating receipt image: ' + err.message);
+    }
+  }
+
   // 4D. Convert payment slip to crisp high-res image and show rich visual preview modal
   // Default: 'mobile' (Ultra-crisp 480px WhatsApp mobile vertical pass - fits mobile screen perfectly with 300 DPI)
   // Optional: 'official' (Full A4 desktop voucher layout)
@@ -2729,11 +2905,8 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('multiReceiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('multiReceiptPrintArea', 'Payment_Slip_Combined', window._activeMultiReceiptData)">
-              📸 Share as Image (Preview)
-            </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.phone || '')}', document.getElementById('multiReceiptWaHidden').value)">
-              💬 Send on WhatsApp
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;border:none;padding:7px 15px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.3);" onclick="window.downloadReceiptPNG('multiReceiptPrintArea', '${escapeHtml(getMultiReceiptFilename(data))}', window._activeMultiReceiptData)" title="Download high-resolution receipt PNG (500 DPI Ultra HD Quality)">
+              📥 Download PNG
             </button>
             <div style="position:relative;display:inline-block;">
               <button type="button" class="btn-sm" style="background:#1E293B;color:#F8FAFC;font-weight:700;border:1px solid #475569;padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="const d=document.getElementById('indivRoomReceiptDropdown');if(d)d.style.display=d.style.display==='none'?'block':'none';">
@@ -2757,14 +2930,6 @@ ${propertiesList}
                 }).join('')}
               </div>
             </div>
-            ${data.phone ? `
-              <button type="button" class="btn-sm" style="background:#F59E0B;color:#0F172A;font-weight:900;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(245,158,11,0.35);" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${escapeHtml(cleanPhone(data.phone))}')" title="View all bookings of this guest together in one single grand receipt">
-                🌟 All Bookings Ek Sath (${escapeHtml(data.guestName || 'Guest')})
-              </button>
-            ` : ''}
-            <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('multiReceiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Consolidated receipt text copied to clipboard!'); else alert('Receipt text copied!');">
-              📋 Copy Text
-            </button>
           </div>
         </div>
 
@@ -3575,8 +3740,8 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#B45309;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.printBookingReceipt('receiptPrintArea', '${escapeHtml(docTitle).replace(/'/g, "\\'")}')">
               🖨️ Print / Save PDF
             </button>
-            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.shareSlipAsImage('receiptPrintArea', 'Payment_Slip_${escapeHtml(data.booking.booking_id)}', window._activeSingleReceiptData)">
-              📸 Share as Image (Preview)
+            <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(2,132,199,0.3);" onclick="window.downloadReceiptPNG('receiptPrintArea', '${escapeHtml(getReceiptFilename(data))}', window._activeSingleReceiptData)" title="Download high-resolution receipt PNG (500 DPI Ultra HD Quality)">
+              📥 Download PNG
             </button>
             <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.booking.phone || '')}', document.getElementById('receiptWaHidden').value)">
               💬 Send on WhatsApp
@@ -3845,7 +4010,8 @@ ${propertiesList}
     printBookingReceipt,
     sendReceiptWhatsApp,
     sharePdfViaWhatsApp,
-    shareSlipAsImage
+    shareSlipAsImage,
+    downloadReceiptPNG
   };
 
 })();
@@ -3867,3 +4033,4 @@ window.getMultiReceiptFilename = window.BOOKING_RECEIPT_ENGINE.getMultiReceiptFi
 window.sendReceiptWhatsApp = window.BOOKING_RECEIPT_ENGINE.sendReceiptWhatsApp;
 window.sharePdfViaWhatsApp = window.BOOKING_RECEIPT_ENGINE.sharePdfViaWhatsApp;
 window.shareSlipAsImage = window.BOOKING_RECEIPT_ENGINE.shareSlipAsImage;
+window.downloadReceiptPNG = window.BOOKING_RECEIPT_ENGINE.downloadReceiptPNG;
