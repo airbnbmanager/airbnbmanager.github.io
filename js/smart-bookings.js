@@ -1560,224 +1560,219 @@ window.openBookingDrawer = async function(bookingId) {
   container.innerHTML = `
     <div class="sbk-drawer-overlay" onclick="if(event.target===this) window.closeBookingDrawer()">
       <div class="sbk-drawer">
+        <div class="sbk-drawer-handle" style="display:none;width:38px;height:4.5px;background:#CBD5E1;border-radius:3px;margin:8px auto 2px auto;"></div>
         <div class="sbk-drawer-header">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">
-              Booking Reference: ${escapeHtml(b.booking_id)}
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              Booking: ${escapeHtml(b.booking_id)}
             </div>
-            <div style="font-size:18px;font-weight:800;color:var(--dark);margin-top:2px;">
+            <div style="font-size:17.5px;font-weight:900;color:var(--dark);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
               ${escapeHtml(b.guest_name || 'Guest')}
             </div>
           </div>
-          <button onclick="window.closeBookingDrawer()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">✕</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${b.phone ? `
+              <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:32px;padding:0 10px;border-radius:8px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:800;" title="WhatsApp Guest">
+                💬 WA
+              </button>
+              <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:32px;height:32px;border-radius:8px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Guest">📞</a>
+            ` : ''}
+            <button onclick="window.closeBookingDrawer()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;line-height:1;">✕</button>
+          </div>
         </div>
 
         <div class="sbk-drawer-body">
 
-          <!-- Blocked Calendar Slot Banner -->
-          ${isBlocked ? `
-            <div style="background:linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);border:2px solid #94A3B8;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-              <div>
-                <div style="font-size:14px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:6px;">
-                  <span>🔒</span> Blocked Calendar Date
-                </div>
-                <div style="font-size:12px;color:#475569;margin-top:2px;">
-                  This slot is blocked / unavailable on the calendar. Click below to convert it to a real guest booking.
-                </div>
-              </div>
-              <button type="button" class="btn-sm" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)" style="background:#059669;color:#fff;border:none;padding:9px 18px;font-size:13px;font-weight:800;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">
-                ➕ Convert to Real Guest Booking
-              </button>
-            </div>
-          ` : ''}
-
-          <!-- Direct Website Pending Approval Banner -->
-          ${b.verification_status === 'pending' ? `
-            <div style="background:linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);border:2px solid #F59E0B;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 12px rgba(245,158,11,0.15);">
-              <div>
-                <div style="font-size:13.5px;font-weight:800;color:#92400E;display:flex;align-items:center;gap:6px;">
-                  <span>🟡</span> Direct Website Booking &mdash; Pending Approval
-                </div>
-                <div style="font-size:12px;color:#B45309;margin-top:2px;">
-                  Review availability &amp; tariff. Click approve to confirm this booking into the active register.
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="button" class="btn-sm" onclick="window.approveBooking('${b.booking_id}')" style="background:#059669;color:#fff;border:none;padding:8px 16px;font-size:12.5px;font-weight:800;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">
-                  ✅ Approve Booking
-                </button>
-                <button type="button" class="btn-sm" onclick="window.openFounderDiscountModal('${b.booking_id}')" style="background:#7c3aed;color:#fff;border:none;padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 6px rgba(124,58,237,0.3);">
-                  🏷️ Special Discount
-                </button>
-                <button type="button" class="btn-sm" onclick="window.rejectBooking('${b.booking_id}')" style="background:#DC2626;color:#fff;border:none;padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;">
-                  ❌ Reject
-                </button>
-              </div>
-            </div>
-          ` : ''}
-
-          <!-- Top Contact & Communication Card -->
-          ${(() => {
-            const altMatch = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i);
-            const altPh = altMatch ? altMatch[1].trim() : '';
-            return `
-              <div style="background:#F8FAFC;border:1.5px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                  <div>
-                    <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Primary Phone</div>
-                    <div style="font-size:16px;font-weight:800;color:var(--dark);">${escapeHtml(b.phone || 'No phone')}</div>
-                  </div>
-                  <div style="display:flex;gap:6px;align-items:center;">
-                    <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:34px;padding:0 12px;border-radius:8px;font-size:12px;display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Primary">
-                      💬 WhatsApp
-                    </button>
-                    ${b.phone ? `
-                      <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:34px;height:34px;border-radius:8px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Primary">📞</a>
-                    ` : ''}
-                  </div>
-                </div>
-
-                ${altPh ? `
-                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px dashed #CBD5E1;">
-                    <div>
-                      <div style="font-size:11px;color:#4F46E5;font-weight:800;text-transform:uppercase;">📱 Alternate Phone</div>
-                      <div style="font-size:14.5px;font-weight:800;color:#1E1B4B;">${escapeHtml(altPh)}</div>
-                    </div>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                      <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(altPh)}', '${escapeHtml(b.guest_name || '')}', this)" style="height:32px;padding:0 10px;border-radius:8px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;background:#10B981;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Alternate">
-                        💬 WA Alt
-                      </button>
-                      <a href="tel:${altPh}" class="sbk-action-btn call" style="width:32px;height:32px;border-radius:8px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Alternate">📞</a>
-                    </div>
-                  </div>
-                ` : ''}
-              </div>
-            `;
-          })()}
-
-          <!-- Prominent Security Deposit Notification (If present) -->
-          ${(() => {
-            const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:([\s\S]*?)\]/i)[1]); } catch(e){ return null; } })() : null);
-            const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
-            if (secAmt > 0) {
-              const isHeld = (sec?.status || b.security_deposit_status) === 'collected';
-              const isRef = (sec?.status || b.security_deposit_status) === 'refunded';
-              return `
-                <div style="background:${isHeld ? '#EFF6FF' : (isRef ? '#F0FDF4' : '#FFFBEB')};border:2px solid ${isHeld ? '#3B82F6' : (isRef ? '#10B981' : '#F59E0B')};border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:24px;">🛡️</span>
-                    <div>
-                      <div style="font-size:11px;font-weight:800;color:${isHeld ? '#1E40AF' : (isRef ? '#166534' : '#92400E')};text-transform:uppercase;letter-spacing:0.5px;">Security Deposit (Refundable)</div>
-                      <div style="font-size:16px;font-weight:900;color:#0F172A;">
-                        ₹${secAmt.toLocaleString('en-IN')} 
-                        <span style="font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:12px;background:${isHeld ? '#DBEAFE' : (isRef ? '#DCFCE7' : '#FEF3C7')};color:${isHeld ? '#1D4ED8' : (isRef ? '#15803D' : '#B45309')};margin-left:4px;">
-                          ${isHeld ? '✅ Deposit Held (जमा है)' : (isRef ? '🟢 Refunded' : '🟡 Pending Collection')}
-                        </span>
-                      </div>
-                      ${sec?.mode || sec?.receivedBy ? `<div style="font-size:11px;color:#64748B;margin-top:2px;">Received via <strong>${sec.mode || 'UPI'}</strong>${sec.receivedBy ? ' by <strong>' + escapeHtml(sec.receivedBy) + '</strong>' : ''}${sec.receivedDate ? ' on ' + sec.receivedDate : ''}</div>` : ''}
-                    </div>
-                  </div>
-                  <div style="display:flex;gap:6px;align-items:center;">
-                    <button type="button" class="btn-sm" style="background:${isHeld ? '#2563EB' : '#059669'};color:#fff;border:none;padding:6px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}')">
-                      🛡️ Manage Deposit
-                    </button>
-                  </div>
-                </div>
-              `;
-            }
-            return '';
-          })()}
-
-          <!-- Stay Overview -->
-          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <span>🏠 Property &amp; Dates</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Property:</span><br>
-                <strong>${escapeHtml(propLabel(b.rooms) || b.room_id)}</strong>
-              </div>
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Channel:</span><br>
-                <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="margin-top:2px;">
-                  ${bSrc ? bSrc.badge : (isOnline ? 'Airbnb' : 'Direct Booking')}
-                </span>
-              </div>
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Check-In:</span><br>
-                <strong>${b.check_in || '-'} ${b.check_in_time ? `(${b.check_in_time})` : ''}</strong>
-              </div>
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Check-Out:</span><br>
-                <strong>${b.check_out || '-'} ${b.check_out_time ? `(${b.check_out_time})` : ''}</strong>
-              </div>
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Guests:</span><br>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-                  <strong style="color:var(--dark);font-size:14px;">👥 ${b.guests || 1} Guests</strong>
-                  ${canM ? `<button type="button" class="btn-sm" onclick="window.quickEditGuestCount('${b.booking_id}', ${b.guests || 1})" style="padding:2px 8px;font-size:11px;background:#EEF2F6;border:1px solid #CBD5E1;border-radius:6px;cursor:pointer;font-weight:700;" title="Change number of guests">✏️ Change</button>` : ''}
-                </div>
-              </div>
-              <div>
-                <span style="color:var(--muted);font-size:11px;">Duration:</span><br>
-                <strong>${b.check_in && b.check_out ? (b.check_in === b.check_out ? '⚡ Day Use (1 Day)' : (calcNights(b.check_in, b.check_out) + ' Nights')) : '-'}</strong>
-              </div>
-            </div>
-            ${(b.check_in && b.check_out && b.check_in === b.check_out) ? `
-              <div style="margin-top:10px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:8px;padding:8px 12px;font-size:12px;color:#6D28D9;font-weight:700;display:flex;align-items:center;gap:6px;">
-                <span>⚡</span> Same-Day / Day-Use Stay: Check-in ${(b.check_in_time || '09:30 AM')} → Check-out ${(b.check_out_time || '04:30 PM')}
-              </div>
-            ` : ''}
-            ${(b.check_in !== b.check_out && b.check_in_time && b.check_in_time < '12:00') ? `
-              <div style="margin-top:10px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:8px 12px;font-size:12px;color:#1D4ED8;font-weight:700;display:flex;align-items:center;gap:6px;">
-                <span>🌅</span> Early Check-In Arrival: ${(b.check_in_time)}
-              </div>
-            ` : ''}
-            ${(b.check_in !== b.check_out && b.check_out_time && b.check_out_time > '12:00') ? `
-              <div style="margin-top:10px;background:#FEF3C7;border:1.5px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;font-weight:700;display:flex;align-items:center;gap:6px;">
-                <span>🌇</span> Late Check-Out Departure: ${(b.check_out_time)}
-              </div>
-            ` : ''}
-            <div style="margin-top:10px;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-              <div style="font-size:12px;color:#334155;">
-                <span style="color:var(--muted);font-size:11px;">Booked By:</span><br>
-                <strong style="color:var(--dark);">👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Admin / Staff')}</strong>
-              </div>
-              <div style="font-size:12px;color:#334155;text-align:right;">
-                <span style="color:var(--muted);font-size:11px;">Booking Timestamp:</span><br>
-                <strong style="color:var(--dark);">🕒 ${window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : 'N/A'}</strong>
-              </div>
-            </div>
-            ${(() => {
-              const displayNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '').replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/gi, '').trim();
-              return displayNotes ? `
-                <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--text-secondary);">
-                  <strong>Notes:</strong> ${escapeHtml(displayNotes)}
-                </div>
-              ` : '';
-            })()}
+          <!-- 2-Tab Segmented Switcher (Mobile 1-Page Optimized) -->
+          <div class="sbk-drawer-tabs" style="display:flex;gap:6px;background:#F1F5F9;padding:4px;border-radius:10px;">
+            <button id="sbkTabBtnActions" type="button" class="sbk-tab-btn active" onclick="window.switchDrawerTab('actions')" style="flex:1;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:800;border:none;cursor:pointer;background:#0F172A;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 4px rgba(0,0,0,0.1);transition:all 0.15s ease;">
+              ⚡ Quick Actions (1 Page)
+            </button>
+            <button id="sbkTabBtnDetails" type="button" class="sbk-tab-btn" onclick="window.switchDrawerTab('details')" style="flex:1;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:transparent;color:#475569;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s ease;">
+              📋 Details &amp; Khata (${payments ? payments.length : 0})
+            </button>
           </div>
 
-          <!-- Financial Breakdown & Payment History -->
-          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px;">💰 Payment Ledger</div>
+          <!-- ==================== TAB 1: ⚡ ACTIONS & COMPACT HERO (1-PAGE FIT) ==================== -->
+          <div id="sbkDrawerTabActions" style="display:flex;flex-direction:column;gap:10px;">
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;background:#F8FAFC;padding:10px;border-radius:8px;margin-bottom:12px;">
-              <div>
-                <span style="font-size:11px;color:var(--muted);">Total Bill</span><br>
-                <strong style="font-size:14px;">${(isOnline && tot === 0) ? '<span style="color:#B45309;font-size:12.5px;">⏳ Pending Payout</span>' : `₹${tot.toLocaleString('en-IN')}`}</strong>
+            <!-- Blocked Calendar Slot Banner -->
+            ${isBlocked ? `
+              <div style="background:linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);border:1.5px solid #94A3B8;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:#1E293B;">🔒 Blocked Calendar Date</div>
+                  <div style="font-size:11px;color:#475569;">Convert to a real guest booking.</div>
+                </div>
+                <button type="button" class="btn-sm" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)" style="background:#059669;color:#fff;border:none;padding:7px 14px;font-size:12px;font-weight:800;border-radius:6px;cursor:pointer;">
+                  ➕ Convert Booking
+                </button>
               </div>
-              <div>
-                <span style="font-size:11px;color:var(--muted);">Total Paid</span><br>
-                <strong style="font-size:14px;color:#059669;">${(isOnline && tot === 0 && pd === 0) ? '<span style="color:#4F46E5;font-size:12.5px;">Via Channel</span>' : `₹${pd.toLocaleString('en-IN')}`}</strong>
+            ` : ''}
+
+            <!-- Direct Website Pending Approval Banner -->
+            ${b.verification_status === 'pending' ? `
+              <div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div style="font-size:12.5px;font-weight:800;color:#92400E;">🟡 Website Booking — Pending Approval</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="btn-sm" onclick="window.approveBooking('${b.booking_id}')" style="background:#059669;color:#fff;border:none;padding:6px 12px;font-size:11.5px;font-weight:800;border-radius:6px;cursor:pointer;">
+                    ✅ Approve
+                  </button>
+                  <button type="button" class="btn-sm" onclick="window.rejectBooking('${b.booking_id}')" style="background:#DC2626;color:#fff;border:none;padding:6px 10px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;">
+                    ❌ Reject
+                  </button>
+                </div>
               </div>
-              <div>
-                <span style="font-size:11px;color:var(--muted);">Balance Due</span><br>
-                <strong style="font-size:14px;color:${bal > 0 ? '#DC2626' : '#059669'};">₹${Math.max(0, Math.round(bal)).toLocaleString('en-IN')}</strong>
+            ` : ''}
+
+            <!-- Compact Stay & Financial Hero Card (All Key Info In 1 Glance) -->
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="font-weight:800;font-size:13.5px;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  🏠 ${escapeHtml(propLabel(b.rooms) || b.room_id)}
+                </div>
+                <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="font-size:10.5px;padding:2px 7px;">
+                  ${bSrc ? bSrc.badge : (isOnline ? 'Airbnb' : 'Direct')}
+                </span>
+              </div>
+              <div style="font-size:12px;color:#475569;margin-bottom:8px;">
+                📅 <strong>${b.check_in || '-'}</strong> → <strong>${b.check_out || '-'}</strong> (${b.check_in && b.check_out ? (b.check_in === b.check_out ? '1 Day' : calcNights(b.check_in, b.check_out) + 'N') : '1N'} · 👥 ${b.guests || 1} Guests)
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:8px;padding:7px 10px;text-align:center;">
+                <div>
+                  <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;">Total Bill</div>
+                  <div style="font-size:13.5px;font-weight:900;color:#0F172A;">₹${tot.toLocaleString('en-IN')}</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:#059669;font-weight:700;text-transform:uppercase;">Paid</div>
+                  <div style="font-size:13.5px;font-weight:900;color:#059669;">₹${pd.toLocaleString('en-IN')}</div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:${bal > 0 ? '#DC2626' : '#059669'};font-weight:700;text-transform:uppercase;">${bal > 0 ? 'Due' : 'Cleared'}</div>
+                  <div style="font-size:13.5px;font-weight:900;color:${bal > 0 ? '#DC2626' : '#059669'};">₹${Math.max(0, Math.round(bal)).toLocaleString('en-IN')}</div>
+                </div>
               </div>
             </div>
 
+            <!-- ⚡ Primary Quick Actions (UPAR) -->
+            <div>
+              <div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                ⚡ Quick Actions
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <!-- 💬 WhatsApp Group Alert Generator -->
+                <button class="btn-sm" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;padding:10px;font-weight:800;font-size:12.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(37,211,102,0.3);grid-column:span 2;" onclick="window.openBookingGroupWAModal('${b.booking_id}')" title="Generate &amp; Copy Caretaker / Staff WhatsApp Group Alert">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
+                  <span>💬 WhatsApp Group Alert (Copy)</span>
+                </button>
+                ${canM ? `
+                  <button class="btn-sm" style="background:var(--primary);color:#fff;padding:9px;font-weight:800;font-size:12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 4px rgba(2,132,199,0.2);" onclick="window.drawerEditBooking('${b.booking_id}')">
+                    ✏️ Edit Booking
+                  </button>
+                ` : ''}
+                ${canM ? `
+                  <button class="btn-sm" style="background:#10B981;color:#fff;padding:9px;font-weight:800;font-size:12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 4px rgba(16,185,129,0.2);" onclick="showPaymentModal('${b.booking_id}')">
+                    💳 + Add Payment
+                  </button>
+                ` : ''}
+                <button class="btn-sm" style="background:#0F172A;color:#fff;padding:9px;font-weight:800;font-size:12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="window.openBookingReceiptModal('${b.booking_id}')">
+                  📄 Booking Receipt
+                </button>
+                <button class="btn-sm" style="background:#6366F1;color:#fff;padding:9px;font-weight:800;font-size:12px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="window.drawerDuplicateBooking('${b.booking_id}')">
+                  📋 Duplicate Booking
+                </button>
+                <button class="btn-sm" style="background:#0284C7;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')">
+                  📄 Bill (No GST)
+                </button>
+                <button class="btn-sm" style="background:#B45309;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')">
+                  🧾 GST Tax Invoice
+                </button>
+              </div>
+            </div>
+
+            <!-- 🏠 Stay Operations & Management (NEECHE) -->
+            <div>
+              <div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                🏠 Stay Operations
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button class="btn-sm" style="background:#D97706;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="window.openLateCheckoutModal('${b.booking_id}')">
+                  🌇 Late Check-Out
+                </button>
+                <button class="btn-sm" style="background:#DC2626;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="window.drawerQuickCheckout('${b.booking_id}', '${b.room_id}')">
+                  ⚡ Early Check-Out
+                </button>
+                <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="quickExtend('${b.booking_id}')">
+                  ⏭️ Extend Stay
+                </button>
+                <button class="btn-sm" style="background:#0F766E;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="showSecurityDepositModal('${b.booking_id}')">
+                  🛡️ Security Deposit
+                </button>
+                <button class="btn-sm outline" style="padding:8px;border-radius:8px;font-weight:700;font-size:11.5px;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')">
+                  📑 Guest Ledger
+                </button>
+                <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')">
+                  🏢 Group Receipt
+                </button>
+                ${canM ? `
+                  <button class="btn-sm" style="background:#7C3AED;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;grid-column:span 2;" onclick="if(window.showGroupBookingModal) window.showGroupBookingModal('${b.booking_id}');">
+                    🎊 Group Manager
+                  </button>
+                ` : ''}
+                ${(canM && SESSION.role !== 'caretaker') ? `
+                  <button class="btn-sm" style="background:#EF4444;color:#fff;padding:8px;font-weight:700;font-size:11.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;grid-column:span 2;" onclick="window.drawerDeleteBooking()">
+                    🗑️ Delete Booking
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ==================== TAB 2: 📋 DETAILS & KHATA LEDGER ==================== -->
+          <div id="sbkDrawerTabDetails" style="display:none;flex-direction:column;gap:12px;">
+
+            <!-- Full Contact & Communication Card -->
+            ${(() => {
+              const altMatch = (b.notes || '').match(/\[ALT_PHONE:\s*([^\]]+)\]/i);
+              const altPh = altMatch ? altMatch[1].trim() : '';
+              return `
+                <div style="background:#F8FAFC;border:1.5px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <div>
+                      <div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;">Primary Phone</div>
+                      <div style="font-size:15px;font-weight:800;color:var(--dark);">${escapeHtml(b.phone || 'No phone')}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                      <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:32px;padding:0 12px;border-radius:8px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;">
+                        💬 WhatsApp
+                      </button>
+                      ${b.phone ? `
+                        <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:32px;height:32px;border-radius:8px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;">📞</a>
+                      ` : ''}
+                    </div>
+                  </div>
+
+                  ${altPh ? `
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px dashed #CBD5E1;">
+                      <div>
+                        <div style="font-size:10.5px;color:#4F46E5;font-weight:800;text-transform:uppercase;">📱 Alternate Phone</div>
+                        <div style="font-size:14px;font-weight:800;color:#1E1B4B;">${escapeHtml(altPh)}</div>
+                      </div>
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(altPh)}', '${escapeHtml(b.guest_name || '')}', this)" style="height:30px;padding:0 10px;border-radius:8px;font-size:11px;display:inline-flex;align-items:center;gap:4px;background:#10B981;color:#fff;border:none;cursor:pointer;font-weight:700;">
+                          💬 WA Alt
+                        </button>
+                        <a href="tel:${altPh}" class="sbk-action-btn call" style="width:30px;height:30px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;">📞</a>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            })()}
+
+            <!-- Prominent Security Deposit Notification (If present) -->
             ${(() => {
               const sec = (typeof getSecurityDeposit === 'function' ? getSecurityDeposit(b) : (typeof window.getSecurityDeposit === 'function' ? window.getSecurityDeposit(b) : null)) || (b.notes && b.notes.includes('[SECURITY_DEPOSIT:') ? (() => { try { return JSON.parse(b.notes.match(/\[SECURITY_DEPOSIT:([\s\S]*?)\]/i)[1]); } catch(e){ return null; } })() : null);
               const secAmt = parseFloat(sec?.amount || b.security_deposit_amount) || 0;
@@ -1785,12 +1780,18 @@ window.openBookingDrawer = async function(bookingId) {
                 const isHeld = (sec?.status || b.security_deposit_status) === 'collected';
                 const isRef = (sec?.status || b.security_deposit_status) === 'refunded';
                 return `
-                  <div style="margin-bottom:12px;background:${isHeld ? '#EFF6FF' : (isRef ? '#F0FDF4' : '#FFFBEB')};border:1.5px solid ${isHeld ? '#93C5FD' : (isRef ? '#86EFAC' : '#FDE68A')};border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                  <div style="background:${isHeld ? '#EFF6FF' : (isRef ? '#F0FDF4' : '#FFFBEB')};border:1.5px solid ${isHeld ? '#3B82F6' : (isRef ? '#10B981' : '#F59E0B')};border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                      <span style="font-size:18px;">🛡️</span>
+                      <span style="font-size:22px;">🛡️</span>
                       <div>
-                        <div style="font-size:11px;font-weight:700;color:${isHeld ? '#1E40AF' : (isRef ? '#166534' : '#92400E')};text-transform:uppercase;letter-spacing:0.5px;">Security Deposit (Refundable)</div>
-                        <div style="font-size:14px;font-weight:900;color:#0F172A;">₹${secAmt.toLocaleString('en-IN')} <span style="font-size:11px;font-weight:600;color:${isHeld ? '#2563EB' : (isRef ? '#16A34A' : '#D97706')};">(${isHeld ? 'Deposit Held / जमा है' : (isRef ? 'Refunded' : 'Pending Collection')})</span></div>
+                        <div style="font-size:10.5px;font-weight:800;color:${isHeld ? '#1E40AF' : (isRef ? '#166534' : '#92400E')};text-transform:uppercase;letter-spacing:0.5px;">Security Deposit (Refundable)</div>
+                        <div style="font-size:15px;font-weight:900;color:#0F172A;">
+                          ₹${secAmt.toLocaleString('en-IN')} 
+                          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:${isHeld ? '#DBEAFE' : (isRef ? '#DCFCE7' : '#FEF3C7')};color:${isHeld ? '#1D4ED8' : (isRef ? '#15803D' : '#B45309')};margin-left:4px;">
+                            ${isHeld ? '✅ Deposit Held (जमा है)' : (isRef ? '🟢 Refunded' : '🟡 Pending Collection')}
+                          </span>
+                        </div>
+                        ${sec?.mode || sec?.receivedBy ? `<div style="font-size:11px;color:#64748B;margin-top:2px;">Received via <strong>${sec.mode || 'UPI'}</strong>${sec.receivedBy ? ' by <strong>' + escapeHtml(sec.receivedBy) + '</strong>' : ''}${sec.receivedDate ? ' on ' + sec.receivedDate : ''}</div>` : ''}
                       </div>
                     </div>
                     <button type="button" class="btn-sm" style="background:${isHeld ? '#2563EB' : '#059669'};color:#fff;border:none;padding:5px 12px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" onclick="if(window.showSecurityDepositModal) showSecurityDepositModal('${b.booking_id}')">
@@ -1802,137 +1803,189 @@ window.openBookingDrawer = async function(bookingId) {
               return '';
             })()}
 
-            ${(payments && payments.length > 0) ? `
-              <div style="font-size:12px;">
-                <div style="font-weight:700;color:var(--muted);margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Payment Audit &amp; Transactions:</div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                ${payments.map(p => {
-                  const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date, { withSeconds: true }) : (p.payment_date || '');
-                  const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : 'System');
-                  const isOD = (p.received_by || '').includes('OD') || (p.received_by || '').includes('UHHS');
-                  return `
-                    <div style="background:#F8FAFC;border:1px solid var(--border-light);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                      <div style="flex:1;">
-                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                          <span style="font-weight:800;font-size:14px;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
-                          <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:#E2E8F0;color:#334155;">via ${escapeHtml(p.payment_mode || 'Payment')}</span>
-                          <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;background:${isOD ? '#EFF6FF' : '#ECFDF5'};color:${isOD ? '#1D4ED8' : '#047857'};border:1px solid ${isOD ? '#BFDBFE' : '#A7F3D0'};">
-                            ${isOD ? '🏦' : '💰'} Recd: ${escapeHtml(p.received_by || 'Staff')}
-                          </span>
-                        </div>
-                        <div style="color:#64748B;font-size:11px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                          <span style="display:inline-flex;align-items:center;gap:3px;" title="Payment Creation / Audit Timestamp">
-                            🕒 <strong>${timeStr}</strong>
-                          </span>
-                          <span style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;padding:1px 6px;border-radius:4px;font-weight:600;display:inline-flex;align-items:center;gap:3px;" title="User who entered this payment">
-                            ✍️ Logged by: <strong>${escapeHtml(loggedBy)}</strong>
-                          </span>
-                          ${p.verification_status === 'pending' ? '<span class="badge yellow" style="font-size:9.5px;padding:1px 6px;">🟡 Verification Pending</span>' : ''}
-                        </div>
-                        ${p.notes ? `<div style="font-size:11px;color:#64748B;margin-top:4px;background:#FFFFFF;border-left:2px solid #CBD5E1;padding:2px 6px;border-radius:2px;font-style:italic;">"${escapeHtml(p.notes)}"</div>` : ''}
-                      </div>
-                      ${canM ? `
-                        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-                          <button type="button" class="btn-sm" onclick="if(window.editPayment) window.editPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof editPayment==='function') editPayment(${p.id}, '${escapeHtml(b.booking_id)}');" title="Edit Payment / Change Receiver" style="background:#FFFFFF;border:1px solid #CBD5E1;padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                            ✏️ Edit
-                          </button>
-                          ${canD ? `
-                            <button type="button" class="btn-sm" onclick="if(window.delPayment) window.delPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof delPayment==='function') delPayment(${p.id}, '${escapeHtml(b.booking_id)}');" title="Delete Payment" style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700;">
-                              🗑️
-                            </button>
-                          ` : ''}
-                        </div>
-                      ` : ''}
-                    </div>
-                  `;
-                }).join('')}
+            <!-- Stay Overview Details -->
+            <div style="border:1px solid var(--border);border-radius:12px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                <span>🏠 Property &amp; Dates Details</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;">
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Property:</span><br>
+                  <strong>${escapeHtml(propLabel(b.rooms) || b.room_id)}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Channel:</span><br>
+                  <span class="channel-badge ${bSrc ? bSrc.badgeClass : (isOnline ? 'channel-airbnb' : 'channel-direct')}" style="margin-top:2px;">
+                    ${bSrc ? bSrc.badge : (isOnline ? 'Airbnb' : 'Direct Booking')}
+                  </span>
+                </div>
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Check-In:</span><br>
+                  <strong>${b.check_in || '-'} ${b.check_in_time ? `(${b.check_in_time})` : ''}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Check-Out:</span><br>
+                  <strong>${b.check_out || '-'} ${b.check_out_time ? `(${b.check_out_time})` : ''}</strong>
+                </div>
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Guests:</span><br>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                    <strong style="color:var(--dark);font-size:13.5px;">👥 ${b.guests || 1} Guests</strong>
+                    ${canM ? `<button type="button" class="btn-sm" onclick="window.quickEditGuestCount('${b.booking_id}', ${b.guests || 1})" style="padding:2px 6px;font-size:10.5px;background:#EEF2F6;border:1px solid #CBD5E1;border-radius:6px;cursor:pointer;font-weight:700;" title="Change number of guests">✏️ Change</button>` : ''}
+                  </div>
+                </div>
+                <div>
+                  <span style="color:var(--muted);font-size:10.5px;">Duration:</span><br>
+                  <strong>${b.check_in && b.check_out ? (b.check_in === b.check_out ? '⚡ Day Use (1 Day)' : (calcNights(b.check_in, b.check_out) + ' Nights')) : '-'}</strong>
                 </div>
               </div>
-            ` : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">No individual payments recorded yet.</div>'}
-          </div>
 
-          <!-- ⚡ Primary Quick Actions (Most Frequently Used - UPAR) -->
-          <div style="margin-top:12px;">
-            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
-              ⚡ Quick Actions
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <!-- 💬 Caretaker / Staff WhatsApp Group Alert -->
-              <button class="btn-sm" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;padding:12px;font-weight:800;font-size:13.5px;border-radius:10px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);grid-column:span 2;" onclick="window.openBookingGroupWAModal('${b.booking_id}')" title="Generate &amp; Copy Caretaker / Staff WhatsApp Group Alert">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
-                <span>💬 WhatsApp Group Alert (Copy Message)</span>
-              </button>
-              ${canM ? `
-                <button class="btn-sm" style="background:var(--primary);color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);" onclick="window.drawerEditBooking('${b.booking_id}')" title="Edit booking details, guest info, and upload ID proofs">
-                  ✏️ Edit Booking
-                </button>
+              ${(b.check_in && b.check_out && b.check_in === b.check_out) ? `
+                <div style="margin-top:8px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:6px 10px;font-size:11.5px;color:#6D28D9;font-weight:700;">
+                  ⚡ Day-Use Stay: Check-in ${(b.check_in_time || '09:30 AM')} → Check-out ${(b.check_out_time || '04:30 PM')}
+                </div>
               ` : ''}
-              ${canM ? `
-                <button class="btn-sm" style="background:#10B981;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(16,185,129,0.25);" onclick="showPaymentModal('${b.booking_id}')" title="Record a new payment for this stay">
-                  💳 + Add Payment
-                </button>
+              ${(b.check_in !== b.check_out && b.check_in_time && b.check_in_time < '12:00') ? `
+                <div style="margin-top:8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:6px 10px;font-size:11.5px;color:#1D4ED8;font-weight:700;">
+                  🌅 Early Check-In Arrival: ${(b.check_in_time)}
+                </div>
               ` : ''}
-              <button class="btn-sm" style="background:#0F172A;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(15,23,42,0.25);" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
-                📄 Booking Receipt
-              </button>
-              <button class="btn-sm" style="background:#6366F1;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(99,102,241,0.25);" onclick="window.drawerDuplicateBooking('${b.booking_id}')" title="Duplicate this booking for another room or dates">
-                📋 Duplicate Booking
-              </button>
-              <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;font-weight:700;font-size:12.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" title="Generate Clean Invoice Without GST">
-                📄 Bill (No GST)
-              </button>
-              <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;font-size:12.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
-                🧾 GST Tax Invoice
-              </button>
-            </div>
-          </div>
-
-          <!-- 🏠 Stay & Operations Actions (Secondary - NEECHE) -->
-          <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
-            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
-              🏠 Stay Operations &amp; Management
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              ${isBlocked ? `
-                <button type="button" class="btn-sm" style="background:#059669;color:#fff;padding:12px;font-weight:800;grid-column:span 2;font-size:13px;border-radius:8px;cursor:pointer;border:none;" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)">
-                  ➕ Convert to Real Guest Booking
-                </button>
-              ` : ''}
-              <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openLateCheckoutModal('${b.booking_id}')" title="Grant Late Check-Out (e.g. 04:30 PM)">
-                🌇 Late Check-Out
-              </button>
-              <button class="btn-sm" style="background:#DC2626;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerQuickCheckout('${b.booking_id}', '${b.room_id}')" title="Guest checkout now / early">
-                ⚡ Early Check-Out
-              </button>
-              <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="quickExtend('${b.booking_id}')" title="Extend stay duration">
-                ⏭️ Extend Stay
-              </button>
-              <button class="btn-sm" style="background:#0F766E;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="showSecurityDepositModal('${b.booking_id}')" title="Manage refundable security deposit">
-                🛡️ Security Deposit
-              </button>
-              <button class="btn-sm outline" style="padding:10px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')" title="Detailed khata and payment history">
-                📑 Guest Ledger
-              </button>
-              <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="View Combined Multi-Property Receipt for this group or guest">
-                🏢 Group Receipt
-              </button>
-              ${canM ? `
-                <button class="btn-sm" style="background:#7C3AED;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;grid-column:span 2;" onclick="if(window.showGroupBookingModal) window.showGroupBookingModal('${b.booking_id}');" title="Group Booking Manager (Link or Merge Related Group Bookings)">
-                  🎊 Group Manager
-                </button>
+              ${(b.check_in !== b.check_out && b.check_out_time && b.check_out_time > '12:00') ? `
+                <div style="margin-top:8px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:6px 10px;font-size:11.5px;color:#92400E;font-weight:700;">
+                  🌇 Late Check-Out Departure: ${(b.check_out_time)}
+                </div>
               ` : ''}
 
-              ${(canM && SESSION.role !== 'caretaker') ? `
-                <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;grid-column:span 2;margin-top:4px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
-                  🗑️ Delete Booking
-                </button>
-              ` : ''}
+              <div style="margin-top:8px;padding:6px 10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                <div style="font-size:11.5px;color:#334155;">
+                  <span style="color:var(--muted);font-size:10px;">Booked By:</span><br>
+                  <strong style="color:var(--dark);">👤 ${escapeHtml(b.booked_by || window._userNameCache?.[b.created_by] || 'Admin / Staff')}</strong>
+                </div>
+                <div style="font-size:11.5px;color:#334155;text-align:right;">
+                  <span style="color:var(--muted);font-size:10px;">Booking Timestamp:</span><br>
+                  <strong style="color:var(--dark);">🕒 ${window.formatDateTimeStamp ? window.formatDateTimeStamp(window.getBookingTimestamp ? window.getBookingTimestamp(b) : (b.created_at || '')) : 'N/A'}</strong>
+                </div>
+              </div>
+
+              ${(() => {
+                const displayNotes = typeof cleanNotesForDisplay === 'function' ? cleanNotesForDisplay(b.notes) : (b.notes || '').replace(/\[SECURITY_DEPOSIT:[\s\S]*?\]/gi, '').trim();
+                return displayNotes ? `
+                  <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px;color:var(--text-secondary);">
+                    <strong>Notes:</strong> ${escapeHtml(displayNotes)}
+                  </div>
+                ` : '';
+              })()}
             </div>
+
+            <!-- Financial Breakdown & Payment Ledger History -->
+            <div style="border:1px solid var(--border);border-radius:12px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:8px;">💰 Payment Ledger History</div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;background:#F8FAFC;padding:8px;border-radius:8px;margin-bottom:10px;">
+                <div>
+                  <span style="font-size:10px;color:var(--muted);">Total Bill</span><br>
+                  <strong style="font-size:13.5px;">${(isOnline && tot === 0) ? '<span style="color:#B45309;font-size:11.5px;">⏳ Pending</span>' : `₹${tot.toLocaleString('en-IN')}`}</strong>
+                </div>
+                <div>
+                  <span style="font-size:10px;color:var(--muted);">Total Paid</span><br>
+                  <strong style="font-size:13.5px;color:#059669;">${(isOnline && tot === 0 && pd === 0) ? '<span style="color:#4F46E5;font-size:11.5px;">Via Channel</span>' : `₹${pd.toLocaleString('en-IN')}`}</strong>
+                </div>
+                <div>
+                  <span style="font-size:10px;color:var(--muted);">Balance Due</span><br>
+                  <strong style="font-size:13.5px;color:${bal > 0 ? '#DC2626' : '#059669'};">₹${Math.max(0, Math.round(bal)).toLocaleString('en-IN')}</strong>
+                </div>
+              </div>
+
+              ${(payments && payments.length > 0) ? `
+                <div style="font-size:11.5px;">
+                  <div style="font-weight:700;color:var(--muted);margin-bottom:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;">Payment Audit &amp; Transactions:</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                  ${payments.map(p => {
+                    const timeStr = window.formatDateTimeStamp ? window.formatDateTimeStamp(p.paid_at || p.created_at || p.payment_date, { withSeconds: true }) : (p.payment_date || '');
+                    const loggedBy = window._userNameCache?.[p.created_by] || (p.created_by ? 'Staff' : 'System');
+                    const isOD = (p.received_by || '').includes('OD') || (p.received_by || '').includes('UHHS');
+                    return `
+                      <div style="background:#F8FAFC;border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                        <div style="flex:1;">
+                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-weight:800;font-size:13px;color:var(--dark);">₹${(p.amount || 0).toLocaleString('en-IN')}</span>
+                            <span style="font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:4px;background:#E2E8F0;color:#334155;">via ${escapeHtml(p.payment_mode || 'Payment')}</span>
+                            <span style="font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;background:${isOD ? '#EFF6FF' : '#ECFDF5'};color:${isOD ? '#1D4ED8' : '#047857'};border:1px solid ${isOD ? '#BFDBFE' : '#A7F3D0'};">
+                              ${isOD ? '🏦' : '💰'} Recd: ${escapeHtml(p.received_by || 'Staff')}
+                            </span>
+                          </div>
+                          <div style="color:#64748B;font-size:10.5px;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span>🕒 <strong>${timeStr}</strong></span>
+                            <span style="background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:4px;font-weight:600;">✍️ ${escapeHtml(loggedBy)}</span>
+                            ${p.verification_status === 'pending' ? '<span class="badge yellow" style="font-size:9px;padding:1px 5px;">🟡 Verification Pending</span>' : ''}
+                          </div>
+                          ${p.notes ? `<div style="font-size:10.5px;color:#64748B;margin-top:2px;font-style:italic;">"${escapeHtml(p.notes)}"</div>` : ''}
+                        </div>
+                        ${canM ? `
+                          <div style="display:flex;align-items:center;gap:4px;">
+                            <button type="button" class="btn-sm" onclick="if(window.editPayment) window.editPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof editPayment==='function') editPayment(${p.id}, '${escapeHtml(b.booking_id)}');" style="background:#FFFFFF;border:1px solid #CBD5E1;padding:3px 7px;font-size:10.5px;border-radius:6px;cursor:pointer;font-weight:600;">
+                              ✏️
+                            </button>
+                            ${canD ? `
+                              <button type="button" class="btn-sm" onclick="if(window.delPayment) window.delPayment(${p.id}, '${escapeHtml(b.booking_id)}'); else if(typeof delPayment==='function') delPayment(${p.id}, '${escapeHtml(b.booking_id)}');" style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;padding:3px 7px;font-size:10.5px;border-radius:6px;cursor:pointer;font-weight:700;">
+                                🗑️
+                              </button>
+                            ` : ''}
+                          </div>
+                        ` : ''}
+                      </div>
+                    `;
+                  }).join('')}
+                  </div>
+                </div>
+              ` : '<div style="font-size:11.5px;color:var(--muted);text-align:center;padding:6px 0;">No individual payments recorded yet.</div>'}
+            </div>
+
           </div>
+
         </div>
       </div>
     </div>
   `;
+};
+
+window.switchDrawerTab = function(tabName) {
+  const tActions = document.getElementById('sbkDrawerTabActions');
+  const tDetails = document.getElementById('sbkDrawerTabDetails');
+  const bActions = document.getElementById('sbkTabBtnActions');
+  const bDetails = document.getElementById('sbkTabBtnDetails');
+
+  if (tabName === 'details') {
+    if (tActions) tActions.style.display = 'none';
+    if (tDetails) tDetails.style.display = 'flex';
+    if (bActions) {
+      bActions.style.background = 'transparent';
+      bActions.style.color = '#475569';
+      bActions.style.boxShadow = 'none';
+      bActions.classList.remove('active');
+    }
+    if (bDetails) {
+      bDetails.style.background = '#0F172A';
+      bDetails.style.color = '#fff';
+      bDetails.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      bDetails.classList.add('active');
+    }
+  } else {
+    if (tActions) tActions.style.display = 'flex';
+    if (tDetails) tDetails.style.display = 'none';
+    if (bActions) {
+      bActions.style.background = '#0F172A';
+      bActions.style.color = '#fff';
+      bActions.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      bActions.classList.add('active');
+    }
+    if (bDetails) {
+      bDetails.style.background = 'transparent';
+      bDetails.style.color = '#475569';
+      bDetails.style.boxShadow = 'none';
+      bDetails.classList.remove('active');
+    }
+  }
 };
 
 window.drawerEditBooking = function(bookingId) {
