@@ -539,7 +539,7 @@ async function renderManageRooms() {
                       📥 Download PDF
                     </button>
                     <button type="button" onclick="copyPropertyPdfLink('${r.room_id}', this, event)" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(29,78,216,0.15);" title="Copy PDF Link to share on WhatsApp or with guests">
-                      📋 Copy Link
+                      📋 Copy PDF Link
                     </button>
                     ${isO ? `
                       <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;" title="Change / Edit PDF link">
@@ -2552,7 +2552,7 @@ window.renderQuickPdfManager = async function(focusRoomId) {
                   title="Copy PDF Link"
                   style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-size:11.5px;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
                 >
-                  📋 Copy Link
+                  📋 Copy PDF Link
                 </button>
                 <button
                   type="button"
