@@ -6301,7 +6301,10 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
     // Clean html: strip any redundant inner toolbars or duplicate print/close buttons
     let sanitizedContent = String(html || '')
       .replace(/<div[^>]*class=["'][^"']*toolbar[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
-      .replace(/<button[^>]*onclick=["'][^"']*(?:window\.print|window\.close)[^"']*["'][^>]*>[\s\S]*?<\/button>/gi, '');
+      .replace(/<div[^>]*class=["'][^"']*mobile-action-bar[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<button[^>]*onclick=["'][^"']*(?:window\.print|window\.close|triggerPrint)[^"']*["'][^>]*>[\s\S]*?<\/button>/gi, '');
+
+    const isInvDoc = options.isInvestorReport || /investor/i.test(docTitle);
 
     const overlay = document.createElement('div');
     overlay.id = 'uhhPrintOverlay';
@@ -6506,39 +6509,55 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
       <!-- Top Action Bar -->
       <div class="uhh-print-topbar no-print">
         <!-- Close Button (Left) -->
-        <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
+        <button type="button" class="uhh-print-close-btn" onclick="document.getElementById('uhhPrintOverlay')?.remove()" style="background:#EF4444;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
           ✕ Close
         </button>
 
-        <!-- Mobile Center Title -->
-        <div class="uhh-mobile-title">${escapeHtml(docTitle)}</div>
+        ${isInvDoc ? `
+          <!-- Investor Document Header: Title in Center, 2 Action Buttons on Right -->
+          <div style="font-weight:700;font-size:12.5px;color:#F8FAFC;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            📄 ${escapeHtml(docTitle)}
+          </div>
 
-        <!-- Desktop Action Buttons -->
-        <div class="uhh-desktop-actions">
-          <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
-            🖨️ Print / AirPrint
-          </button>
-          <button type="button" class="uhh-print-btn" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
-            📸 Save Image (PNG)
-          </button>
-          <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintCardInner').innerHTML, '${escapeHtml(docTitle).replace(/'/g, "\\'")}.html', 'text/html;charset=utf-8')" style="background:#3B82F6;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
-            📥 Save HTML
-          </button>
-          <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" title="Share summary on WhatsApp">
-            💬 WhatsApp
-          </button>
-          <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#475569;color:#fff;border:none;padding:7px 10px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Copy report text to clipboard">
-            📋 Copy
-          </button>
-          <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:6px;">
-            ${escapeHtml(docTitle)}
-          </span>
-        </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="uhh-print-btn" onclick="document.title='${escapeHtml(docTitle).replace(/'/g, "\\'")}';window.print();" style="background:#0284C7;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(2,132,199,0.3);">
+              <span>📥</span> Download PDF
+            </button>
+            <button type="button" class="uhh-print-btn primary" onclick="document.title='${escapeHtml(docTitle).replace(/'/g, "\\'")}';window.print();" style="background:#0F172A;color:#fff;border:1px solid #334155;padding:7px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              <span>🖨️</span> Print Report
+            </button>
+          </div>
+        ` : `
+          <!-- Mobile Center Title -->
+          <div class="uhh-mobile-title">${escapeHtml(docTitle)}</div>
 
-        <!-- Mobile Print/PDF Button (Right) -->
-        <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-          🖨️ PDF / Print
-        </button>
+          <!-- Desktop Action Buttons -->
+          <div class="uhh-desktop-actions">
+            <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              🖨️ Print / AirPrint
+            </button>
+            <button type="button" class="uhh-print-btn" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              📸 Save Image (PNG)
+            </button>
+            <button type="button" class="uhh-print-btn secondary" onclick="window.downloadExportFile(document.getElementById('uhhPrintCardInner').innerHTML, '${escapeHtml(docTitle).replace(/'/g, "\\'")}.html', 'text/html;charset=utf-8')" style="background:#3B82F6;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+              📥 Save HTML
+            </button>
+            <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;color:#fff;border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" title="Share summary on WhatsApp">
+              💬 WhatsApp
+            </button>
+            <button type="button" class="uhh-print-btn" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#475569;color:#fff;border:none;padding:7px 10px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Copy report text to clipboard">
+              📋 Copy
+            </button>
+            <span style="font-weight:700;font-size:12px;color:#94A3B8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:6px;">
+              ${escapeHtml(docTitle)}
+            </span>
+          </div>
+
+          <!-- Mobile Print/PDF Button (Right) -->
+          <button type="button" class="uhh-print-btn primary" onclick="window.print()" style="background:#10B981;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:800;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+            🖨️ PDF / Print
+          </button>
+        `}
       </div>
 
       <!-- Document Content Canvas -->
@@ -6549,18 +6568,20 @@ window.printDocumentHTML = function(htmlContent, title = 'Document', options = {
         </div>
       </div>
 
-      <!-- 📱 Native Mobile Floating Bottom Sheet Toolbar -->
-      <div class="uhh-mobile-bottom-bar no-print">
-        <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;">
-          💬 WhatsApp
-        </button>
-        <button type="button" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;">
-          📸 Save PNG
-        </button>
-        <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#334155;">
-          📋 Copy
-        </button>
-      </div>
+      ${!isInvDoc ? `
+        <!-- 📱 Native Mobile Floating Bottom Sheet Toolbar -->
+        <div class="uhh-mobile-bottom-bar no-print">
+          <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';window.open('https://wa.me/?text=' + encodeURIComponent('*' + '${escapeHtml(docTitle)}' + '*\\n\\n' + t.slice(0, 1500)), '_blank')" style="background:#25D366;">
+            💬 WhatsApp
+          </button>
+          <button type="button" onclick="window.downloadPrintDocAsImage('${escapeHtml(docTitle).replace(/'/g, "\\'")}')" style="background:#0284C7;">
+            📸 Save PNG
+          </button>
+          <button type="button" onclick="const t=document.getElementById('uhhPrintCardInner')?.innerText||'';navigator.clipboard.writeText(t);if(window.fsn?.success) fsn.success('Copied','Report text copied!'); else alert('Report text copied!');" style="background:#334155;">
+            📋 Copy
+          </button>
+        </div>
+      ` : ''}
     `;
 
     document.body.appendChild(overlay);

@@ -905,6 +905,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         <div style="font-size:11px;font-weight:800;color:#0F172A;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
           <span>📊</span> Channel Contribution &amp; Occupancy Summary
         </div>
+        <div class="inv-report-table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #CBD5E1;">
@@ -947,41 +948,46 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     `;
   }
 
+  const safeInvName = (inv?.name || 'Investor').replace(/'/g, "\\'");
+  const safeRoomName = (room?.nickname || room?.property_name || roomId).replace(/'/g, "\\'");
+
   renderShell(`
-    <!-- TOP TOOLBAR & MONTH CONTROLS (Screen Only) -->
-    <div class="card no-print" style="margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <!-- TOP TOOLBAR & MONTH CONTROLS (Screen Only - 3 Dedicated Options) -->
+    <div class="card no-print inv-report-toolbar" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div>
-          <h1 style="font-size:20px;margin:0 0 4px 0;display:flex;align-items:center;gap:8px;">
+          <h1 style="font-size:18px;font-weight:800;margin:0 0 4px 0;display:flex;align-items:center;gap:8px;color:#0F172A;">
             <span>📊</span> Official Investor Earnings Report
           </h1>
-          <div class="sub" style="margin:0;">
-            ${inv?.name || 'Investor'} · ${room?.nickname || room?.property_name || roomId} (${monthYear})
+          <div class="sub" style="margin:0;font-size:12.5px;color:#64748B;">
+            ${inv?.name || 'Investor'} &bull; ${room?.nickname || room?.property_name || roomId} (${monthYear})
           </div>
         </div>
-        <div>
-          <button class="secondary btn-sm" onclick="renderManageInvestors()">← Back to Investors</button>
+
+        <!-- ONLY 3 REQUESTED BUTTONS: DOWNLOAD PDF, PRINT REPORT, CLOSE -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;box-shadow:0 1px 3px rgba(2,132,199,0.3);" onclick="downloadInvestorReport('${safeInvName}','${safeRoomName}','${monthYear}')">
+            <span>📥</span> Download PDF
+          </button>
+          <button type="button" class="btn-sm" style="background:#0F172A;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;box-shadow:0 1px 3px rgba(15,23,42,0.2);" onclick="printInvestorReport('${safeInvName}','${safeRoomName}','${monthYear}')">
+            <span>🖨️</span> Print Report
+          </button>
+          <button type="button" class="btn-sm" style="background:#EF4444;color:#fff;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;" onclick="renderManageInvestors()">
+            <span>✕</span> Close
+          </button>
         </div>
       </div>
 
-      <div class="form-grid" style="margin-top:14px;align-items:center;">
-        <div class="form-group" style="margin-bottom:0;max-width:240px;">
-          <label style="font-weight:700;font-size:12px;margin-bottom:4px;">Billing Period</label>
-          <select onchange="renderInvestorReport('${investorId}','${roomId}',this.value)" style="font-weight:600;">
-            ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom:0;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
-          <button class="btn-sm" style="background:#0F172A;color:#fff;font-weight:700;" onclick="printInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">🖨️ Print / Save PDF</button>
-          <button class="btn-sm" style="background:#0284C7;color:#fff;font-weight:700;" onclick="downloadInvestorReport('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">📥 Download PDF</button>
-          <button class="btn-sm" style="background:#25D366;color:#fff;font-weight:700;" onclick="shareInvestorReportWA('${investorId}','${roomId}','${selMonth}')">💬 WhatsApp Report</button>
-          <button class="btn-sm outline" onclick="downloadInvestorReportHTML('${inv?.name || 'Investor'}','${room?.nickname || roomId}','${monthYear}')">📥 HTML Backup</button>
-          ${excludedBookings.length > 0 ? `<button class="btn-sm outline" onclick="renderFriendsReport('${investorId}','${roomId}','${selMonth}')">🎁 Friends Report (${excludedBookings.length})</button>` : ''}
-        </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #F1F5F9;flex-wrap:wrap;">
+        <label style="font-weight:700;font-size:12px;color:#475569;white-space:nowrap;">Billing Period:</label>
+        <select onchange="renderInvestorReport('${investorId}','${roomId}',this.value)" style="font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid #CBD5E1;font-size:13px;max-width:240px;background:#fff;color:#0F172A;">
+          ${months.map(m => `<option value="${m.val}" ${m.val === selMonth ? 'selected' : ''}>${m.lbl}</option>`).join('')}
+        </select>
       </div>
     </div>
 
@@ -1018,7 +1024,7 @@ async function renderInvestorReport(investorId, roomId, month) {
       </div>
 
       <!-- 3 TOP SUMMARY KPI CARDS (Matching Reference Screenshot) -->
-      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px;">
+      <div class="inv-report-kpi-grid">
         <!-- Card 1: Revenue -->
         <div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.02);">
           <div style="font-size:10px;font-weight:800;color:#0369A1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">
@@ -1120,6 +1126,7 @@ async function renderInvestorReport(investorId, roomId, month) {
           </span>
         </div>
 
+        <div class="inv-report-table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:10.5px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #CBD5E1;">
@@ -1185,6 +1192,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- SECTION 2: CHANNEL CONTRIBUTION SUMMARY -->
@@ -1197,6 +1205,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         </div>
 
         ${useDefaults ? '<div style="font-size:10px;color:#D97706;font-style:italic;margin-bottom:6px;font-weight:600;">ℹ️ Standard recurring benchmark expenses applied for this unit.</div>' : ''}
+        <div class="inv-report-table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #CBD5E1;">
@@ -1250,6 +1259,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- ⚡ INLINE QUICK EXPENSE ENTRY (Screen Only - .no-print) -->
@@ -1279,6 +1289,7 @@ async function renderInvestorReport(investorId, roomId, month) {
         <div style="font-size:11px;font-weight:800;color:#0F172A;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
           <span>🎯</span> Profit Apportionment &amp; Disbursement Schedule
         </div>
+        <div class="inv-report-table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr style="background:#F8FAFC;border-bottom:2px solid #CBD5E1;">
@@ -1319,6 +1330,7 @@ async function renderInvestorReport(investorId, roomId, month) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- SECTION 5: MANAGEMENT COMMENTARY -->
@@ -1944,51 +1956,17 @@ function buildInvestorReportHTML(reportHTML, filename) {
   </style>
 </head>
 <body>
-  <div class="mobile-action-bar no-print">
-    <div class="report-name">📄 ${filename}</div>
-    <div class="actions">
-      <button class="btn-print" onclick="triggerPrint()">🖨️ Print / AirPrint (Save as PDF)</button>
-      <button class="btn-download" onclick="downloadHTML()">📥 Download HTML</button>
-      <button class="btn-close" onclick="window.close()">✕ Close</button>
-    </div>
-  </div>
-
   ${reportHTML}
-
-  <script>
-    document.title = "${filename}";
-    function triggerPrint() {
-      document.title = "${filename}";
-      window.print();
-    }
-    function downloadHTML() {
-      const docClone = document.documentElement.cloneNode(true);
-      const bars = docClone.querySelectorAll('.no-print');
-      bars.forEach(b => b.remove());
-      const blob = new Blob(['<!DOCTYPE html>\n' + docClone.outerHTML], { type: 'text/html;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = "${filename}.html";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => a.remove(), 1000);
-    }
-    window.onload = function() {
-      document.title = "${filename}";
-      try {
-        if (history.replaceState) {
-          history.replaceState(null, "${filename}", "#${filename}");
-        }
-      } catch(e) {}
-    };
-  </script>
 </body>
 </html>`;
 }
 
 window.downloadInvestorReport = function(investorName, propertyName, monthYear) {
-  // Triggers clean Print / Save PDF flow with pre-populated filename across all devices
+  const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
+  const prevTitle = document.title;
+  document.title = filename;
   window.printInvestorReport(investorName, propertyName, monthYear);
+  setTimeout(() => { document.title = prevTitle; }, 3000);
 };
 
 window.downloadInvestorReportHTML = function(investorName, propertyName, monthYear) {
@@ -2012,18 +1990,16 @@ window.printInvestorReport = function(investorName, propertyName, monthYear) {
     return;
   }
   const filename = getInvestorReportFilename(investorName, propertyName, monthYear);
+  const prevTitle = document.title;
+  document.title = filename;
   const reportHTML = reportEl.outerHTML;
   const html = buildInvestorReportHTML(reportHTML, filename);
   if (typeof window.printDocumentHTML === 'function') {
-    window.printDocumentHTML(html, filename);
+    window.printDocumentHTML(html, filename, { isInvestorReport: true });
   } else {
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-    }
+    window.print();
   }
+  setTimeout(() => { document.title = prevTitle; }, 3000);
 };
 
 window.shareInvestorReportWA = async function(investorId, roomId, selMonth) {
