@@ -1654,21 +1654,6 @@ window.openBookingDrawer = async function(bookingId) {
               </div>
             `;
           })()}
-            <div style="display:flex;gap:8px;align-items:center;">
-              <button class="sbk-action-btn wa" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" style="height:36px;padding:0 12px;border-radius:8px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;cursor:pointer;font-weight:700;" title="WhatsApp Guest">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
-                ${b.phone ? 'WhatsApp' : 'Add Phone & WA'}
-              </button>
-              <button class="sbk-action-btn" onclick="window.openGuestPassModal('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}')" style="height:36px;padding:0 10px;border-radius:8px;font-size:12px;display:inline-flex;align-items:center;gap:5px;background:#0F172A;color:#fff;border:none;cursor:pointer;font-weight:700;" title="Digital Guest Pass">
-                🪪 Pass
-              </button>
-              ${b.phone ? `
-                <a href="tel:${b.phone}" class="sbk-action-btn call" style="width:36px;height:36px;border-radius:8px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;background:#E2E8F0;text-decoration:none;" title="Call Guest">
-                  📞
-                </a>
-              ` : ''}
-            </div>
-          </div>
 
           <!-- Prominent Security Deposit Notification (If present) -->
           ${(() => {
@@ -1779,12 +1764,9 @@ window.openBookingDrawer = async function(bookingId) {
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
               <div style="font-size:13px;font-weight:700;color:var(--dark);">💰 Payment Ledger</div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <button class="btn-sm" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}', roomId: '${b.room_id || ''}', amount: ${bal > 0 ? Math.round(bal) : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;border:none;padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Generate & Send Branded Payment QR for this Booking">💳 Send QR</button>
-                <button class="btn-sm" onclick="window.openBookingReceiptModal('${b.booking_id}')" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Booking Confirmation & Advance Voucher (No GST)">📄 Receipt</button>
-                <button class="btn-sm" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" style="background:#0284C7;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View Bill Without GST (0% Tax / Clean Bill)">📄 Bill (No GST)</button>
-                <button class="btn-sm" onclick="window.openGSTInvoiceModal('${b.booking_id}')" style="background:#B45309;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Generate or View GST Invoice">🧾 GST Bill</button>
-                <button class="btn-sm" onclick="window.openPOSTerminal && window.openPOSTerminal({ room_id: '${b.room_id}', guest_name: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}' })" style="background:#0F172A;color:#fff;border:none;padding:4px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Add Concierge Services / Add-Ons for this Stay">🛎️ Add-Ons</button>
-                ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:4px 10px;font-size:11.5px;">+ Add Payment</button>` : ''}
+                <button class="btn-sm" onclick="window.openCustomPaymentQRModal({ guestName: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}', roomId: '${b.room_id || ''}', amount: ${bal > 0 ? Math.round(bal) : 0} })" style="background:linear-gradient(135deg, #4F46E5, #6366F1);color:#fff;border:none;padding:5px 10px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Generate & Send Branded Payment QR for this Booking">💳 Send QR</button>
+                <button class="btn-sm" onclick="window.openPOSTerminal && window.openPOSTerminal({ room_id: '${b.room_id}', guest_name: '${escapeHtml(b.guest_name || '')}', phone: '${escapeHtml(b.phone || '')}' })" style="background:#0F172A;color:#fff;border:none;padding:5px 9px;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;" title="Add Concierge Services / Add-Ons for this Stay">🛎️ Add-Ons</button>
+                ${canM ? `<button class="btn-sm" onclick="showPaymentModal('${b.booking_id}')" style="background:#10B981;color:#fff;border:none;padding:5px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;">+ Add Payment</button>` : ''}
               </div>
             </div>
 
@@ -1876,79 +1858,78 @@ window.openBookingDrawer = async function(bookingId) {
             ` : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">No individual payments recorded yet.</div>'}
           </div>
 
-          <!-- Guest IDs & Documents -->
-          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <div style="font-size:13px;font-weight:700;color:var(--dark);">🪪 ID Proof Documents</div>
-              <button class="btn-sm outline" onclick="window.openBookingIdUploadModal('${b.booking_id}')" style="padding:4px 8px;font-size:11px;">
-                Upload / Manage
-              </button>
+          <!-- ⚡ Primary Quick Actions (Most Frequently Used - UPAR) -->
+          <div style="margin-top:12px;">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+              ⚡ Quick Actions
             </div>
-            <div>
-              ${typeof buildIdButtons === 'function' ? buildIdButtons(b) : (typeof window.buildIdButtons === 'function' ? window.buildIdButtons(b) : '')}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              ${canM ? `
+                <button class="btn-sm" style="background:var(--primary);color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);" onclick="window.drawerEditBooking('${b.booking_id}')" title="Edit booking details, guest info, and upload ID proofs">
+                  ✏️ Edit Booking
+                </button>
+              ` : ''}
+              ${canM ? `
+                <button class="btn-sm" style="background:#10B981;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(16,185,129,0.25);" onclick="showPaymentModal('${b.booking_id}')" title="Record a new payment for this stay">
+                  💳 + Add Payment
+                </button>
+              ` : ''}
+              <button class="btn-sm" style="background:#0F172A;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(15,23,42,0.25);" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
+                📄 Booking Receipt
+              </button>
+              <button class="btn-sm" style="background:#6366F1;color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(99,102,241,0.25);" onclick="window.drawerDuplicateBooking('${b.booking_id}')" title="Duplicate this booking for another room or dates">
+                📋 Duplicate Booking
+              </button>
+              <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;font-weight:700;font-size:12.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" title="Generate Clean Invoice Without GST">
+                📄 Bill (No GST)
+              </button>
+              <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;font-size:12.5px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
+                🧾 GST Tax Invoice
+              </button>
             </div>
           </div>
 
-          <!-- Operational Actions Group -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
-            ${isBlocked ? `
-              <button type="button" class="btn-sm" style="background:#059669;color:#fff;padding:12px;font-weight:800;grid-column:span 2;font-size:13px;border-radius:8px;cursor:pointer;border:none;" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)">
-                ➕ Convert to Real Guest Booking
+          <!-- 🏠 Stay & Operations Actions (Secondary - NEECHE) -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+              🏠 Stay Operations &amp; Management
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              ${isBlocked ? `
+                <button type="button" class="btn-sm" style="background:#059669;color:#fff;padding:12px;font-weight:800;grid-column:span 2;font-size:13px;border-radius:8px;cursor:pointer;border:none;" onclick="if(window.calConvertBlockToBooking) window.calConvertBlockToBooking('${b.booking_id}', '${b.room_id}', '${b.check_in}', '${b.check_out}', this)">
+                  ➕ Convert to Real Guest Booking
+                </button>
+              ` : ''}
+              <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openLateCheckoutModal('${b.booking_id}')" title="Grant Late Check-Out (e.g. 04:30 PM)">
+                🌇 Late Check-Out
               </button>
-            ` : ''}
-            <button class="btn-sm" style="background:#D97706;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openLateCheckoutModal('${b.booking_id}')" title="Grant Late Check-Out (e.g. 04:30 PM) + optional fee &amp; alert housekeeping">
-              🌇 Late Check-Out
-            </button>
-            <button class="btn-sm" style="background:#DC2626;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerQuickCheckout('${b.booking_id}', '${b.room_id}')" title="Guest checkout now / early — save checkout &amp; trigger room cleaning">
-              ⚡ Early Check-Out
-            </button>
-            <button class="btn-sm" style="background:#25D366;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerOpenWhatsApp('${b.booking_id}', '${escapeHtml(b.phone || '')}', '${escapeHtml(b.guest_name || '')}', this)" title="Open WhatsApp Menu &amp; Templates">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
-              💬 WhatsApp
-            </button>
-            <button class="btn-sm" style="background:#6366F1;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDuplicateBooking('${b.booking_id}')" title="Duplicate this booking">
-              📋 Duplicate
-            </button>
-            <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;" onclick="showSecurityDepositModal('${b.booking_id}')">
-              🛡️ Security Deposit
-            </button>
-            <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:10px;" onclick="quickExtend('${b.booking_id}')">
-              ⏭️ Extend Stay
-            </button>
-            ${canM ? `
-              <button class="btn-sm" style="background:var(--primary);color:#fff;padding:10px;" onclick="window.drawerEditBooking('${b.booking_id}')">
-                ✏️ Edit Booking
+              <button class="btn-sm" style="background:#DC2626;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerQuickCheckout('${b.booking_id}', '${b.room_id}')" title="Guest checkout now / early">
+                ⚡ Early Check-Out
               </button>
-            ` : ''}
-            <button class="btn-sm" style="background:#0F766E;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingIdUploadModal('${b.booking_id}')" title="Upload, View or Delete Guest ID Documents">
-              🪪 Manage IDs
-            </button>
-            <button class="btn-sm outline" style="padding:10px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')">
-              📑 Guest Ledger
-            </button>
-            <button class="btn-sm" style="background:#0F172A;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openBookingReceiptModal('${b.booking_id}')" title="Generate Booking Confirmation & Advance Receipt (Without GST)">
-              📄 Booking Receipt
-            </button>
-            <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="View Combined Multi-Property Receipt for this group or guest">
-              🏢 Group Receipt
-            </button>
-            ${canM ? `
-              <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="if(window.showGroupBookingModal) window.showGroupBookingModal('${b.booking_id}');" title="Group Booking Manager (Link or Merge Related Group Bookings)">
-                🎊 Group Manager
+              <button class="btn-sm" style="background:#8B5CF6;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="quickExtend('${b.booking_id}')" title="Extend stay duration">
+                ⏭️ Extend Stay
               </button>
-            ` : ''}
-            <button class="btn-sm" style="background:#0284C7;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openWithoutGSTInvoiceModal('${b.booking_id}')" title="Generate Bill Without GST">
-              📄 Without GST Invoice
-            </button>
-            <button class="btn-sm" style="background:#B45309;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openGSTInvoiceModal('${b.booking_id}')" title="Generate GST Tax Invoice">
-              🧾 GST Tax Invoice
-            </button>
+              <button class="btn-sm" style="background:#0F766E;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="showSecurityDepositModal('${b.booking_id}')" title="Manage refundable security deposit">
+                🛡️ Security Deposit
+              </button>
+              <button class="btn-sm outline" style="padding:10px;border-radius:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="showGuestLedger('${escapeHtml(b.guest_name || '')}', '${b.booking_id}', '${b.phone || ''}', '${b.airbnb_confirmation_code || ''}')" title="Detailed khata and payment history">
+                📑 Guest Ledger
+              </button>
+              <button class="btn-sm" style="background:#4F46E5;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.openMultiPropertyReceiptModal('${b.stay_group_id || b.phone || b.booking_id}')" title="View Combined Multi-Property Receipt for this group or guest">
+                🏢 Group Receipt
+              </button>
+              ${canM ? `
+                <button class="btn-sm" style="background:#7C3AED;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;grid-column:span 2;" onclick="if(window.showGroupBookingModal) window.showGroupBookingModal('${b.booking_id}');" title="Group Booking Manager (Link or Merge Related Group Bookings)">
+                  🎊 Group Manager
+                </button>
+              ` : ''}
 
-            ${(canM && SESSION.role !== 'caretaker') ? `
-              <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
-                🗑️ Delete Booking
-              </button>
-            ` : ''}
+              ${(canM && SESSION.role !== 'caretaker') ? `
+                <button class="btn-sm" style="background:#EF4444;color:#fff;padding:10px;font-weight:700;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;grid-column:span 2;margin-top:4px;" onclick="window.drawerDeleteBooking()" title="Delete this booking">
+                  🗑️ Delete Booking
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       </div>
