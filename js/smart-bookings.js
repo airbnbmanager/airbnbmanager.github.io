@@ -1569,6 +1569,13 @@ window.openBookingDrawer = async function(bookingId) {
             <div style="font-size:17.5px;font-weight:900;color:var(--dark);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
               ${escapeHtml(b.guest_name || 'Guest')}
             </div>
+            ${b.phone ? `
+              <div style="font-size:12.5px;font-weight:700;color:#0284C7;margin-top:2px;display:flex;align-items:center;gap:4px;font-family:ui-monospace,SFMono-Regular,monospace;letter-spacing:0.2px;">
+                <a href="tel:${escapeHtml(b.phone)}" style="color:#0284C7;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Call ${escapeHtml(b.guest_name || 'Guest')}">
+                  <span>📞</span> <span>${escapeHtml(b.phone)}</span>
+                </a>
+              </div>
+            ` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             ${b.phone ? `
