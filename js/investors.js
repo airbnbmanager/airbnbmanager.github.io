@@ -3,9 +3,9 @@
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
  */
 
-// ============ MANAGE INVESTORS ============
+// ============ MANAGE INVESTORS (EXECUTIVE CRAFT UI) ============
 async function renderManageInvestors() {
-  renderShell(`<div class="loading">Loading...</div>`, 'investors');
+  renderShell(`<div class="loading">Loading investor portfolios...</div>`, 'investors');
 
   const [{data:invs}, {data:links}, {data:rooms}] = await Promise.all([
     sb.from('investors').select('*').order('name'),
@@ -21,78 +21,402 @@ async function renderManageInvestors() {
   });
 
   const isO = ['developer','admin'].includes(SESSION.role);
+  const totalInvs = (invs || []).length;
+  const totalLinks = (links || []).length;
+  const uniqueRoomsCount = new Set((links || []).map(l => l.room_id)).size;
+
+  // Helpers
+  const getSharePillClass = (share) => {
+    if (share === 100) return 'p-100';
+    if (share >= 50) return 'p-half';
+    return 'p-low';
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'IN';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const AVATAR_GRADIENTS = [
+    'linear-gradient(135deg, #4f46e5, #7c3aed)',
+    'linear-gradient(135deg, #0284c7, #2563eb)',
+    'linear-gradient(135deg, #0d9488, #059669)',
+    'linear-gradient(135deg, #d97706, #b45309)',
+    'linear-gradient(135deg, #e11d48, #be123c)',
+    'linear-gradient(135deg, #7c3aed, #c026d3)',
+    'linear-gradient(135deg, #2563eb, #1d4ed8)'
+  ];
+
+  const getAvatarGradient = (name) => {
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+  };
+
+  const formatPhone = (p) => {
+    if (!p) return '';
+    const clean = String(p).replace(/\D/g, '');
+    if (clean.length === 10) return clean.slice(0, 5) + ' ' + clean.slice(5);
+    if (clean.length === 12 && clean.startsWith('91')) return '+91 ' + clean.slice(2, 7) + ' ' + clean.slice(7);
+    return p;
+  };
 
   renderShell(`
-    <div class="card" style="padding:8px;margin-bottom:12px;">
-      <div style="display:flex;gap:8px;">
-        <button style="flex:1;">👥 Investors List</button>
-        <button onclick="renderMonthlyExpenses(null, null, 'investors')" class="secondary" style="flex:1;">📅 Monthly Expenses</button>
+    <div class="inv-container">
+      
+      <!-- EXECUTIVE HEADER BANNER -->
+      <div class="inv-header-banner">
+        <div class="inv-header-left">
+          <h1><span>🧑‍💼</span> Investor Relations & Equity Portfolios</h1>
+          <p>Real-time revenue distributions, property share allocations & audited P&L statements</p>
+          <div class="inv-stat-chips">
+            <span class="inv-stat-chip"><span>👥</span> ${totalInvs} Investors</span>
+            <span class="inv-stat-chip"><span>🏠</span> ${uniqueRoomsCount} Properties Allocated</span>
+            <span class="inv-stat-chip"><span>📊</span> ${totalLinks} Active Partnerships</span>
+          </div>
+        </div>
+        <div class="inv-header-actions">
+          <button class="inv-act-btn" style="background:#4f46e5;color:#ffffff;border-color:#4f46e5;font-weight:700;height:36px;padding:0 14px;" onclick="renderAddInv()">
+            <span>➕</span> Add Investor
+          </button>
+          <button class="inv-act-btn" style="background:rgba(255,255,255,0.15);color:#ffffff;border-color:rgba(255,255,255,0.3);font-weight:700;height:36px;padding:0 14px;" onclick="renderLinkProp()">
+            <span>🔗</span> Link Property
+          </button>
+          <button class="inv-act-btn" style="background:rgba(255,255,255,0.1);color:#c7d2fe;border-color:rgba(255,255,255,0.2);height:36px;padding:0 14px;" onclick="renderMonthlyExpenses(null, null, 'investors')">
+            <span>📅</span> Monthly Expenses
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <h1>🧑‍💼 Investors</h1>
-      <div class="sub">${(invs || []).length} investors</div>
-      <div class="btn-row">
-        <button onclick="renderAddInv()">➕ Add Investor</button>
-        <button class="secondary" onclick="renderLinkProp()">🔗 Link Property</button>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="section-title">All Investors</div>
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th>Name</th><th>Phone</th><th>Properties & Shares</th>
-          <th>Actions</th>
-        </tr></thead>
-        <tbody>${(invs || []).map(i => {
-          const iLinks = invPropMap[i.investor_id] || [];
-          const propBadges = iLinks.length === 0 
-            ? '<span class="sub">No properties</span>'
-            : iLinks.map(l => {
+      <!-- VIEW CONTROLS & SEARCH TOOLBAR -->
+      <div class="inv-toolbar">
+        <div class="inv-tabs">
+          <button id="tabInvDirectory" class="inv-tab-btn active" onclick="switchInvestorTab('directory')">
+            <span>👥</span> Investors Directory (${totalInvs})
+          </button>
+          <button id="tabInvMapping" class="inv-tab-btn" onclick="switchInvestorTab('mapping')">
+            <span>🔗</span> Property Allocations (${totalLinks})
+          </button>
+          <button id="tabInvAll" class="inv-tab-btn" onclick="switchInvestorTab('all')">
+            <span>👁️</span> Show All
+          </button>
+        </div>
+
+        <div class="inv-search-wrap">
+          <span class="inv-search-icon">🔍</span>
+          <input id="invSearchInput" type="text" placeholder="Search investor, property, phone..." oninput="filterInvestorsTable()" />
+        </div>
+      </div>
+
+      <!-- SECTION 1: ALL INVESTORS TABLE -->
+      <div id="invDirectoryCard" class="inv-card">
+        <div class="inv-card-header">
+          <div class="inv-card-title">
+            <span>👥</span> All Registered Investors (${totalInvs})
+          </div>
+          <small style="color:#64748b;">Click on any property tag or button to open its official P&L report</small>
+        </div>
+        
+        <div class="inv-table-wrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="min-width:200px;">Investor</th>
+                <th style="min-width:140px;">Contact</th>
+                <th style="min-width:280px;">Properties & Equity Shares</th>
+                <th style="min-width:140px;text-align:center;">P&L Statement</th>
+                <th style="min-width:140px;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(invs || []).map(i => {
+                const iLinks = invPropMap[i.investor_id] || [];
+                const safeName = (i.name || '').replace(/'/g, "\\'");
+                const initials = getInitials(i.name);
+                const avatarGrad = getAvatarGradient(i.name);
+                const displayPhone = formatPhone(i.phone);
+                const cleanPhoneDigits = (i.phone || '').replace(/\D/g, '');
+                const waPhone = cleanPhoneDigits.length === 10 ? '91' + cleanPhoneDigits : cleanPhoneDigits;
+                
+                // Search index text
+                const propSearchNames = iLinks.map(l => (propLabel(l.rooms) || l.room_id)).join(' ');
+                const searchText = `${i.name || ''} ${i.phone || ''} ${propSearchNames} ${i.notes || ''}`.toLowerCase();
+
+                // Property tags
+                const propTagsHtml = iLinks.length === 0
+                  ? '<span style="font-size:12px;color:#94a3b8;font-style:italic;">No properties assigned yet</span>'
+                  : `<div class="inv-props-list">${iLinks.map(l => {
+                      const share = l.share_percent || 0;
+                      const shareCls = getSharePillClass(share);
+                      const pLabel = propLabel(l.rooms) || l.room_id;
+                      return `
+                        <a href="javascript:void(0)" class="inv-prop-chip" title="Click to view P&L statement for ${pLabel}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">
+                          <span>🏠 ${pLabel}</span>
+                          <span class="share-pill ${shareCls}">${share}%</span>
+                        </a>
+                      `;
+                    }).join('')}</div>`;
+
+                // Statement action: 0, 1, or multiple properties
+                let reportBtnHtml = '';
+                if (iLinks.length === 0) {
+                  reportBtnHtml = `<span style="font-size:12px;color:#94a3b8;font-style:italic;">—</span>`;
+                } else if (iLinks.length === 1) {
+                  const l = iLinks[0];
+                  reportBtnHtml = `
+                    <button class="inv-act-btn btn-report" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')" title="Generate Monthly P&L Report">
+                      <span>📊</span>
+                      <span>View Report</span>
+                    </button>
+                  `;
+                } else {
+                  reportBtnHtml = `
+                    <div class="inv-dropdown-wrap">
+                      <button class="inv-act-btn btn-report" onclick="toggleInvDropdown('${i.investor_id}', event)" title="Select from ${iLinks.length} properties">
+                        <span>📊</span>
+                        <span>Reports (${iLinks.length})</span>
+                        <span style="font-size:9px;margin-left:2px;opacity:0.7;">▼</span>
+                      </button>
+                      <div id="invDrop_${i.investor_id}" class="inv-dropdown-menu" style="display:none;">
+                        <div class="inv-dropdown-header">Select Property Statement</div>
+                        ${iLinks.map(l => {
+                          const share = l.share_percent || 0;
+                          const shareCls = getSharePillClass(share);
+                          const pLabel = propLabel(l.rooms) || l.room_id;
+                          return `
+                            <div class="inv-dropdown-item" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">
+                              <span>🏠 ${pLabel}</span>
+                              <span class="share-pill ${shareCls}">${share}%</span>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    </div>
+                  `;
+                }
+
+                // Action buttons: WhatsApp, Edit, Delete
+                const waAction = i.phone ? `
+                  <button class="inv-act-btn btn-wa" title="WhatsApp Monthly P&L to ${safeName}" onclick="quickWhatsAppInvestor('${i.investor_id}')">
+                    <span>💬</span>
+                    <span class="inv-btn-text">WhatsApp</span>
+                  </button>
+                ` : '';
+
+                const editAction = isO ? `
+                  <button class="inv-act-btn btn-subtle" title="Edit Profile & Properties" onclick="editInvestor('${i.investor_id}')">
+                    <span>✏️</span>
+                  </button>
+                ` : '';
+
+                const deleteAction = isO ? `
+                  <button class="inv-act-btn btn-danger" title="Delete Investor" onclick="deleteInvestor('${i.investor_id}','${safeName}')">
+                    <span>🗑️</span>
+                  </button>
+                ` : '';
+
+                return `
+                  <tr class="inv-row-item" data-search="${searchText}">
+                    <td>
+                      <div class="inv-user-box">
+                        <div class="inv-avatar" style="background:${avatarGrad};">
+                          ${initials}
+                        </div>
+                        <div class="inv-user-details">
+                          <div class="inv-user-name">${i.name}</div>
+                          <div class="inv-user-sub">${i.notes ? i.notes.split('|')[0].trim() : 'Active Equity Partner'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      ${i.phone ? `
+                        <div class="inv-contact-box">
+                          <a href="tel:${cleanPhoneDigits}" class="inv-phone-link" title="Call ${safeName}">📞 ${displayPhone}</a>
+                          <a href="https://wa.me/${waPhone}" target="_blank" style="text-decoration:none;font-size:15px;" title="Chat on WhatsApp">💬</a>
+                        </div>
+                      ` : `<span style="color:#94a3b8;font-size:12px;">—</span>`}
+                    </td>
+                    <td>${propTagsHtml}</td>
+                    <td style="text-align:center;">${reportBtnHtml}</td>
+                    <td class="inv-act-cell">
+                      <div class="inv-act-group">
+                        ${waAction}
+                        ${editAction}
+                        ${deleteAction}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('') || `<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">No registered investors found</td></tr>`}
+              <tr id="invEmptySearchRow" style="display:none;">
+                <td colspan="5" style="text-align:center;padding:32px;color:#94a3b8;">
+                  🔍 No investors match your search.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2: PROPERTY ALLOCATION MATRIX -->
+      <div id="invMappingCard" class="inv-card" style="display:block;">
+        <div class="inv-card-header">
+          <div class="inv-card-title">
+            <span>🔗</span> Property ➔ Investor Equity Allocation Matrix (${totalLinks})
+          </div>
+          <div>
+            <button class="inv-act-btn btn-subtle" onclick="renderLinkProp()" style="font-size:12px;">
+              <span>➕</span> Link Another Property
+            </button>
+          </div>
+        </div>
+
+        <div class="inv-table-wrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="min-width:240px;">Property Unit</th>
+                <th style="min-width:200px;">Investor Partner</th>
+                <th style="min-width:140px;">Equity Share %</th>
+                <th style="min-width:160px;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(links || []).map(l => {
                 const share = l.share_percent || 0;
-                const shareColor = share === 100 ? 'green' : share >= 50 ? 'blue' : share > 0 ? 'yellow' : 'red';
-                return `<div style="display:inline-block;margin:2px;padding:4px 8px;background:#f8f8f8;border-radius:6px;font-size:12px;">
-                  🏠 <strong>${propLabel(l.rooms) || l.room_id}</strong>
-                  <span class="badge ${shareColor}" style="margin-left:4px;">${share}%</span>
-                </div>`;
-              }).join('');
-          return `<tr>
-            <td><strong>${i.name}</strong></td>
-            <td>${i.phone || '-'}</td>
-            <td style="font-size:12px;">${propBadges}</td>
-            <td class="table-actions" style="white-space:nowrap;">
-              ${iLinks.map(l => `<button class="btn-sm" title="Report ${l.room_id}" onclick="renderInvestorReport('${i.investor_id}','${l.room_id}')">📊</button>`).join('')}
-              ${i.phone ? `<button class="btn-sm" style="background:#25D366;color:#fff;" title="Send WhatsApp" onclick="quickWhatsAppInvestor('${i.investor_id}')">📱</button>` : ''}
-              ${isO ? `<button class="btn-sm" title="Edit" onclick="editInvestor('${i.investor_id}')">✏️</button>` : ''}
-              ${isO ? `<button class="btn-sm danger" title="Delete" onclick="deleteInvestor('${i.investor_id}','${i.name}')">🗑️</button>` : ''}
-            </td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>
+                const shareCls = getSharePillClass(share);
+                const pLabel = propLabel(l.rooms) || l.room_id;
+                const invName = l.investors?.name || l.investor_id;
+                const searchTxt = `${pLabel} ${l.rooms?.unit_no || ''} ${invName}`.toLowerCase();
+                return `
+                  <tr class="map-row-item" data-search="${searchTxt}">
+                    <td>
+                      <div style="font-weight:700;font-size:13.5px;color:#0f172a;">🏠 ${pLabel}</div>
+                      ${l.rooms?.unit_no ? `<div style="font-size:11.5px;color:#64748b;margin-top:2px;">Unit: ${l.rooms.unit_no}</div>` : ''}
+                    </td>
+                    <td>
+                      <div style="font-weight:600;font-size:13px;color:#1e293b;">🧑‍💼 ${invName}</div>
+                    </td>
+                    <td>
+                      <span class="share-pill ${shareCls}" style="font-size:11.5px;padding:3px 10px;">${share}% Share</span>
+                    </td>
+                    <td class="inv-act-cell">
+                      <div class="inv-act-group">
+                        <button class="inv-act-btn btn-subtle" onclick="editShareInline('${l.investor_id}','${l.room_id}',${share})" title="Edit Equity Share %">
+                          <span>✏️</span>
+                          <span>Edit Share</span>
+                        </button>
+                        <button class="inv-act-btn btn-danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')" title="Unlink Property">
+                          <span>🗑️</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('') || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">No property links configured</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    <div class="card">
-      <div class="section-title">Property → Investor Mapping</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Property</th><th>Investor</th><th>Share</th><th>Remove</th></tr></thead>
-        <tbody>${(links || []).map(l => {
-          const share = l.share_percent || 0;
-          const shareColor = share === 100 ? 'green' : share >= 50 ? 'blue' : share > 0 ? 'yellow' : 'red';
-          return `<tr>
-            <td><strong>${propLabel(l.rooms) || l.room_id}</strong><br><small style="color:var(--muted);">${l.rooms?.unit_no || ''}</small></td>
-            <td>${l.investors?.name || l.investor_id}</td>
-            <td><span class="badge ${shareColor}">${share}%</span></td>
-            <td class="table-actions">
-              <button class="btn-sm" onclick="editShareInline('${l.investor_id}','${l.room_id}',${share})" title="Edit Share">✏️</button>
-              <button class="btn-sm danger" onclick="unlinkProperty('${l.investor_id}','${l.room_id}')" title="Remove">🗑️</button>
-            </td>
-          </tr>`;
-        }).join('') || '<tr><td colspan="4" class="sub">No mappings</td></tr>'}</tbody>
-      </table></div>
     </div>
   `, 'investors');
 }
+
+// ═══════════════════════════════════════════════════════════
+// ⚡ INTERACTIVE CONTROLS FOR INVESTORS VIEW
+// ═══════════════════════════════════════════════════════════
+
+window.toggleInvDropdown = function(investorId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const targetMenu = document.getElementById('invDrop_' + investorId);
+  const isAlreadyOpen = targetMenu && targetMenu.style.display === 'block';
+
+  // Close all open menus
+  document.querySelectorAll('.inv-dropdown-menu').forEach(m => {
+    m.style.display = 'none';
+  });
+
+  if (targetMenu && !isAlreadyOpen) {
+    targetMenu.style.display = 'block';
+  }
+};
+
+// Global click-away handler to close dropdown menus
+if (!window._invDropdownGlobalClickAttached) {
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.inv-dropdown-wrap')) {
+      document.querySelectorAll('.inv-dropdown-menu').forEach(m => {
+        m.style.display = 'none';
+      });
+    }
+  });
+  window._invDropdownGlobalClickAttached = true;
+}
+
+window.switchInvestorTab = function(tabName) {
+  const dirCard = document.getElementById('invDirectoryCard');
+  const mapCard = document.getElementById('invMappingCard');
+  const tabDir = document.getElementById('tabInvDirectory');
+  const tabMap = document.getElementById('tabInvMapping');
+  const tabAll = document.getElementById('tabInvAll');
+
+  if (tabDir) tabDir.classList.remove('active');
+  if (tabMap) tabMap.classList.remove('active');
+  if (tabAll) tabAll.classList.remove('active');
+
+  if (tabName === 'mapping') {
+    if (dirCard) dirCard.style.display = 'none';
+    if (mapCard) mapCard.style.display = 'block';
+    if (tabMap) tabMap.classList.add('active');
+  } else if (tabName === 'all') {
+    if (dirCard) dirCard.style.display = 'block';
+    if (mapCard) mapCard.style.display = 'block';
+    if (tabAll) tabAll.classList.add('active');
+  } else {
+    // default: directory
+    if (dirCard) dirCard.style.display = 'block';
+    if (mapCard) mapCard.style.display = 'none';
+    if (tabDir) tabDir.classList.add('active');
+  }
+};
+
+window.filterInvestorsTable = function() {
+  const query = (document.getElementById('invSearchInput')?.value || '').toLowerCase().trim();
+  const invRows = document.querySelectorAll('.inv-row-item');
+  let matchCount = 0;
+
+  invRows.forEach(r => {
+    const text = (r.getAttribute('data-search') || '').toLowerCase();
+    if (!query || text.includes(query)) {
+      r.style.display = '';
+      matchCount++;
+    } else {
+      r.style.display = 'none';
+    }
+  });
+
+  const emptyRow = document.getElementById('invEmptySearchRow');
+  if (emptyRow) {
+    emptyRow.style.display = (matchCount === 0 && query) ? '' : 'none';
+  }
+
+  // Also filter mapping rows if query present
+  const mapRows = document.querySelectorAll('.map-row-item');
+  mapRows.forEach(r => {
+    const text = (r.getAttribute('data-search') || '').toLowerCase();
+    if (!query || text.includes(query)) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
+};
 
 // ============ ADD INVESTOR ============
 async function renderAddInv() {
