@@ -522,6 +522,13 @@ body,
   color: #fff;
 }
 
+.sidebar-action-btn.pref-btn.active {
+  background: var(--primary, #0EA5E9) !important;
+  color: #FFFFFF !important;
+  border-color: var(--primary, #0EA5E9) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4) !important;
+}
+
 .sidebar-action-btn.logout-btn {
   background: #F8FAFC;
   color: #64748B;

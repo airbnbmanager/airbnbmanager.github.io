@@ -1808,7 +1808,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['rooms', 'Properties'],
       ['expenses', 'Expenses'],
       ['analytics', 'Finances'],
-      ['settings', 'Global Settings'],
     ];
   } else if (isAdmin) {
     // 🛠️ DEVELOPER / ADMIN — Full access to everything
@@ -1821,7 +1820,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
       ['user-mgmt', 'User Management'],
-      ['settings', 'Global Settings'],
       ['help', 'Help & Guide'],
     ];
   } else if (SESSION.role === 'moderator') {
@@ -1872,7 +1870,6 @@ function renderShell(content, activePage = 'dashboard') {
       ['employees', 'HRMS & Tasks'],
       ['whatsapp-hub', 'WhatsApp Hub'],
       ['help', 'Help & Guide'],
-      ...(showSettings ? [['settings', 'Global Settings']] : []),
     ];
   }
 
@@ -2039,6 +2036,12 @@ function renderShell(content, activePage = 'dashboard') {
       else a.classList.remove('active', 'active-hub');
     });
 
+    const settingsFooterBtn = document.querySelector('.sidebar-footer .pref-btn');
+    if (settingsFooterBtn) {
+      if (targetSidebarKey === 'settings') settingsFooterBtn.classList.add('active');
+      else settingsFooterBtn.classList.remove('active');
+    }
+
     // 4. Update desktop topbar navigation links
     document.querySelectorAll('.topbar-desktop-nav a').forEach(a => {
       const onclickAttr = a.getAttribute('onclick') || '';
@@ -2146,9 +2149,10 @@ function renderShell(content, activePage = 'dashboard') {
           ${SESSION.role === 'caretaker' ? `
             <button class="sidebar-action-btn logout-btn" id="logoutBtn" style="background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;font-weight:800;"><i class="ti ti-logout"></i> Logout Session</button>
           ` : `
-            <button class="sidebar-action-btn help-btn" onclick="navigate('help')"><i class="ti ti-help-circle"></i> Help & Guide</button>
-            <button class="sidebar-action-btn pref-btn" onclick="window.openPreferences && window.openPreferences()"><i class="ti ti-adjustments-horizontal"></i> Preferences</button>
-            <button class="sidebar-action-btn logout-btn" id="logoutBtn"><i class="ti ti-logout"></i> Logout</button>
+            <button class="sidebar-action-btn pref-btn ${activePage === 'settings' ? 'active' : ''}" onclick="navigate('settings')" title="Global Settings &amp; Preferences" style="display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 12px;font-size:12.5px;font-weight:700;border-radius:8px;">
+              <i class="ti ti-settings" style="font-size:16px;"></i> Global Settings
+            </button>
+            <button class="sidebar-action-btn logout-btn" id="logoutBtn" style="display:none;"><i class="ti ti-logout"></i> Logout</button>
           `}
         </div>
       </aside>
