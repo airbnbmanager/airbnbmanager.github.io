@@ -74,6 +74,10 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      },
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0', transform: 'translateY(6px)' },

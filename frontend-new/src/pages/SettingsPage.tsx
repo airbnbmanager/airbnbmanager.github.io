@@ -18,8 +18,6 @@ import { useAuth } from '@/store/AuthContext';
 import {
   useTheme,
   COLOR_THEMES_META,
-  UI_VERSIONS_META,
-  UIVersion,
   ColorTheme,
 } from '@/hooks/useTheme';
 import { usePWA } from '@/hooks/usePWA';
@@ -33,7 +31,7 @@ import { toast } from 'sonner';
 
 const SECTIONS = [
   { id: 'profile', label: 'User Profile', icon: User },
-  { id: 'appearance', label: 'Theme & 2 UI Versions', icon: Palette },
+  { id: 'appearance', label: 'Theme & Accent Colors', icon: Palette },
   { id: 'pwa', label: 'PWA & Native App', icon: Smartphone },
   { id: 'property', label: 'Property & Company', icon: Building2 },
   { id: 'language', label: 'Language / भाषा', icon: Globe },
@@ -45,8 +43,6 @@ export function SettingsPage() {
   const [lang, setLang] = useState<'en' | 'hi'>('en');
   const { user } = useAuth();
   const {
-    version,
-    setVersion,
     colorTheme,
     setColorTheme,
     theme,
@@ -59,7 +55,7 @@ export function SettingsPage() {
     <div className="page-container">
       <PageHeader
         title="Settings & System Config"
-        subtitle="Configure UI versions, theme colors, PWA app install, company details, and operator profile"
+        subtitle="Configure primary theme colors, PWA app install, company details, and operator profile"
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -86,78 +82,9 @@ export function SettingsPage() {
 
         {/* Form Body */}
         <div className="md:col-span-3">
-          {/* 1. Theme & 2 UI Versions */}
+          {/* 1. Theme & Accent Colors */}
           {activeSection === 'appearance' && (
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              {/* Version Switcher */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Sparkles size={18} className="text-primary" />
-                    Interface Version (2 Views to Switch Between)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Switch freely between your familiar classic operational CRM and the new warm luxury boutique theme.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {(Object.keys(UI_VERSIONS_META) as UIVersion[]).map((vKey) => {
-                      const meta = UI_VERSIONS_META[vKey];
-                      const isSelected = version === vKey;
-                      return (
-                        <div
-                          key={vKey}
-                          onClick={() => setVersion(vKey)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                            isSelected
-                              ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-sm'
-                              : 'border-border hover:border-foreground/30 bg-card'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-2xl">{meta.icon}</span>
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  isSelected
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}
-                              >
-                                {meta.badge}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-sm sm:text-base text-foreground mb-1">
-                              {meta.title}
-                            </h4>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              {meta.subtitle}
-                            </p>
-                          </div>
-                          <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground">
-                              {isSelected ? '✓ Currently Active' : 'Click to Activate'}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant={isSelected ? 'default' : 'outline'}
-                              className="text-xs h-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setVersion(vKey);
-                              }}
-                            >
-                              {isSelected ? 'Active' : 'Switch'}
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Accent Color Palette */}
               <Card>
                 <CardHeader>

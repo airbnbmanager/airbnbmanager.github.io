@@ -1,14 +1,8 @@
 import React from 'react';
-import { Palette, Check, Sparkles, Smartphone, Download, Moon, Sun, Monitor } from 'lucide-react';
+import { Palette, Check, Smartphone, Download, Moon, Sun } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import {
-  useTheme,
-  COLOR_THEMES_META,
-  UI_VERSIONS_META,
-  UIVersion,
-  ColorTheme,
-} from '@/hooks/useTheme';
+import { useTheme, COLOR_THEMES_META, ColorTheme } from '@/hooks/useTheme';
 import { usePWA } from '@/hooks/usePWA';
 
 interface ThemeCustomizerModalProps {
@@ -18,8 +12,6 @@ interface ThemeCustomizerModalProps {
 
 export function ThemeCustomizerModal({ isOpen, onClose }: ThemeCustomizerModalProps) {
   const {
-    version,
-    setVersion,
     colorTheme,
     setColorTheme,
     theme,
@@ -37,67 +29,17 @@ export function ThemeCustomizerModal({ isOpen, onClose }: ThemeCustomizerModalPr
             <Palette size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-base text-foreground">Theme & Interface Studio</h3>
+            <h3 className="font-bold text-base text-foreground">Theme & Accent Colors</h3>
             <p className="text-xs text-muted-foreground">
-              Switch between Classic CRM & Luxury Haven, customize colors & install PWA
+              Customize primary color, appearance mode & install the standalone PWA
             </p>
           </div>
         </div>
 
-        {/* 1. UI Version Switcher */}
-        <div className="space-y-3">
-          <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-            <Sparkles size={14} className="text-primary" />
-            1. Select Interface Version / Layout Style
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(Object.keys(UI_VERSIONS_META) as UIVersion[]).map((vKey) => {
-              const meta = UI_VERSIONS_META[vKey];
-              const isSelected = version === vKey;
-              return (
-                <button
-                  key={vKey}
-                  type="button"
-                  onClick={() => setVersion(vKey)}
-                  className={`relative p-3.5 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-sm'
-                      : 'border-border hover:border-foreground/25 bg-card'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-lg">{meta.icon}</span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          isSelected
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {meta.badge}
-                      </span>
-                    </div>
-                    <div className="font-bold text-sm text-foreground mb-1">{meta.title}</div>
-                    <div className="text-xs text-muted-foreground leading-relaxed">
-                      {meta.subtitle}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="flex items-center gap-1.5 text-xs text-primary font-semibold mt-3 pt-2 border-t border-border">
-                      <Check size={14} /> Active Workspace
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Color Palettes */}
+        {/* 1. Accent Color Palette */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-foreground uppercase tracking-wider block">
-            2. Accent Color Palette
+            1. Accent Color Palette
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {(Object.keys(COLOR_THEMES_META) as ColorTheme[]).map((cKey) => {
@@ -110,28 +52,29 @@ export function ThemeCustomizerModal({ isOpen, onClose }: ThemeCustomizerModalPr
                   onClick={() => setColorTheme(cKey)}
                   className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left ${
                     isSelected
-                      ? 'border-primary bg-primary/10 ring-1 ring-primary font-semibold text-foreground'
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary font-semibold text-foreground shadow-xs'
                       : 'border-border hover:border-foreground/30 bg-card text-muted-foreground'
                   }`}
                 >
                   <span
-                    className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm border border-black/10"
+                    className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm border border-black/10 flex items-center justify-center text-white text-[9px]"
                     style={{ backgroundColor: color.hex }}
-                  />
+                  >
+                    {isSelected && <Check size={11} />}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium text-foreground truncate">{color.name}</div>
                   </div>
-                  {isSelected && <Check size={13} className="text-primary flex-shrink-0" />}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* 3. Dark / Light Mode */}
+        {/* 2. Dark / Light Mode */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-foreground uppercase tracking-wider block">
-            3. Appearance Mode
+            2. Appearance Mode
           </label>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -159,7 +102,7 @@ export function ThemeCustomizerModal({ isOpen, onClose }: ThemeCustomizerModalPr
           </div>
         </div>
 
-        {/* 4. PWA Installation Section */}
+        {/* 3. PWA Installation Section */}
         <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
