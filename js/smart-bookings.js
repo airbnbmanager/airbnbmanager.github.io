@@ -1497,7 +1497,7 @@ window.openBookingDrawer = async function(bookingId) {
     let dbBooking = null;
     try {
       const res = await sb.from('guest_register')
-        .select('*, rooms(nickname, unit_no, property_name)')
+        .select('*, rooms(nickname, unit_no, property_name, rent_per_night)')
         .eq('booking_id', bookingId)
         .maybeSingle();
       dbBooking = res.data;
@@ -1857,6 +1857,11 @@ window.openBookingDrawer = async function(bookingId) {
               ⚡ Quick Actions
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <!-- 💬 Caretaker / Staff WhatsApp Group Alert -->
+              <button class="btn-sm" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;padding:12px;font-weight:800;font-size:13.5px;border-radius:10px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(37,211,102,0.3);grid-column:span 2;" onclick="window.openBookingGroupWAModal('${b.booking_id}')" title="Generate &amp; Copy Caretaker / Staff WhatsApp Group Alert">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.55 1.36 5.09L2 22l5.25-1.38c1.48.8 3.13 1.23 4.79 1.23h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.32a8.2 8.2 0 0 1-1.26-4.37c.01-4.54 3.7-8.23 8.25-8.23M8.53 6.98c-.16 0-.43.06-.65.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.71 2.75 4.28 3.72 2.12.8 2.55.64 3.01.6.46-.05 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.19s-.23-.16-.48-.28-1.5-.74-1.73-.82c-.23-.08-.4-.12-.57.13s-.65.82-.8.99c-.15.17-.29.19-.55.06-.26-.13-1.09-.4-2.08-1.29-.77-.68-1.29-1.53-1.44-1.79-.15-.26-.02-.4.11-.53.12-.12.26-.31.4-.47.13-.16.17-.27.26-.45.09-.18.04-.34-.02-.47-.06-.13-.57-1.37-.78-1.87s-.42-.42-.57-.43z"/></svg>
+                <span>💬 WhatsApp Group Alert (Copy Message)</span>
+              </button>
               ${canM ? `
                 <button class="btn-sm" style="background:var(--primary);color:#fff;padding:11px;font-weight:800;font-size:13px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(2,132,199,0.25);" onclick="window.drawerEditBooking('${b.booking_id}')" title="Edit booking details, guest info, and upload ID proofs">
                   ✏️ Edit Booking
@@ -1947,6 +1952,221 @@ window.drawerDuplicateBooking = function(bookingId) {
     window.duplicateBooking(bookingId);
   } else {
     alert('Duplicate booking function is unavailable.');
+  }
+};
+
+window.generateBookingWAMessage = function(b, paymentsList) {
+  if (!b) return '';
+  let nights = 1;
+  if (b.check_in && b.check_out) {
+    if (typeof window.calcNights === 'function') {
+      nights = window.calcNights(b.check_in, b.check_out);
+    } else {
+      try {
+        const d1 = new Date(b.check_in);
+        const d2 = new Date(b.check_out);
+        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        nights = diff > 0 ? diff : 1;
+      } catch(e) { nights = 1; }
+    }
+  }
+
+  const tot = Number(b.total_amount) || 0;
+  let pd = (window._sbkState?.cachedPaidMap || {})[b.booking_id];
+  if (pd === undefined) {
+    if (paymentsList && Array.isArray(paymentsList)) {
+      pd = paymentsList.filter(p => p.verification_status !== 'rejected').reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    } else if (b.advance !== undefined && b.advance !== null) {
+      pd = Number(b.advance) || 0;
+    } else {
+      pd = 0;
+    }
+  }
+  const due = Math.max(0, tot - pd);
+
+  // Property label: Black Beauty (FLAT102)
+  const nick = b.rooms?.nickname || '';
+  const unit = b.rooms?.unit_no || '';
+  let propTitle = '';
+  if (nick && unit) propTitle = `${nick} (${unit})`;
+  else propTitle = nick || unit || (typeof window.propLabel === 'function' ? window.propLabel(b.rooms) : '') || b.room_id || 'Property';
+
+  let rate = b.rooms?.rent_per_night;
+  if (!rate && window._sbkState?.rooms) {
+    const rObj = window._sbkState.rooms.find(r => r.room_id === b.room_id);
+    if (rObj?.rent_per_night) rate = rObj.rent_per_night;
+  }
+  if (!rate && window.rooms) {
+    const rObj = window.rooms.find(r => r.room_id === b.room_id);
+    if (rObj?.rent_per_night) rate = rObj.rent_per_night;
+  }
+  if (!rate && nights > 0 && tot > 0) {
+    rate = Math.round(tot / nights);
+  }
+  const propDisplay = rate ? `${propTitle} (₹${rate}/night)` : propTitle;
+
+  // Guest name & phone
+  const guest = (b.guest_name || 'Guest').trim();
+  const rawPhone = (b.phone || '').trim();
+  const digits = rawPhone.replace(/[^0-9]/g, '');
+  const phoneDisplay = digits.length >= 10 ? digits.slice(-10) : (rawPhone || 'N/A');
+
+  // Dates formatting: 23 Nov 2026
+  const fmtD = (dt) => {
+    if (!dt) return '';
+    try {
+      const parts = dt.split('-');
+      if (parts.length === 3) {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const day = parseInt(parts[2], 10);
+        const mIdx = parseInt(parts[1], 10) - 1;
+        const yr = parts[0];
+        if (mIdx >= 0 && mIdx < 12) {
+          return `${day} ${months[mIdx]} ${yr}`;
+        }
+      }
+      const d = new Date(dt.includes('T') ? dt : dt + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch(e) { return dt; }
+  };
+
+  const inTime = b.check_in_time || '14:00';
+  const outTime = b.check_out_time || '11:00';
+  const durationStr = `${nights} Night${nights > 1 ? 's' : ''}`;
+
+  const isOnline = b.booking_mode === 'Online-Airbnb' || !!b.airbnb_confirmation_code;
+  let source = b.booking_mode || (isOnline ? 'Online-Airbnb' : 'Offline');
+  if (source === 'Online-Airbnb') source = 'Airbnb';
+
+  return `🛎️ *NEW BOOKING CONFIRMED — 📒BOOKING DATA*
+━━━━━━━━━━━━━━━━━━
+🏠 *Property:* ${propDisplay}
+👤 *Guest:* ${guest}
+📞 *Phone:* ${phoneDisplay}
+📅 *Check-in:* ${fmtD(b.check_in)} (${inTime})
+📅 *Check-out:* ${fmtD(b.check_out)} (${outTime})
+🌙 *Duration:* ${durationStr}
+💰 *Total:* ₹${tot.toLocaleString('en-IN')} | Paid: ₹${pd.toLocaleString('en-IN')} | Due: ₹${due.toLocaleString('en-IN')}
+🌐 *Source:* ${source}
+━━━━━━━━━━━━━━━━━━
+Caretaker: Please prepare property.`;
+};
+
+window.openBookingGroupWAModal = async function(bookingId) {
+  if (!bookingId) return;
+  let b = (window._currentDrawerBooking && String(window._currentDrawerBooking.booking_id) === String(bookingId))
+    ? window._currentDrawerBooking
+    : (window._sbkState?.cachedBookings || []).find(x => String(x.booking_id) === String(bookingId));
+
+  if (!b) {
+    try {
+      const res = await sb.from('guest_register')
+        .select('*, rooms(nickname, unit_no, property_name, rent_per_night)')
+        .eq('booking_id', bookingId)
+        .maybeSingle();
+      b = res.data;
+    } catch(e) {}
+  }
+  if (!b) {
+    alert('Booking details could not be loaded.');
+    return;
+  }
+
+  // Fetch payments if not cached
+  let payments = null;
+  if ((window._sbkState?.cachedPaidMap || {})[b.booking_id] === undefined) {
+    try {
+      const { data } = await sb.from('payment_history').select('*').eq('booking_id', bookingId);
+      payments = data;
+    } catch(e) {}
+  }
+
+  const msgText = window.generateBookingWAMessage(b, payments);
+
+  const existing = document.getElementById('bookingGroupWAModalOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'bookingGroupWAModalOverlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn 0.15s ease-out;';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:520px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #E2E8F0;display:flex;flex-direction:column;max-height:90vh;">
+      <div style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">💬</span>
+          <div>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:#fff;">WhatsApp Group Booking Alert</h3>
+            <div style="font-size:11.5px;color:rgba(255,255,255,0.9);margin-top:2px;">Caretaker &amp; Staff Confirmation Message</div>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('bookingGroupWAModalOverlay').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">&times;</button>
+      </div>
+
+      <div style="padding:18px 20px;overflow-y:auto;flex:1;">
+        <div style="font-size:12.5px;color:#475569;margin-bottom:12px;line-height:1.4;">
+          Yeh message formatted hai. <strong>Copy Message</strong> pe click karke WhatsApp group me paste karein ya direct WhatsApp open karein:
+        </div>
+
+        <div style="position:relative;">
+          <textarea id="waGroupAlertTextarea" readonly style="width:100%;height:270px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.55;color:#0F172A;resize:none;outline:none;box-sizing:border-box;white-space:pre-wrap;box-shadow:inset 0 2px 4px rgba(0,0,0,0.03);">${escapeHtml(msgText)}</textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button id="waCopyAlertBtn" type="button" onclick="window.copyBookingWAMessage(this)" style="flex:1;min-width:180px;background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(37,211,102,0.35);transition:all 0.15s ease;">
+            <span>📋</span>
+            <span id="waCopyBtnLabel">Copy Message</span>
+          </button>
+          
+          <a id="waDirectSendLink" href="https://api.whatsapp.com/send?text=${encodeURIComponent(msgText)}" target="_blank" rel="noopener noreferrer" style="background:#0F172A;color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:700;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
+            <span>📲</span>
+            <span>Open WhatsApp</span>
+          </a>
+        </div>
+      </div>
+
+      <div style="background:#F8FAFC;padding:12px 20px;border-top:1px solid #E2E8F0;display:flex;justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('bookingGroupWAModalOverlay').remove()" style="background:#E2E8F0;border:none;color:#334155;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  `;
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.remove();
+  };
+
+  document.body.appendChild(overlay);
+};
+
+window.copyBookingWAMessage = function(btn) {
+  const ta = document.getElementById('waGroupAlertTextarea');
+  if (!ta) return;
+  const text = ta.value;
+
+  const onSuccess = () => {
+    const lbl = document.getElementById('waCopyBtnLabel');
+    if (lbl) lbl.textContent = '✅ Copied to Clipboard!';
+    if (btn) btn.style.background = '#059669';
+    if (window.fsn && fsn.success) {
+      fsn.success('Copied!', 'Booking message copied to clipboard. Paste into your WhatsApp group.');
+    }
+    setTimeout(() => {
+      if (lbl) lbl.textContent = 'Copy Message';
+      if (btn) btn.style.background = 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)';
+    }, 2500);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+      ta.select();
+      document.execCommand('copy');
+      onSuccess();
+    });
+  } else {
+    ta.select();
+    document.execCommand('copy');
+    onSuccess();
   }
 };
 
