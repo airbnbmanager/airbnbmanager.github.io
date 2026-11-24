@@ -201,16 +201,21 @@ async function renderManageRooms() {
       }
       @media (max-width: 640px) {
         .units-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr !important;
           gap: 12px;
         }
         .units-action-grid {
-          grid-template-columns: 1fr 1fr;
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
           gap: 6px;
+          width: 100% !important;
         }
         .unit-details-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr !important;
           gap: 6px;
+        }
+        .unit-details-grid > div:last-child {
+          grid-column: 1 / -1 !important;
         }
       }
     </style>
@@ -931,7 +936,7 @@ async function renderFlatsStatus() {
     <style>
       .flats-kpi-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+        grid-template-columns: repeat(7, 1fr);
         gap: 6px;
         margin-bottom: 12px;
       }
@@ -961,6 +966,33 @@ async function renderFlatsStatus() {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      @media (max-width: 1024px) {
+        .flats-kpi-grid {
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 6px !important;
+        }
+        .flats-kpi-grid > div:last-child {
+          grid-column: span 2 !important;
+        }
+      }
+      @media (max-width: 640px) {
+        .flats-kpi-grid {
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 4px !important;
+        }
+        .flats-kpi-grid > div:last-child {
+          grid-column: span 2 !important;
+        }
+        .flats-kpi-card {
+          padding: 6px 4px !important;
+        }
+        .flats-kpi-num {
+          font-size: 15px !important;
+        }
+        .flats-kpi-lbl {
+          font-size: 9.5px !important;
+        }
       }
     </style>
 
@@ -1265,16 +1297,18 @@ async function renderFlatsStatus() {
                 ${f.issue ? `<br><small style="color:#D97706;font-size:10px;">⚠️ ${f.issue}</small>` : ''}
               </td>
               <td><small>${formatLastCleaned(f.last_cleaned)}</small></td>
-              <td class="table-actions">
-                ${can ? `
-                  ${isDirty ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Clean</button>` : ''}
-                  ${isDirty ? `<button class="btn-sm secondary" onclick="quickClean('${f.room_id}','In Progress',this)">🔄</button>` : ''}
-                  ${isDirty ? `<button class="btn-sm" style="background:#F59E0B;color:#fff;" onclick="showRefuseCleaningModal('${f.room_id}','${(propTitle).replace(/'/g, "\\'")}')">❌ Refuse</button>` : ''}
-                  ${isProgress ? `<button class="btn-sm green-btn" onclick="quickClean('${f.room_id}','Clean',this)">✅ Done</button>` : ''}
-                  ${isClean ? `<button class="btn-sm danger" onclick="quickClean('${f.room_id}','Dirty',this)">🧹 Mark Dirty</button>` : ''}
-                ` : '-'}
+              <td style="white-space:nowrap;">
+                <div style="display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;">
+                  ${can ? `
+                    ${isDirty ? `<button type="button" class="btn-sm" onclick="quickClean('${f.room_id}','Clean',this)" style="background:#10B981;color:#fff;border:none;padding:4px 8px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;height:28px;display:inline-flex;align-items:center;gap:3px;" title="Mark Clean"><span>✅</span> Clean</button>` : ''}
+                    ${isDirty ? `<button type="button" class="btn-sm" onclick="quickClean('${f.room_id}','In Progress',this)" style="background:#334155;color:#fff;border:none;padding:4px 7px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;height:28px;display:inline-flex;align-items:center;justify-content:center;" title="Mark In Progress">🔄</button>` : ''}
+                    ${isDirty ? `<button type="button" class="btn-sm" onclick="showRefuseCleaningModal('${f.room_id}','${(propTitle).replace(/'/g, "\\'")}')" style="background:#F59E0B;color:#fff;border:none;padding:4px 8px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;height:28px;display:inline-flex;align-items:center;gap:3px;" title="Refuse / Skip Cleaning"><span>❌</span> Refuse</button>` : ''}
+                    ${isProgress ? `<button type="button" class="btn-sm" onclick="quickClean('${f.room_id}','Clean',this)" style="background:#10B981;color:#fff;border:none;padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;height:28px;display:inline-flex;align-items:center;gap:3px;" title="Mark Clean"><span>✅</span> Done</button>` : ''}
+                    ${isClean ? `<button type="button" class="btn-sm" onclick="quickClean('${f.room_id}','Dirty',this)" style="background:#EF4444;color:#fff;border:none;padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;height:28px;display:inline-flex;align-items:center;gap:3px;" title="Mark Dirty"><span>🧹</span> Mark Dirty</button>` : ''}
+                  ` : '-'}
+                </div>
               </td>
-              ${can ? `<td><button class="btn-sm outline" onclick="showEditFlatStatusModal('${f.room_id}')">✏️</button></td>` : ''}
+              ${can ? `<td style="text-align:center;"><button type="button" class="btn-sm outline" onclick="showEditFlatStatusModal('${f.room_id}')" style="padding:4px 8px;border-radius:6px;height:28px;font-size:11px;cursor:pointer;" title="Edit Flat Details">✏️</button></td>` : ''}
             </tr>`;
           }).join('')}</tbody>
         </table></div>
