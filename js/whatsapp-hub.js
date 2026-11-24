@@ -1842,13 +1842,13 @@ The Unique Haven Homes Property Management`;
         <!-- Scrollable Navigation Tabs -->
         <div class="hub-tabs-scroller" id="hubTabsScroller">
           ${[
-            { key: 'log', label: '📊 Message Delivery & Automation Audit' },
-            { key: 'auto', label: '🎯 Controls & Automation Rules' },
-            { key: 'device', label: '📱 Link WhatsApp / Status' },
-            { key: 'ai-chat', label: '🤖 Live WhatsApp Chat' },
-            { key: 'settings', label: '⚙️ Settings & Group IDs' },
+            { key: 'log', label: '📊 Delivery Logs & Audit' },
+            { key: 'auto', label: '🎯 Automation Rules' },
+            { key: 'device', label: '📱 Link WhatsApp / QR' },
+            { key: 'ai-chat', label: '💬 Live WhatsApp Chat' },
+            { key: 'settings', label: '⚙️ Gateway & Groups' },
             { key: 'scheduled', label: '⏰ Scheduled Queue' },
-            { key: 'templates', label: '📝 Templates & Maps' }
+            { key: 'templates', label: '📝 Message Templates' }
           ].map(t => {
             const active = HUB.activeTab === t.key;
             return `<button class="hub-tab-pill ${active ? 'active' : ''}" data-tab="${t.key}" onclick="setHubTab('${t.key}')">${t.label}</button>`;
@@ -2277,8 +2277,8 @@ The Unique Haven Homes Property Management`;
             </div>
           </div>
 
-          <div style="max-height:360px;overflow-y:auto;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <div style="max-height:360px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1.5px solid #E2E8F0;border-radius:10px;background:#fff;">
+            <table style="width:100%;min-width:480px;border-collapse:collapse;font-size:12px;">
               <thead>
                 <tr style="background:#F8FAFC;border-bottom:1.5px solid #E2E8F0;text-align:left;color:#475569;font-size:11px;">
                   <th style="padding:10px 12px;">HOMESTAY PROPERTY</th>
@@ -2872,7 +2872,7 @@ Google Maps: https://maps.app.goo.gl/b8YjBduoQxa98QhT6</textarea>
           </div>
 
           <!-- Mobile Cards -->
-          <div class="hub-mobile-cards" style="display:none;">
+          <div class="hub-mobile-cards">
             ${mobileCards}
           </div>
         `}
