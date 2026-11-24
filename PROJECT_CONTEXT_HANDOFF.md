@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io`  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v512` (`tuhh-live-v512` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v513` (`tuhh-live-v513` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
 > **Last Updated**: November 25, 2026
@@ -91,6 +91,13 @@ airbnbmanager.github.io/
   1. **Download PDF** (properly scaled for mobile view without cutoffs)
   2. **Print Report** (desktop AirPrint formatted)
   3. **Close**
+
+### E. Property PDF & House Manual Portal (`js/properties.js`)
+- Added **`📑 Property PDFs`** management portal directly inside `#properties` (Units & Pricing).
+- Users can upload property house manuals, brochures, or rules PDFs to Google Drive (set to "Anyone with link can view") and attach the link directly to any property.
+- Synced securely to Supabase `app_settings` under key `property_pdf_guides`.
+- Every property card features a direct **`📑 PDF ↗`** launcher (or `📑 + PDF` attachment button).
+- Features full quick search filter, test link button, and bulk Save All Changes.
 
 ---
 
