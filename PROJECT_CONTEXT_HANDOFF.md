@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v518` (`tuhh-live-v518` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v519` (`tuhh-live-v519` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
 > **Last Updated**: November 25, 2026 (Ready for Windows PC Session)

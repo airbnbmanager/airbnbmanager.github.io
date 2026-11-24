@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta name="robots" content="noindex, nofollow"/>
+  <meta name="robots" content="noindex, nofollow" />
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>The Unique Haven Homes</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png?v=490" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png?v=490" />
@@ -15,16 +17,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Unique Haven Homes" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=490" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <!-- Tabler Icons Webfont (HomeyIndia CRM Vector Icons) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="style.css?v=512" />
   <!-- HomeyIndia CRM Design System Overhaul -->
   <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=507" />
   <script>
-    (function() {
+    (function () {
       try {
         localStorage.removeItem('uhhs_theme');
         localStorage.removeItem('uh_theme');
@@ -36,17 +40,19 @@
           document.body.classList.remove('horilla-dark');
           document.body.setAttribute('data-theme', 'light');
         }
-      } catch(e) {}
+      } catch (e) { }
     })();
   </script>
   <script src="js/hybrid-sync.js?v=490"></script>
   <script src="js/uhhs-od-manager.js?v=490"></script>
 </head>
+
 <body class="auth-logged-out">
   <!-- 🎯 Splash Screen -->
   <div id="splashScreen">
     <div class="splash-logo">
-      <img src="assets/logo-emblem.png" onerror="this.onerror=null;this.src='assets/logo.png';" alt="THE UNIQUE HAVEN HOMES" />
+      <img src="assets/logo-emblem.png" onerror="this.onerror=null;this.src='assets/logo.png';"
+        alt="THE UNIQUE HAVEN HOMES" />
     </div>
     <div class="splash-title">THE UNIQUE HAVEN HOMES</div>
     <div class="splash-tagline">Private Limited &bull; Enterprise CRM</div>
@@ -81,7 +87,7 @@
   <script src="js/airbnb-audit-data.js?v=492"></script>
   <script src="js/ca-audit-pack.js?v=492"></script>
   <script src="js/per-day-calc.js?v=492"></script>
-  <script src="js/properties.js?v=518"></script>
+  <script src="js/properties.js?v=519"></script>
   <script src="js/employees.js?v=504"></script>
   <script src="js/expenses.js?v=492"></script>
   <script src="js/store.js?v=492"></script>
@@ -115,7 +121,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=518').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=519').then(reg => {
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
@@ -130,8 +136,8 @@
             }
           });
           // Check for service worker updates periodically & on focus
-          try { reg.update(); } catch(e) {}
-          window.addEventListener('focus', () => { try { reg.update(); } catch(e) {} });
+          try { reg.update(); } catch (e) { }
+          window.addEventListener('focus', () => { try { reg.update(); } catch (e) { } });
         }).catch(err => {
           console.warn('SW registration notice:', err.message);
         });
@@ -149,7 +155,7 @@
 
     // Clean up stale dry-run localStorage keys
     ['uhhs_wa_automation_v1', 'uhhs_wa_automation_v2', 'uhhs_wa_automation_v3', 'uhhs_wa_automation_v4', 'uhhs_accepted_build_version'].forEach(k => {
-      try { localStorage.removeItem(k); } catch(e) {}
+      try { localStorage.removeItem(k); } catch (e) { }
     });
   </script>
 
@@ -179,11 +185,13 @@
   </nav>
 
   <!-- PWA Install Banner (Dismissible & Non-blocking) -->
-  <div id="pwa-install-bar" class="auth-nav-hidden" style="display:none !important;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:14px;z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:85vw;">
+  <div id="pwa-install-bar" class="auth-nav-hidden"
+    style="display:none !important;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:14px;z-index:99995;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.3);align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.3px;border:1px solid rgba(255,255,255,0.18);white-space:nowrap;max-width:85vw;">
     <span id="pwa-install-trigger" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
       <span>📲</span> <span>Install App</span>
     </span>
-    <button type="button" id="pwa-dismiss-btn" aria-label="Dismiss" style="background:rgba(255,255,255,0.18);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.2s;">✕</button>
+    <button type="button" id="pwa-dismiss-btn" aria-label="Dismiss"
+      style="background:rgba(255,255,255,0.18);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.2s;">✕</button>
   </div>
 
   <script>
@@ -231,20 +239,19 @@
     });
   </script>
 
-<!-- Real-time Airbnb iCal Sync -->
-<script src="js/uhhs-config.js"></script>
-<script src="js/airbnb-ical-sync.js"></script>
-<script src="js/multi-property-sync.js"></script>
+  <!-- Real-time Airbnb iCal Sync -->
+  <script src="js/uhhs-config.js"></script>
+  <script src="js/airbnb-ical-sync.js"></script>
+  <script src="js/multi-property-sync.js"></script>
 
-<!-- UHHS Real-Time Airbnb Sync Initialization -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  if (window.MULTI_SYNC) {
-    console.log('✅ Multi-Property iCal Sync initialized for all 20 properties');
-  }
-});
-</script>
+  <!-- UHHS Real-Time Airbnb Sync Initialization -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.MULTI_SYNC) {
+        console.log('✅ Multi-Property iCal Sync initialized for all 20 properties');
+      }
+    });
+  </script>
 </body>
+
 </html>
-
-

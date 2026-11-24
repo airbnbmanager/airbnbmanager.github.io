@@ -33,11 +33,26 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 // ═══════════════════════════════════════════════════════════
 // 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync & Direct Download)
 // ═══════════════════════════════════════════════════════════
+// Master Default Homestay Guide PDF (used across all units unless overridden)
+window.DEFAULT_MASTER_PDF_GUIDE = 'https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing';
+
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // Starlight Blue PentHouse (GOM-501)
   'GOM-501': 'https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing',
   // Pink Paradise (3rd Floor) - front of lulu mall 3 bhk (VIL-108)
   'VIL-108': 'https://drive.google.com/file/d/1DLY90HRpIKU9__lXHibImrjq9mh6UoFD/view?usp=sharing'
+};
+
+// Gets the active PDF guide URL for any room (custom > property default > master default)
+window.getPropertyPdfUrl = function(roomId) {
+  let guides = {};
+  try {
+    guides = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+  } catch(err) {}
+
+  return (guides && guides[roomId]) 
+    || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) 
+    || window.DEFAULT_MASTER_PDF_GUIDE;
 };
 
 // Converts Google Drive view link to high-speed DIRECT DOWNLOAD link
@@ -58,21 +73,8 @@ window.downloadPropertyPdf = function(roomId, e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
-  let guides = {};
-  try {
-    guides = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
-  } catch(err) {}
 
-  const rawUrl = (guides && guides[roomId]) || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]);
-  if (!rawUrl) {
-    if (window.fsn) {
-      fsn.warn('PDF Not Available', 'Is property ka PDF guide abhi upload nahi hua hai. Upar "⚙️ Manage PDFs" se attach karein.');
-    } else {
-      alert('Is property ka PDF guide abhi upload nahi hua hai.');
-    }
-    return;
-  }
-
+  const rawUrl = window.getPropertyPdfUrl(roomId);
   const dlUrl = window.getDirectDownloadPdfUrl(rawUrl);
   const a = document.createElement('a');
   a.href = dlUrl;
@@ -89,17 +91,8 @@ window.copyPropertyPdfLink = function(roomId, btnEl, e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
-  let guides = {};
-  try {
-    guides = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
-  } catch(err) {}
 
-  const rawUrl = (guides && guides[roomId]) || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]);
-  if (!rawUrl) {
-    if (window.fsn) fsn.warn('No Link', 'Is property ka PDF link available nahi hai.');
-    return;
-  }
-
+  const rawUrl = window.getPropertyPdfUrl(roomId);
   const copyToClipboard = (text) => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
@@ -534,28 +527,17 @@ async function renderManageRooms() {
                       ⚠️ Missing Pin
                     </span>
                   `}
-                  ${(pdfGuides && pdfGuides[r.room_id]) ? `
-                    <button type="button" onclick="downloadPropertyPdf('${r.room_id}', event)" style="background:#059669;color:#fff;border:none;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" title="Direct Download Property PDF Guide">
-                      📥 Download PDF
+                  <button type="button" onclick="downloadPropertyPdf('${r.room_id}', event)" style="background:#059669;color:#fff;border:none;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" title="Direct Download Property PDF Guide">
+                    📥 Download PDF
+                  </button>
+                  <button type="button" onclick="copyPropertyPdfLink('${r.room_id}', this, event)" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(29,78,216,0.15);" title="Copy PDF Link to share on WhatsApp or with guests">
+                    📋 Copy PDF Link
+                  </button>
+                  ${isO ? `
+                    <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:5px;padding:2px 6px;font-size:10px;cursor:pointer;" title="Change / Attach Custom PDF Guide Link">
+                      ✏️
                     </button>
-                    <button type="button" onclick="copyPropertyPdfLink('${r.room_id}', this, event)" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(29,78,216,0.15);" title="Copy PDF Link to share on WhatsApp or with guests">
-                      📋 Copy PDF Link
-                    </button>
-                    ${isO ? `
-                      <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;" title="Change / Edit PDF link">
-                        ✏️
-                      </button>
-                    ` : ''}
-                  ` : `
-                    <span style="color:#94A3B8;font-size:10.5px;font-weight:600;background:#F1F5F9;padding:2px 7px;border-radius:6px;border:1px solid #E2E8F0;" title="No PDF Attached Yet">
-                      📄 No PDF
-                    </span>
-                    ${isO ? `
-                      <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#2563EB;border-radius:5px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;" title="Attach Google Drive PDF Link">
-                        ➕ Attach PDF
-                      </button>
-                    ` : ''}
-                  `}
+                  ` : ''}
                 </div>
               </div>
             </div>
