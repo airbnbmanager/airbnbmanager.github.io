@@ -83,6 +83,60 @@ window.downloadPropertyPdf = function(roomId, e) {
   setTimeout(() => { try { a.remove(); } catch(_) {} }, 1500);
 };
 
+// 1-Click Copy Property PDF Link with visual feedback
+window.copyPropertyPdfLink = function(roomId, btnEl, e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+  let guides = {};
+  try {
+    guides = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+  } catch(err) {}
+
+  const rawUrl = (guides && guides[roomId]) || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]);
+  if (!rawUrl) {
+    if (window.fsn) fsn.warn('No Link', 'Is property ka PDF link available nahi hai.');
+    return;
+  }
+
+  const copyToClipboard = (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch(_) {}
+    ta.remove();
+    return Promise.resolve();
+  };
+
+  copyToClipboard(rawUrl).then(() => {
+    if (btnEl) {
+      const origHtml = btnEl.innerHTML;
+      btnEl.innerHTML = '✅ Copied!';
+      btnEl.style.background = '#DCFCE7';
+      btnEl.style.borderColor = '#86EFAC';
+      btnEl.style.color = '#15803D';
+      setTimeout(() => {
+        btnEl.innerHTML = origHtml;
+        btnEl.style.background = '#EFF6FF';
+        btnEl.style.borderColor = '#BFDBFE';
+        btnEl.style.color = '#1D4ED8';
+      }, 1800);
+    }
+    if (window.fsn) {
+      fsn.success('Link Copied!', 'Property PDF link clipboard me copy ho gaya.');
+    }
+  }).catch(() => {
+    if (window.fsn) fsn.error('Error', 'Clipboard access denied.');
+  });
+};
+
 window.getPropertyPdfGuides = async function() {
   const defaults = window.DEFAULT_PROPERTY_PDF_GUIDES || {};
   try {
@@ -483,6 +537,9 @@ async function renderManageRooms() {
                   ${(pdfGuides && pdfGuides[r.room_id]) ? `
                     <button type="button" onclick="downloadPropertyPdf('${r.room_id}', event)" style="background:#059669;color:#fff;border:none;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" title="Direct Download Property PDF Guide">
                       📥 Download PDF
+                    </button>
+                    <button type="button" onclick="copyPropertyPdfLink('${r.room_id}', this, event)" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 2px rgba(29,78,216,0.15);" title="Copy PDF Link to share on WhatsApp or with guests">
+                      📋 Copy Link
                     </button>
                     ${isO ? `
                       <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;" title="Change / Edit PDF link">
@@ -2484,9 +2541,18 @@ window.renderQuickPdfManager = async function(focusRoomId) {
                   class="btn-sm"
                   onclick="window.testRoomPdf('${r.room_id}')"
                   title="Direct Download PDF"
-                  style="background:#059669;color:#fff;font-size:11.5px;padding:7px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+                  style="background:#059669;color:#fff;font-size:11.5px;padding:7px 11px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
                 >
                   📥 Download
+                </button>
+                <button
+                  type="button"
+                  class="btn-sm"
+                  onclick="window.copyRoomPdfFromInput('${r.room_id}', this)"
+                  title="Copy PDF Link"
+                  style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-size:11.5px;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+                >
+                  📋 Copy Link
                 </button>
                 <button
                   type="button"
@@ -2552,6 +2618,31 @@ window.testRoomPdf = function(roomId) {
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { try { a.remove(); } catch(_) {} }, 1500);
+};
+
+window.copyRoomPdfFromInput = function(roomId, btnEl) {
+  const input = document.getElementById('pdf_input_' + roomId);
+  const url = input?.value?.trim();
+  if (!url) {
+    if (window.fsn) fsn.warn('No Link', 'Pehle Google Drive ya PDF link enter karein.');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch(_) {}
+    ta.remove();
+  }
+  if (btnEl) {
+    const origHtml = btnEl.innerHTML;
+    btnEl.innerHTML = '✅ Copied!';
+    setTimeout(() => { btnEl.innerHTML = origHtml; }, 1800);
+  }
+  if (window.fsn) fsn.success('Copied!', 'PDF link clipboard me copy ho gaya.');
 };
 
 window.saveSingleRoomPdf = async function(roomId) {
