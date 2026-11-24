@@ -33,29 +33,58 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 // ═══════════════════════════════════════════════════════════
 // 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync)
 // ═══════════════════════════════════════════════════════════
+window.DEFAULT_PROPERTY_PDF_GUIDES = {
+  // Starlight Blue PentHouse (GOM-501)
+  'GOM-501': 'https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing',
+  // Pink Paradise (3rd Floor) - front of lulu mall 3 bhk (VIL-108)
+  'VIL-108': 'https://drive.google.com/file/d/1DLY90HRpIKU9__lXHibImrjq9mh6UoFD/view?usp=sharing'
+};
+
 window.getPropertyPdfGuides = async function() {
+  const defaults = window.DEFAULT_PROPERTY_PDF_GUIDES || {};
   try {
-    let cached = null;
+    let cached = {};
     try {
       const c = localStorage.getItem('tuhh_property_pdf_guides');
-      if (c) cached = JSON.parse(c);
+      if (c) cached = JSON.parse(c) || {};
     } catch(e) {}
 
+    let remoteGuides = {};
+    let fetchedRemote = false;
     if (window.sb) {
-      const { data, error } = await sb.from('app_settings').select('value').eq('key', 'property_pdf_guides').maybeSingle();
-      if (!error && data && data.value) {
-        const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-        localStorage.setItem('tuhh_property_pdf_guides', JSON.stringify(parsed));
-        return parsed || {};
-      }
+      try {
+        const { data, error } = await sb.from('app_settings').select('value').eq('key', 'property_pdf_guides').maybeSingle();
+        if (!error && data && data.value) {
+          remoteGuides = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          fetchedRemote = true;
+        }
+      } catch(e) {}
     }
-    return cached || {};
+
+    const merged = { ...defaults, ...cached, ...(remoteGuides || {}) };
+    Object.keys(merged).forEach(k => {
+      if (!merged[k] || !merged[k].trim()) delete merged[k];
+    });
+
+    localStorage.setItem('tuhh_property_pdf_guides', JSON.stringify(merged));
+
+    // If remote did not have the keys yet and we have an authenticated user/client, push merged in background
+    if (window.sb && (!fetchedRemote || Object.keys(defaults).some(k => !remoteGuides[k]))) {
+      sb.from('app_settings').upsert({
+        key: 'property_pdf_guides',
+        value: JSON.stringify(merged),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' }).then().catch(() => {});
+    }
+
+    return merged;
   } catch(err) {
     console.warn('Could not load property_pdf_guides:', err);
     try {
-      return JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+      const local = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+      return { ...defaults, ...local };
     } catch(e) {
-      return {};
+      return { ...defaults };
     }
   }
 };
