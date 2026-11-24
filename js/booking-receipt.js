@@ -1273,8 +1273,8 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     let propertiesHTML = '';
     if (isMulti) {
       const bList = data.bookings || [];
-      if (bList.length <= 2) {
-        // 1-2 properties: Full detailed spacious cards
+      if (bList.length <= 6) {
+        // 1-6 properties: Full detailed spacious cards (fits mobile beautifully)
         propertiesHTML = bList.map((b, idx) => {
           const room = b.rooms || {};
           const pName = room.nickname || room.property_name || b.room_id || 'Homestay';
@@ -1321,7 +1321,12 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
               </div>
             </div>
           `;
-        }).join('');
+        }).join('') + (bList.length > 1 ? `
+          <div style="background:#F1F5F9;border:1.5px solid #0F172A;border-radius:10px;padding:9px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-weight:900;">
+            <span style="font-size:11.5px;color:#0F172A;text-transform:uppercase;letter-spacing:0.5px;">TOTAL COMBINED STAY (${bList.length} HOMESTAYS):</span>
+            <span style="font-size:17px;color:#059669;">₹${totalAmount.toLocaleString('en-IN')}</span>
+          </div>
+        ` : '');
       } else {
         // 3+ properties (e.g. 5 or 10 Homestays): High-Density Allocation Matrix (perfect for Mobile & WhatsApp!)
         propertiesHTML = `
@@ -1561,6 +1566,10 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
               <strong style="color:#0284C7;font-size:12.5px;">₹${(totalAmount + secAmount).toLocaleString('en-IN')}</strong>
             </div>
           ` : ''}
+          <div style="padding:8px 12px;background:#F8FAFC;border-top:1px dashed #CBD5E1;font-size:11px;color:#475569;line-height:1.45;">
+            <strong>Advance Paid:</strong> <span style="color:#059669;font-weight:800;">${numToWords(paidAmount)}</span>
+            ${balanceDue > 0 ? ` &nbsp;|&nbsp; <strong>Balance Due:</strong> <span style="color:#DC2626;font-weight:800;">${numToWords(balanceDue)}</span> <span style="color:#64748B;">(Due at Check-in)</span>` : ' &nbsp;|&nbsp; <span style="color:#059669;font-weight:800;">✅ Full Payment Cleared</span>'}
+          </div>
         </div>
 
         <!-- Custom Notes Banner (If any) -->
@@ -1659,7 +1668,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     }
 
     if (window.fsn?.info) {
-      fsn.info('Rendering PNG', '📥 Generating ultra-crisp 500 DPI PNG receipt...');
+      fsn.info('Rendering Mobile Receipt', '📥 Generating ultra-crisp mobile pass PNG...');
     }
 
     const data = receiptData || window._activeMultiReceiptData || window._activeSingleReceiptData || null;
@@ -1667,7 +1676,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     let tempWrapper = null;
     try {
       let captureEl = null;
-      const captureWidth = 860;
+      const captureWidth = 640;
 
       if (data) {
         tempWrapper = document.createElement('div');
@@ -1675,23 +1684,23 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         tempWrapper.style.position = 'fixed';
         tempWrapper.style.left = '-9999px';
         tempWrapper.style.top = '0';
-        tempWrapper.style.width = '860px';
-        tempWrapper.style.maxWidth = '860px';
+        tempWrapper.style.width = '640px';
+        tempWrapper.style.maxWidth = '640px';
         tempWrapper.style.boxSizing = 'border-box';
         tempWrapper.style.zIndex = '-99999';
         tempWrapper.style.background = '#ffffff';
-        tempWrapper.innerHTML = data.isMulti ? buildMultiPropertyReceiptHTML(data) : buildReceiptHTML(data);
+        tempWrapper.innerHTML = buildMobileSlipCardHTML(data);
         document.body.appendChild(tempWrapper);
         captureEl = tempWrapper.firstElementChild || tempWrapper;
       } else if (el) {
-        const target = el.querySelector('.uhh-receipt-container') || el;
+        const target = el.querySelector('#uhhMobileSlipCard') || el.querySelector('.uhh-receipt-container') || el;
         tempWrapper = target.cloneNode(true);
         tempWrapper.id = 'uhh_download_receipt_render_wrapper';
         tempWrapper.style.position = 'fixed';
         tempWrapper.style.left = '-9999px';
         tempWrapper.style.top = '0';
-        tempWrapper.style.width = '860px';
-        tempWrapper.style.maxWidth = '860px';
+        tempWrapper.style.width = '640px';
+        tempWrapper.style.maxWidth = '640px';
         tempWrapper.style.boxSizing = 'border-box';
         tempWrapper.style.zIndex = '-99999';
         tempWrapper.style.background = '#ffffff';
@@ -1717,9 +1726,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
       const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
       const fullWidth = captureWidth;
 
-      // 🌟 TRUE 500 DPI RESOLUTION SCALE (500 / 96 = ~5.2x scale)
+      // 🌟 ULTRA HD RETINA RESOLUTION (3.5x scale gives ~2240px width - razor sharp on mobile & WhatsApp)
       const canvas = await window.html2canvas(captureEl, {
-        scale: 5.2, // Ultra HD 500 DPI Clarity
+        scale: 3.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
