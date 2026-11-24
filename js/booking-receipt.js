@@ -1430,8 +1430,9 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
     }
 
     return `
-      <div id="uhhMobileSlipCard" style="width:640px;max-width:640px;background:#FFFFFF;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:22px 20px;border-radius:14px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision;font-variant-numeric:tabular-nums;border:2px solid #0F172A;margin:0 auto;">
+      <div id="uhhMobileSlipCard" style="width:640px;max-width:640px;min-height:1024px;background:#FFFFFF;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;padding:22px 20px;border-radius:14px;box-sizing:border-box;line-height:1.4;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision;font-variant-numeric:tabular-nums;border:2px solid #0F172A;margin:0 auto;display:flex;flex-direction:column;justify-content:space-between;">
         
+        <div>
         <!-- Header Strip -->
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E2E8F0;padding-bottom:12px;margin-bottom:10px;gap:10px;">
           <div style="display:flex;align-items:center;gap:12px;">
@@ -1578,40 +1579,44 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
             <strong style="font-size:12.5px;color:#78350F;">📝 Special Note:</strong> <span style="font-weight:700;color:#0F172A;">${escapeHtml(customNotes)}</span>
           </div>
         ` : ''}
-
-        <!-- Support Strip -->
-        <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-          <div>
-            👑 <strong>Director / Owner:</strong> Shahanshah<br>
-            📞 <a href="tel:+919450055554" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 94500 55554</a>
-          </div>
-          <div>
-            👑 <strong>Director / Owner:</strong> Firoz Khan<br>
-            📞 <a href="tel:+918299600709" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 82996 00709</a>
-          </div>
         </div>
 
-        <!-- Compact Guidelines -->
-        <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:10.5px;color:#334155;line-height:1.4;">
-          <div style="font-weight:900;color:#0F172A;margin-bottom:3px;text-transform:uppercase;">📋 Important Stay Guidelines:</div>
-          • Original Govt Photo ID (Aadhaar / Passport / DL) mandatory at check-in.<br>
-          • Check-in: 02:00 PM | Check-out: 11:00 AM.<br>
-          • Quiet hours post 11:00 PM. No loud music.<br>
-          • Remaining balance must be settled before key handover.<br>
-          ${secAmount > 0 ? `• <strong>Security Deposit:</strong> Refundable deposit of ₹${secAmount.toLocaleString('en-IN')} is returned promptly at check-out via UPI/Cash post room inspection.<br>` : ''}
-        </div>
-
-        <!-- Footer Signature & Stamp -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #0F172A;padding-top:8px;">
-          <div style="font-size:10px;color:#64748B;line-height:1.35;">
-            <strong style="color:#0F172A;">${CO.name}</strong><br>
-            CIN: ${CO.cin} · PAN: ${CO.pan}<br>
-            Website: ${CO.web}
+        <!-- Pinned Bottom Section (Guaranteed Vertical Pass Framing) -->
+        <div style="margin-top:14px;">
+          <!-- Support Strip -->
+          <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <div>
+              👑 <strong>Director / Owner:</strong> Shahanshah<br>
+              📞 <a href="tel:+919450055554" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 94500 55554</a>
+            </div>
+            <div>
+              👑 <strong>Director / Owner:</strong> Firoz Khan<br>
+              📞 <a href="tel:+918299600709" style="color:#0F172A;text-decoration:none;font-weight:900;">+91 82996 00709</a>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <img src="${getSignatureStampSrc()}" alt="Signature" style="height:36px;max-width:130px;object-fit:contain;margin-bottom:-4px;margin-left:auto;display:block;" />
-            <div style="border-bottom:1px dashed #CBD5E1;width:120px;margin-left:auto;height:1px;"></div>
-            <div style="font-size:9.5px;color:#475569;margin-top:2px;font-weight:700;">Authorised Signatory</div>
+
+          <!-- Compact Guidelines -->
+          <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:10.5px;color:#334155;line-height:1.4;">
+            <div style="font-weight:900;color:#0F172A;margin-bottom:3px;text-transform:uppercase;">📋 Important Stay Guidelines:</div>
+            • Original Govt Photo ID (Aadhaar / Passport / DL) mandatory at check-in.<br>
+            • Check-in: 02:00 PM | Check-out: 11:00 AM.<br>
+            • Quiet hours post 11:00 PM. No loud music.<br>
+            • Remaining balance must be settled before key handover.<br>
+            ${secAmount > 0 ? `• <strong>Security Deposit:</strong> Refundable deposit of ₹${secAmount.toLocaleString('en-IN')} is returned promptly at check-out via UPI/Cash post room inspection.<br>` : ''}
+          </div>
+
+          <!-- Footer Signature & Stamp -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1.5px solid #0F172A;padding-top:8px;">
+            <div style="font-size:10px;color:#64748B;line-height:1.35;">
+              <strong style="color:#0F172A;">${CO.name}</strong><br>
+              CIN: ${CO.cin} · PAN: ${CO.pan}<br>
+              Website: ${CO.web}
+            </div>
+            <div style="text-align:right;">
+              <img src="${getSignatureStampSrc()}" alt="Signature" style="height:36px;max-width:130px;object-fit:contain;margin-bottom:-4px;margin-left:auto;display:block;" />
+              <div style="border-bottom:1px dashed #CBD5E1;width:120px;margin-left:auto;height:1px;"></div>
+              <div style="font-size:9.5px;color:#475569;margin-top:2px;font-weight:700;">Authorised Signatory</div>
+            </div>
           </div>
         </div>
 
@@ -1686,6 +1691,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         tempWrapper.style.top = '0';
         tempWrapper.style.width = '640px';
         tempWrapper.style.maxWidth = '640px';
+        tempWrapper.style.minHeight = '1024px';
         tempWrapper.style.boxSizing = 'border-box';
         tempWrapper.style.zIndex = '-99999';
         tempWrapper.style.background = '#ffffff';
@@ -1701,6 +1707,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
         tempWrapper.style.top = '0';
         tempWrapper.style.width = '640px';
         tempWrapper.style.maxWidth = '640px';
+        tempWrapper.style.minHeight = '1024px';
         tempWrapper.style.boxSizing = 'border-box';
         tempWrapper.style.zIndex = '-99999';
         tempWrapper.style.background = '#ffffff';
@@ -1723,7 +1730,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
 
       await new Promise(r => setTimeout(r, 80));
 
-      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
+      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 1024);
       const fullWidth = captureWidth;
 
       // 🌟 ULTRA HD RETINA RESOLUTION (3.5x scale gives ~2240px width - razor sharp on mobile & WhatsApp)
@@ -1910,7 +1917,7 @@ ${secAmount > 0 ? `▪️ *Refundable Security Deposit:* ₹${secAmount.toLocale
       // Give browser layout engine a short beat to calculate full height
       await new Promise(r => setTimeout(r, 60));
 
-      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 600);
+      const fullHeight = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, mode === 'mobile' ? 1024 : 600);
       const fullWidth = captureWidth;
 
       // 🌟 ULTRA-CRISP 3X DPI RETINA CAPTURE (300+ DPI Clarity)
@@ -3752,19 +3759,13 @@ ${propertiesList}
             <button type="button" class="btn-sm" style="background:#0284C7;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(2,132,199,0.3);" onclick="window.downloadReceiptPNG('receiptPrintArea', '${escapeHtml(getReceiptFilename(data))}', window._activeSingleReceiptData)" title="Download high-resolution receipt PNG (500 DPI Ultra HD Quality)">
               📥 Download PNG
             </button>
-            <button type="button" class="btn-sm" style="background:#25D366;color:#fff;font-weight:800;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;" onclick="window.sendReceiptWhatsApp('${escapeHtml(data.booking.phone || '')}', document.getElementById('receiptWaHidden').value)">
-              💬 Send on WhatsApp
-            </button>
-            <button type="button" class="btn-sm" style="background:#334155;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="navigator.clipboard.writeText(document.getElementById('receiptWaHidden').value);if(window.fsn?.success) fsn.success('Copied','Receipt text copied to clipboard!'); else alert('Receipt text copied!');">
-              📋 Copy Text
-            </button>
             <button type="button" class="btn-sm" style="background:#4F46E5;color:#fff;font-weight:700;border:none;padding:7px 12px;border-radius:6px;cursor:pointer;" onclick="this.closest('.modal-overlay').remove();window.openMultiPropertyReceiptModal('${data.booking.stay_group_id || data.booking.phone || data.booking.booking_id}')" title="View Combined Multi-Property Receipt for this guest / group">
               🏢 Combined Group Receipt
             </button>
-            <button type="button" class="btn-sm outline" style="background:transparent;color:#38BDF8;border:1px solid #0284C7;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openWithoutGSTInvoiceModal){window.openWithoutGSTInvoiceModal('${data.booking.booking_id}');}">
+            <button type="button" class="btn-sm outline" style="background:transparent;color:#38BDF8;border:1px solid #0284C7;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay').remove();if(window.openWithoutGSTInvoiceModal){window.openWithoutGSTInvoiceModal('${data.booking.booking_id}');}">
               📄 Without GST Invoice
             </button>
-            <button type="button" class="btn-sm outline" style="background:transparent;color:#FDE047;border:1px solid #B45309;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay');if(m)m.remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
+            <button type="button" class="btn-sm outline" style="background:transparent;color:#FDE047;border:1px solid #B45309;padding:7px 10px;font-size:11.5px;font-weight:700;" onclick="const m=this.closest('.modal-overlay').remove();if(window.openGSTInvoiceModal){window.openGSTInvoiceModal('${data.booking.booking_id}');}">
               🧾 GST Tax Invoice
             </button>
           </div>

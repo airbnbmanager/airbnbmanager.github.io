@@ -44,44 +44,86 @@
   try { localStorage.setItem('uh_notif_history', JSON.stringify(NOTIF.history)); } catch(e) {}
 
   // ─── Sound (Apple / Luxury Hospitality Harmonic Chime Synthesizer) ───
+  let _sharedAudioCtx = null;
+  function getAudioContext() {
+    try {
+      if (!_sharedAudioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) _sharedAudioCtx = new AudioCtx();
+      }
+      if (_sharedAudioCtx && _sharedAudioCtx.state === 'suspended') {
+        _sharedAudioCtx.resume().catch(() => {});
+      }
+      return _sharedAudioCtx;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  // Mobile Web Audio Unlocker (Unlocks iOS Safari & Chrome Mobile audio pipeline on first gesture)
+  function initAudioUnlock() {
+    const unlock = () => {
+      try {
+        const ctx = getAudioContext();
+        if (ctx) {
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+          // Play a silent 1-sample buffer to unlock iOS Safari hardware audio pipeline
+          const buffer = ctx.createBuffer(1, 1, 22050);
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(ctx.destination);
+          source.start(0);
+        }
+      } catch(e) {}
+      ['touchstart', 'touchend', 'click', 'keydown', 'pointerdown'].forEach(ev => {
+        document.removeEventListener(ev, unlock, true);
+      });
+    };
+    ['touchstart', 'touchend', 'click', 'keydown', 'pointerdown'].forEach(ev => {
+      document.addEventListener(ev, unlock, { once: true, passive: true, capture: true });
+    });
+  }
+  if (typeof document !== 'undefined') {
+    initAudioUnlock();
+  }
+
   function playSound(type) {
     if (NOTIF.isMuted) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = getAudioContext();
+      if (!ctx) return;
       if (ctx.state === 'suspended') {
-        ctx.resume();
+        ctx.resume().catch(() => {});
       }
 
       // Harmonic chords with gentle attack and warm exponential decay
       const presets = {
         booking: [
-          { freq: 523.25, time: 0, dur: 0.35, gain: 0.16 },    // C5
-          { freq: 659.25, time: 0.08, dur: 0.35, gain: 0.18 },  // E5
-          { freq: 783.99, time: 0.16, dur: 0.45, gain: 0.20 },  // G5
-          { freq: 1046.5, time: 0.24, dur: 0.65, gain: 0.22 }   // C6 (crystal bell)
+          { freq: 523.25, time: 0, dur: 0.35, gain: 0.22 },    // C5
+          { freq: 659.25, time: 0.08, dur: 0.35, gain: 0.24 },  // E5
+          { freq: 783.99, time: 0.16, dur: 0.45, gain: 0.26 },  // G5
+          { freq: 1046.5, time: 0.24, dur: 0.70, gain: 0.30 }   // C6 (crystal bell)
         ],
         payment: [
-          { freq: 587.33, time: 0, dur: 0.3, gain: 0.16 },     // D5
-          { freq: 880.00, time: 0.09, dur: 0.35, gain: 0.18 },   // A5
-          { freq: 1174.66, time: 0.18, dur: 0.6, gain: 0.22 }   // D6
+          { freq: 587.33, time: 0, dur: 0.3, gain: 0.22 },     // D5
+          { freq: 880.00, time: 0.09, dur: 0.35, gain: 0.25 },   // A5
+          { freq: 1174.66, time: 0.18, dur: 0.65, gain: 0.28 }   // D6
         ],
         checkin: [
-          { freq: 440.00, time: 0, dur: 0.35, gain: 0.16 },    // A4
-          { freq: 554.37, time: 0.1, dur: 0.5, gain: 0.20 }     // C#5
+          { freq: 440.00, time: 0, dur: 0.35, gain: 0.22 },    // A4
+          { freq: 554.37, time: 0.1, dur: 0.5, gain: 0.25 }     // C#5
         ],
         checkout: [
-          { freq: 554.37, time: 0, dur: 0.3, gain: 0.16 },
-          { freq: 440.00, time: 0.1, dur: 0.45, gain: 0.18 }
+          { freq: 554.37, time: 0, dur: 0.3, gain: 0.22 },
+          { freq: 440.00, time: 0.1, dur: 0.45, gain: 0.24 }
         ],
         task: [
-          { freq: 493.88, time: 0, dur: 0.3, gain: 0.15 },
-          { freq: 659.25, time: 0.1, dur: 0.45, gain: 0.18 }
+          { freq: 493.88, time: 0, dur: 0.3, gain: 0.20 },
+          { freq: 659.25, time: 0.1, dur: 0.45, gain: 0.24 }
         ],
         info: [
-          { freq: 523.25, time: 0, dur: 0.25, gain: 0.14 },
-          { freq: 659.25, time: 0.08, dur: 0.4, gain: 0.16 }
+          { freq: 523.25, time: 0, dur: 0.25, gain: 0.20 },
+          { freq: 659.25, time: 0.08, dur: 0.4, gain: 0.22 }
         ]
       };
 
@@ -89,6 +131,7 @@
       notes.forEach(({ freq, time, dur, gain }) => {
         setTimeout(() => {
           try {
+            if (ctx.state === 'suspended') ctx.resume().catch(() => {});
             const osc = ctx.createOscillator();
             const gainNode = ctx.createGain();
             osc.type = 'sine';
@@ -620,6 +663,9 @@
             <button type="button" id="notifMuteToggle" title="Toggle sound alerts" style="background:${NOTIF.isMuted ? '#FEE2E2' : '#F1F5F9'};border:1px solid #CBD5E1;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:${NOTIF.isMuted ? '#DC2626' : '#334155'};display:inline-flex;align-items:center;gap:4px;">
               ${NOTIF.isMuted ? '🔇 Muted' : '🔊 Sound ON'}
             </button>
+            <button type="button" onclick="window.testNotificationSound('booking')" title="Test Chime Sound &amp; Notification Popup" style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#059669;display:inline-flex;align-items:center;gap:4px;">
+              🔔 Test Sound
+            </button>
             <button type="button" onclick="window.notifications.requestPushPermission()" title="Enable OS / Mobile Push Alerts" style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#4F46E5;display:inline-flex;align-items:center;gap:4px;">
               📲 Push Alerts
             </button>
@@ -913,6 +959,33 @@
     return true;
   }
 
+  function testNotificationSound(type = 'booking') {
+    if (NOTIF.isMuted) {
+      NOTIF.isMuted = false;
+      localStorage.setItem('uh_notif_muted', 'false');
+    }
+    // Attempt immediate audio context resume in user gesture
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch(e) {}
+
+    const titles = {
+      booking: '📅 Test Booking Alert: Luxury Penthouse',
+      payment: '💰 Test Payment Alert: ₹5,000 Received',
+      checkin: '🔑 Test Check-in: Guest Arrived'
+    };
+    notify({
+      type: type,
+      icon: type === 'booking' ? '📅' : (type === 'payment' ? '💰' : '🔑'),
+      title: titles[type] || '🔔 Notification Test',
+      message: 'Sound and popup are working perfectly on this device!',
+      sub: 'Realtime Audio & Toast Verified',
+      sound: type,
+      page: 'bookings'
+    });
+  }
+
   // Expose globals
   window.notifications = {
     start: startAll,
@@ -922,10 +995,12 @@
     updateBadge: updateBadge,
     requestPushPermission: requestPushPermission,
     checkLowInventory: checkLowInventoryAlert,
+    testSound: testNotificationSound,
     history: () => NOTIF.history
   };
   window.notify = notify;
   window.showToast = showToast;
+  window.testNotificationSound = testNotificationSound;
   window.requestPushPermission = requestPushPermission;
 
   // Auto-start when session ready

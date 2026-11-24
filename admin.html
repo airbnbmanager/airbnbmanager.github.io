@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Tabler Icons Webfont (HomeyIndia CRM Vector Icons) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="style.css?v=498" />
+  <link rel="stylesheet" href="style.css?v=499" />
   <!-- HomeyIndia CRM Design System Overhaul -->
   <link rel="stylesheet" href="css/homeyindia-crm-theme.css?v=490" />
   <script>
@@ -65,7 +65,7 @@
   <!-- App Modules — order matters -->
   <script src="js/core.js?v=492"></script>
   <script src="js/user-audit.js?v=492"></script>
-  <script src="js/notifications.js?v=492"></script>
+  <script src="js/notifications.js?v=499"></script>
   <script src="js/dashboard.js?v=492"></script>
   <script src="js/daily-report.js?v=492"></script>
   <script src="js/reminders.js?v=492"></script>
@@ -76,7 +76,7 @@
   <script src="js/smart-bookings.js?v=498"></script>
   <script src="js/pos-terminal.js?v=492"></script>
   <script src="js/html2canvas.min.js"></script>
-  <script src="js/booking-receipt.js?v=498"></script>
+  <script src="js/booking-receipt.js?v=499"></script>
   <script src="js/gst-invoice.js?v=492"></script>
   <script src="js/airbnb-audit-data.js?v=492"></script>
   <script src="js/ca-audit-pack.js?v=492"></script>
@@ -115,7 +115,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=498').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=499').then(reg => {
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }

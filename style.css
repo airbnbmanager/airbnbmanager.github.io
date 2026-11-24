@@ -3225,6 +3225,22 @@ button.btn:active,
     right: 12px;
     width: calc(100% - 24px);
     max-width: none;
+    z-index: 9999999 !important;
+  }
+  .notif-toast {
+    transform: translateY(-120%) scale(0.95);
+    border-radius: 14px;
+    padding: 12px 14px 16px 14px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  }
+  .notif-toast.show {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .notif-toast.dismissing {
+    transform: translateY(-120%) scale(0.95) !important;
+    opacity: 0 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 }
 
