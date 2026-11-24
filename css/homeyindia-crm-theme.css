@@ -2223,14 +2223,14 @@ html, body {
     border-width: 1px !important;
   }
   .cal-day {
-    min-height: 48px !important;
-    height: 48px !important;
+    min-height: 54px !important;
+    height: 54px !important;
     border-radius: 6px !important;
     padding: 2px 1.5px !important;
   }
   .cal-empty {
-    min-height: 48px !important;
-    height: 48px !important;
+    min-height: 54px !important;
+    height: 54px !important;
   }
   .cal-date-num {
     font-size: 10px !important;
@@ -2243,16 +2243,16 @@ html, body {
     line-height: 1 !important;
   }
   .cal-pill {
-    font-size: 8.5px !important;
+    font-size: 9.5px !important;
     padding: 2px 1.5px !important;
-    min-height: 20px !important;
-    height: 20px !important;
+    min-height: 24px !important;
+    height: 24px !important;
   }
   .cal-name {
-    font-size: 8.5px !important;
+    font-size: 9.5px !important;
     font-weight: 800 !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.3px !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.1px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;

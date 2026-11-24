@@ -1050,9 +1050,9 @@ async function renderReports() {
       border-radius: 6px;
       box-sizing: border-box;
     }
-    .cal-empty { min-height: 56px; }
+    .cal-empty { min-height: 62px; }
     .cal-day {
-      min-height: 56px;
+      min-height: 62px;
       border: 1px solid #E2E8F0;
       border-radius: 8px;
       padding: 3px;
@@ -1143,13 +1143,13 @@ async function renderReports() {
       justify-content: center;
       gap: 2px;
       color: #FFFFFF;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
-      padding: 2.5px 3px;
+      padding: 3.5px 4px;
       margin: 2px 0 0;
       overflow: hidden;
       box-sizing: border-box;
-      min-height: 20px;
+      min-height: 27px;
     }
     .cal-pill.blocked {
       background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
@@ -1159,16 +1159,16 @@ async function renderReports() {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: 9.5px;
+      font-size: 10.5px;
       color: #FFFFFF;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+      text-shadow: 0 1px 1.5px rgba(0,0,0,0.3);
       max-width: 100%;
       font-weight: 800;
       display: block;
       min-width: 0;
       line-height: 1.2;
       text-align: center;
-      letter-spacing: -0.2px;
+      letter-spacing: -0.1px;
     }
     .cal-stay-connector {
       display: flex;
@@ -1250,12 +1250,12 @@ async function renderReports() {
         gap: 2px !important;
       }
       .cal-empty {
-        min-height: 48px !important;
-        height: 48px !important;
+        min-height: 54px !important;
+        height: 54px !important;
       }
       .cal-day {
-        min-height: 48px !important;
-        height: 48px !important;
+        min-height: 54px !important;
+        height: 54px !important;
         border-radius: 6px !important;
         padding: 2px 1.5px 2px !important;
       }
@@ -1279,17 +1279,17 @@ async function renderReports() {
         line-height: 1.1 !important;
       }
       .cal-pill {
-        font-size: 8.5px !important;
-        padding: 1.5px 2px !important;
+        font-size: 9.5px !important;
+        padding: 2px 2px !important;
         margin: 1px 0 0 !important;
-        min-height: 20px !important;
-        height: 20px !important;
+        min-height: 24px !important;
+        height: 24px !important;
       }
       .cal-name {
-        font-size: 8.5px !important;
+        font-size: 9.5px !important;
         font-weight: 800 !important;
-        line-height: 1.1 !important;
-        letter-spacing: -0.2px !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.1px !important;
         max-width: 100% !important;
         white-space: nowrap !important;
         overflow: hidden !important;
