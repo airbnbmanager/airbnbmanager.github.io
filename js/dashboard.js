@@ -306,14 +306,6 @@ async function renderDashboard() {
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
 
   try {
-
-    // 🔧 AUTO Payment Overflow Fix (silent, runs on every dashboard load)
-    try {
-      if (typeof window.autoFixOverflowPayments === 'function') {
-        await window.autoFixOverflowPayments(true);
-      }
-    } catch (e) { console.warn('Auto overflow fix failed:', e); }
-
     const activeUsers = await getActiveUsers();
 
     const today = getLocalDateString();

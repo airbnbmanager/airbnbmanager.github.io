@@ -8182,7 +8182,12 @@ window.removeFromGroup = async function(bookingId) {
 // redistributes extra payment to same guest's unpaid bookings
 // ═══════════════════════════════════════════════════════════
 async function autoFixOverflowPayments(silent = false) {
-  const btn = silent ? null : event?.target;
+  // STRICT SAFETY: Never execute automatically or silently without direct user click
+  if (silent) {
+    console.warn('⚠️ autoFixOverflowPayments called with silent=true. Suppressed to prevent unauthorized data mutation.');
+    return;
+  }
+  const btn = event?.target;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Scanning...'; }
 
   try {
@@ -8330,6 +8335,40 @@ async function autoFixOverflowPayments(silent = false) {
 }
 
 window.autoFixOverflowPayments = autoFixOverflowPayments;
+
+window.revertAutoAdjustmentsToday = async function () {
+  if (!confirm('Kya aap auto-generated "Overflow auto-adjusted" adjustment records ko delete karke bookings ka balance restore karna chahte hain?')) return;
+  try {
+    const { data: list, error } = await sb.from('payment_history')
+      .select('id, booking_id, amount, notes')
+      .eq('payment_mode', 'Adjustment')
+      .ilike('notes', '%Overflow%');
+
+    if (error) throw error;
+    if (!list || list.length === 0) {
+      alert('Koi auto-adjusted record nahi mila.');
+      return;
+    }
+
+    let count = 0;
+    const affectedBks = new Set();
+    for (const r of list) {
+      const { error: delErr } = await sb.from('payment_history').delete().eq('id', r.id);
+      if (!delErr) {
+        count++;
+        affectedBks.add(r.booking_id);
+      }
+    }
+    for (const bId of affectedBks) {
+      await recalcPaymentStatus(bId);
+    }
+    alert(`✅ Total ${count} auto-adjustment records successfully delete ho gaye aur ${affectedBks.size} bookings ka payment balance restore ho gaya!`);
+    if (typeof renderDashboard === 'function' && location.hash.includes('dashboard')) renderDashboard();
+    else if (typeof renderManageBookings === 'function') renderManageBookings();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+};
 
 // ═══════════════════════════════════════════════════════════
 // 💰 ADVANCE "RECEIVED BY" DROPDOWN (Cash Holder Integration)
