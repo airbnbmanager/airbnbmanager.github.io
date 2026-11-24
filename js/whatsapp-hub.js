@@ -99,7 +99,7 @@
     templates: [],
     logs: [],
     scheduled: [],
-    activeTab: 'log', // 📊 Default to Message Delivery & Automation Audit Tracker
+    activeTab: 'settings', // ⚙️ Default to WhatsApp Automation & Groups
     scheduler: null,
     gatewayConnected: false,
     gatewayUser: null
@@ -1871,16 +1871,12 @@ The Unique Haven Homes Property Management`;
           </div>
         </div>
 
-        <!-- Scrollable Navigation Tabs -->
+        <!-- Navigation Tabs: Essential 3 Tabs (No Duplicates) -->
         <div class="hub-tabs-scroller" id="hubTabsScroller">
           ${[
-            { key: 'log', label: '📊 Delivery Logs & Audit' },
-            { key: 'auto', label: '🎯 Automation Rules' },
-            { key: 'device', label: '📱 Link WhatsApp / QR' },
-            { key: 'ai-chat', label: '💬 Live WhatsApp Chat' },
-            { key: 'settings', label: '⚙️ Gateway & Groups' },
-            { key: 'scheduled', label: '⏰ Scheduled Queue' },
-            { key: 'templates', label: '📝 Message Templates' }
+            { key: 'settings', label: '⚙️ WhatsApp Automation & Groups' },
+            { key: 'device', label: '📱 Link WhatsApp / QR Setting' },
+            { key: 'log', label: '📊 Message Delivery Logs' }
           ].map(t => {
             const active = HUB.activeTab === t.key;
             return `<button class="hub-tab-pill ${active ? 'active' : ''}" data-tab="${t.key}" onclick="setHubTab('${t.key}')">${t.label}</button>`;
@@ -1900,13 +1896,9 @@ The Unique Haven Homes Property Management`;
     const el = document.getElementById('hubBody');
     if (!el) return;
 
-    if (HUB.activeTab === 'ai-chat') renderAiChatTab();
-    else if (HUB.activeTab === 'device') renderDeviceTab();
-    else if (HUB.activeTab === 'auto') el.innerHTML = renderOverviewTab();
-    else if (HUB.activeTab === 'settings') el.innerHTML = renderSettingsTab();
-    else if (HUB.activeTab === 'scheduled') el.innerHTML = renderScheduledTab();
+    if (HUB.activeTab === 'device') renderDeviceTab();
     else if (HUB.activeTab === 'log') el.innerHTML = renderLogTab();
-    else if (HUB.activeTab === 'templates') el.innerHTML = renderTemplatesTab();
+    else el.innerHTML = renderSettingsTab();
   }
 
   function renderOverviewTab() {
@@ -2243,9 +2235,9 @@ The Unique Haven Homes Property Management`;
 
     return `
       <div class="card">
-        <h3 style="margin:0 0 4px 0;color:#0F172A;">⚙️ WhatsApp Gateway & Group Configuration</h3>
+        <h3 style="margin:0 0 4px 0;color:#0F172A;">⚡ WhatsApp Automation & Group Routing</h3>
         <p style="color:#64748B;font-size:12px;margin:0 0 16px 0;">
-          Configure master automation, sub-automation triggers, and WhatsApp connection.
+          Live switches for Guest passes, Booking Data group alert, Investor group routing, and gateway settings.
         </p>
 
         <!-- 1-Button Master Automation Switch -->
