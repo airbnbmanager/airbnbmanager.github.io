@@ -922,10 +922,6 @@
           <div style="font-size:10px;color:#64748B;margin-top:1px;">pages visited</div>
         </div>
       </div>
-          <div style="font-size:10.5px;font-weight:800;color:#155E75;text-transform:uppercase;margin-top:2px;">Navigations</div>
-          <div style="font-size:10px;color:#64748B;margin-top:1px;">pages visited</div>
-        </div>
-      </div>
 
       <!-- PAGES VISITED SECTION -->
       <div style="margin-bottom:22px;">
@@ -1297,8 +1293,8 @@
           </div>
 
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;">
-            <button class="btn-sm" onclick="window.openUserAuditModal('${a.user_id}','${(a.user_name||'').replace(/'/g, "\\'")}', '${a.user_role}')"
-              style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;padding:6px 12px;font-size:12px;" title="View User Audit">
+            <button class="user-act-btn btn-audit" onclick="window.openUserAuditModal('${a.user_id}','${(a.user_name||'').replace(/'/g, "\\'")}', '${a.user_role}')"
+              style="padding:6px 12px;font-size:12px;height:30px !important;" title="View User Audit">
               📊 Audit History
             </button>
           </div>

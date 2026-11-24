@@ -3397,21 +3397,17 @@ async function renderUserManagement() {
 
     <!-- PRIMARY TAB SWITCHER -->
     <div class="user-mgmt-tabs-wrap">
-      <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('users')"
-        style="${currentTab === 'users' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+      <button type="button" class="btn-sm user-mgmt-tab-btn ${currentTab === 'users' ? 'active' : ''}" onclick="setUserMgmtTab('users')">
         👥 System Users &amp; Roles (${totalUsers})
       </button>
-      <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('activity')"
-        style="${currentTab === 'activity' ? 'background:var(--primary);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#F3F4F6;color:#4B5563;border:1px solid #D1D5DB;'}">
+      <button type="button" class="btn-sm user-mgmt-tab-btn ${currentTab === 'activity' ? 'active' : ''}" onclick="setUserMgmtTab('activity')">
         ⏱️ Daily Logins &amp; Screen Time Logs
       </button>
       ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-        <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('alerts')"
-          style="${currentTab === 'alerts' ? 'background:#DC2626;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;'}">
+        <button type="button" class="btn-sm user-mgmt-tab-btn tab-alerts ${currentTab === 'alerts' ? 'active' : ''}" onclick="setUserMgmtTab('alerts')">
           🔔 Developer Login Alerts
         </button>
-        <button type="button" class="btn-sm user-mgmt-tab-btn" onclick="setUserMgmtTab('work')"
-          style="${currentTab === 'work' ? 'background:#059669;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.1);' : 'background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;'}">
+        <button type="button" class="btn-sm user-mgmt-tab-btn tab-work ${currentTab === 'work' ? 'active' : ''}" onclick="setUserMgmtTab('work')">
           🛠️ Staff Daily Work &amp; Actions
         </button>
       ` : ''}
@@ -3635,33 +3631,33 @@ async function renderUserManagement() {
                 </div>
 
                 <!-- ACTIONS -->
-                <div style="display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid #F3F4F6;flex-wrap:wrap;">
-                  <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:70px;background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;font-weight:600;">
+                <div style="display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid #F3F4F6;flex-wrap:wrap;">
+                  <button type="button" class="user-act-btn" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:65px;height:32px !important;">
                     🔧 Role
                   </button>
                   ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-                    <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:75px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">
+                    <button type="button" class="user-act-btn btn-audit" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="flex:1 1 auto;min-width:70px;height:32px !important;" title="View Monthly Audit & Pages Visited">
                       📊 Audit
                     </button>
                   ` : ''}
                   ${!isCurrentUser ? `
                     ${u.isFiredStaff && u.is_approved ? `
-                      <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
-                        style="flex:1.4 1 auto;min-width:110px;background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving all records">
+                      <button type="button" class="user-act-btn btn-block" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
+                        style="flex:1.4 1 auto;min-width:100px;height:32px !important;" title="Terminate login access while preserving all records">
                         🚫 Block Access
                       </button>
                     ` : `
-                      <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
-                        style="flex:1 1 auto;min-width:90px;background:${u.is_approved ? '#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : '#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}font-weight:600;"
+                      <button type="button" class="user-act-btn ${u.is_approved ? 'btn-suspend' : 'btn-activate'}" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
+                        style="flex:1 1 auto;min-width:85px;height:32px !important;"
                         title="${u.is_approved ? 'Suspend User' : 'Activate User'}">
                         ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
                       </button>
                     `}
                     ${window.canDelete && window.canDelete() ? `
-                      <button class="btn-sm" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;padding:6px 10px;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">
+                      <button type="button" class="user-act-btn btn-logout" style="height:32px !important;padding:0 10px !important;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">
                         🚪
                       </button>
-                      <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" style="padding:6px 10px;" title="Delete User">
+                      <button type="button" class="user-act-btn btn-delete" style="height:32px !important;padding:0 10px !important;" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User">
                         🗑️
                       </button>
                     ` : ''}
@@ -3724,29 +3720,28 @@ async function renderUserManagement() {
                           </span>
                         `}
                       </td>
-                      <td class="table-actions" style="text-align:right;">
-                        <button class="btn-sm" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
-                        ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
-                          <button class="btn-sm" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;" title="View Monthly Audit & Pages Visited">📊 Audit</button>
-                        ` : ''}
-                        ${!isCurrentUser ? `
-                          ${u.isFiredStaff && u.is_approved ? `
-                            <button class="btn-sm danger" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')"
-                              style="background:#DC2626;color:#fff;font-weight:700;" title="Terminate login access while preserving historical data">
-                              🚫 Block
-                            </button>
-                          ` : `
-                            <button class="btn-sm" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')"
-                              style="${u.is_approved ? 'background:#FFFBEB;color:#B45309;border:1px solid #FCD34D;' : 'background:#ECFDF5;color:#047857;border:1px solid #6EE7B7;'}"
-                              title="${u.is_approved ? 'Suspend Access' : 'Restore Access'}">
-                              ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
-                            </button>
-                          `}
-                          ${window.canDelete && window.canDelete() ? `
-                            <button class="btn-sm" style="background:#f59e0b;color:#fff;" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">🚪</button>
-                            <button class="btn-sm danger" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User Profile">🗑️</button>
+                      <td style="text-align:right;white-space:nowrap;">
+                        <div class="user-act-group">
+                          <button type="button" class="user-act-btn" onclick="changeUserRole('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')">🔧 Role</button>
+                          ${(window.isDeveloperUser && window.isDeveloperUser()) ? `
+                            <button type="button" class="user-act-btn btn-audit" onclick="window.openUserAuditModal('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}', '${u.role}', '${(emailMap[u.user_id] || u.email || '').replace(/'/g, "\\'")}')" title="View Monthly Audit & Pages Visited">📊 Audit</button>
                           ` : ''}
-                        ` : ''}
+                          ${!isCurrentUser ? `
+                            ${u.isFiredStaff && u.is_approved ? `
+                              <button type="button" class="user-act-btn btn-block" onclick="window.terminateStaffAccess('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Terminate login access while preserving historical data">
+                                🚫 Block
+                              </button>
+                            ` : `
+                              <button type="button" class="user-act-btn ${u.is_approved ? 'btn-suspend' : 'btn-activate'}" onclick="toggleUserActive('${u.user_id}', ${u.is_approved ? 'true' : 'false'}, '${(u.display_name || '').replace(/'/g, "\\'")}')" title="${u.is_approved ? 'Suspend Access' : 'Restore Access'}">
+                                ${u.is_approved ? '⏸️ Suspend' : '▶️ Activate'}
+                              </button>
+                            `}
+                            ${window.canDelete && window.canDelete() ? `
+                              <button type="button" class="user-act-btn btn-icon-only btn-logout" onclick="forceLogoutUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Force Logout">🚪</button>
+                              <button type="button" class="user-act-btn btn-icon-only btn-delete" onclick="deleteUser('${u.user_id}','${(u.display_name || '').replace(/'/g, "\\'")}')" title="Delete User Profile">🗑️</button>
+                            ` : ''}
+                          ` : ''}
+                        </div>
                       </td>
                     </tr>
                   `;
@@ -3818,7 +3813,7 @@ async function renderUserManagement() {
       </div>
 
       <!-- KPI METRICS -->
-      <div class="user-mgmt-kpi-grid">
+      <div class="user-mgmt-kpi-grid user-mgmt-kpi-4">
         <div class="stat-card" style="border-left:4px solid #3B82F6;">
           <div class="stat-num" style="color:#1D4ED8;">${totalActiveUsersOnDate}</div>
           <div class="stat-label">👥 Staff Logged In</div>
