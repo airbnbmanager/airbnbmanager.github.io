@@ -19,8 +19,8 @@
     meta_verify_token: 'uhhs_meta_secure_2026',
 
     // 3 Essential Auto-Dispatches for New Bookings
-    send_welcome: true, // 🔑 Direct Guest Booking Pass (Active)
-    send_booking_group: false, // 🛎️ 📒Booking Data Group Alert (OFF by default — only fires if enabled)
+    send_welcome: false, // 🔑 Direct Guest Booking Pass (OFF by default — only fires if explicitly enabled)
+    send_booking_group: true, // 🛎️ 📒Booking Data Group Alert (ON by default)
     send_investor_booking: false, // 💼 Property Investor Group Alert (OFF by default — only fires if enabled)
     send_housekeeping_checkout: false, // OFF
     send_investor_reports: false, // OFF
@@ -140,10 +140,41 @@
     } catch (e) {}
   }
 
+  async function saveCloudAndLocalConfig(c) {
+    setLocalConfig(c);
+    // Realtime Cloud Persistence across all devices via Supabase app_settings
+    try {
+      if (window.sb) {
+        await sb.from('app_settings').upsert({
+          key: 'whatsapp_hub_config',
+          value: JSON.stringify(c),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+      }
+    } catch (e) {
+      console.warn('⚠️ Cloud sync error for whatsapp_hub_config:', e);
+    }
+  }
+
   async function loadConfig() {
     HUB.config = { ...DEFAULT_WA_CONFIG };
 
-    // 1. Check local server (Mac Mini) for persistent settings
+    // 1. Fetch Cloud Config from Supabase app_settings (Single Source of Truth across all devices)
+    let cloudCfg = null;
+    try {
+      if (window.sb) {
+        const { data, error } = await sb.from('app_settings')
+          .select('value')
+          .eq('key', 'whatsapp_hub_config')
+          .limit(1);
+        if (!error && data && data[0] && data[0].value) {
+          const parsed = JSON.parse(data[0].value);
+          if (parsed && typeof parsed === 'object') cloudCfg = parsed;
+        }
+      }
+    } catch (e) { console.warn('Supabase config load fallback:', e); }
+
+    // 2. Check local server (Mac Mini / Baileys Gateway)
     let serverCfg = null;
     try {
       const gwUrl = (DEFAULT_WA_CONFIG.gateway_url || 'http://localhost:3000').replace(/\/+$/, '');
@@ -156,21 +187,20 @@
       }
     } catch (e) {}
 
-    const saved = serverCfg || getLocalConfig();
-    if (saved) {
-      HUB.config = {
-        ...HUB.config,
-        ...saved,
-        investor_groups: (saved.investor_groups && Object.keys(saved.investor_groups).length > 0)
-          ? { ...saved.investor_groups }
-          : { ...DEFAULT_WA_CONFIG.investor_groups }
-      };
-    }
+    const localSaved = getLocalConfig();
+    const merged = {
+      ...DEFAULT_WA_CONFIG,
+      ...(serverCfg || {}),
+      ...(localSaved || {}),
+      ...(cloudCfg || {})
+    };
 
-    // Preserve user explicit toggle choices (STRICT: never override false to true!)
+    HUB.config = merged;
+
+    // Strict preservation of explicit booleans
     if (HUB.config.auto_send_enabled === undefined) HUB.config.auto_send_enabled = true;
-    if (HUB.config.send_welcome === undefined) HUB.config.send_welcome = true;
-    if (HUB.config.send_booking_group === undefined) HUB.config.send_booking_group = false;
+    if (HUB.config.send_welcome === undefined) HUB.config.send_welcome = false;
+    if (HUB.config.send_booking_group === undefined) HUB.config.send_booking_group = true;
     if (HUB.config.send_investor_booking === undefined) HUB.config.send_investor_booking = false;
 
     if (!HUB.config.booking_group_id) {
@@ -443,9 +473,11 @@
       console.log('🛑 [WhatsApp Hub] Investor Group monthly reports are OFF.');
       return { ok: false, reason: 'subtoggle_off' };
     }
-    if (type === 'guest_welcome' && HUB.config.send_welcome !== true) {
-      console.log('🛑 [WhatsApp Hub] Guest Welcome Pass is OFF.');
-      return { ok: false, reason: 'subtoggle_off' };
+    // STRICT GUEST PASS TOGGLE GUARD:
+    // If recipient is a private user/guest (not a group) and not an explicit manual test/send:
+    if ((type === 'guest_welcome' || (!isGroup && type !== 'direct_test' && type !== 'guest_pass_manual')) && HUB.config.send_welcome !== true) {
+      console.log('🛑 [WhatsApp Hub] Guest Booking Pass automation is OFF. Blocking automated message to guest phone:', to);
+      return { ok: false, reason: 'guest_pass_disabled' };
     }
     if (type === 'checkout_reminder' && !HUB.config.send_checkout) {
       return { ok: false, reason: 'subtoggle_off' };
@@ -1815,9 +1847,9 @@ The Unique Haven Homes Property Management`;
               <div class="hub-stat-val" style="color:#15803D;font-size:12.5px;font-weight:700;margin-top:5px;line-height:1.3;">
                 ${
                   [
-                    c.send_welcome !== false ? '🔑 Guest Pass' : null,
-                    c.send_booking_group !== false ? '📒 Booking Group' : null,
-                    c.send_investor_booking !== false ? '💼 Investor' : null
+                    c.send_welcome === true ? '🔑 Guest Pass' : null,
+                    c.send_booking_group === true ? '📒 Booking Group' : null,
+                    c.send_investor_booking === true ? '💼 Investor' : null
                   ].filter(Boolean).join(' • ') || 'None Active'
                 }
               </div>
@@ -1893,11 +1925,11 @@ The Unique Haven Homes Property Management`;
 
         <div class="hub-trigger-grid">
           <!-- 1. Direct Guest Booking Pass & GST Invoice -->
-          <div style="border:1.5px solid ${c.send_welcome ? '#86EFAC' : '#E2E8F0'};background:${c.send_welcome ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+          <div style="border:1.5px solid ${c.send_welcome === true ? '#86EFAC' : '#E2E8F0'};background:${c.send_welcome === true ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <strong style="color:#0F172A;">📱 Guest Booking Pass &amp; Invoice</strong>
-              <span class="badge ${c.send_welcome && enabled ? 'green' : 'yellow'}">
-                ${c.send_welcome && enabled ? 'Active' : 'Disabled'}
+              <span class="badge ${c.send_welcome === true && enabled ? 'green' : 'yellow'}">
+                ${c.send_welcome === true && enabled ? 'Active' : 'Disabled'}
               </span>
             </div>
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
@@ -1909,11 +1941,11 @@ The Unique Haven Homes Property Management`;
           </div>
 
           <!-- 2. Booking Alert to Booking Data Group -->
-          <div style="border:1.5px solid ${c.send_booking_group !== false ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group !== false ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
+          <div style="border:1.5px solid ${c.send_booking_group === true ? '#86EFAC' : '#E2E8F0'};background:${c.send_booking_group === true ? '#F0FDF4' : '#F8FAFC'};border-radius:10px;padding:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <strong style="color:#0F172A;">📒 Booking Data Group Alert</strong>
-              <span class="badge ${c.send_booking_group !== false && enabled ? 'green' : 'yellow'}">
-                ${c.send_booking_group !== false && enabled ? 'Active' : 'Disabled'}
+              <span class="badge ${c.send_booking_group === true && enabled ? 'green' : 'yellow'}">
+                ${c.send_booking_group === true && enabled ? 'Active' : 'Disabled'}
               </span>
             </div>
             <p style="font-size:12px;color:#64748B;margin:6px 0 10px 0;">
@@ -2031,7 +2063,7 @@ The Unique Haven Homes Property Management`;
     `;
   }
 
-  window.toggleHubSwitch = function(id, event) {
+  window.toggleHubSwitch = async function(id, event) {
     if (event && event.target && event.target.tagName === 'INPUT') return;
     const input = document.getElementById(id);
     if (!input) return;
@@ -2066,7 +2098,7 @@ The Unique Haven Homes Property Management`;
       thumb.style.left = '3px';
     }
 
-    // Instantly save state to HUB.config & server so it NEVER reverts!
+    // Instantly save state to HUB.config, localStorage & Supabase Cloud so it NEVER reverts!
     HUB.config = HUB.config || {};
     if (id === 'cfgAutoSend') HUB.config.auto_send_enabled = isChecked;
     else if (id === 'cfgSendWelcome') HUB.config.send_welcome = isChecked;
@@ -2075,8 +2107,21 @@ The Unique Haven Homes Property Management`;
     else if (id === 'cfgSendInvestor') HUB.config.send_investor_reports = isChecked;
     else if (id === 'cfgSendCheckout') HUB.config.send_checkout = isChecked;
 
-    setLocalConfig(HUB.config);
+    await saveCloudAndLocalConfig(HUB.config);
     updateHeaderSenderBadge();
+
+    const switchNames = {
+      cfgAutoSend: 'Master Automation',
+      cfgSendWelcome: 'Guest Booking Pass',
+      cfgSendBookingGroup: 'Booking Data Group Alert',
+      cfgSendInvestorBooking: 'Investor Booking Alert',
+      cfgSendInvestor: 'Investor Monthly Reports',
+      cfgSendCheckout: 'Checkout Review Message'
+    };
+    const sName = switchNames[id] || 'Automation Rule';
+    if (window.fsn?.toast) {
+      fsn.toast(`${sName}: ${isChecked ? '🟢 ON (Active)' : '⚪ OFF (Disabled)'}`);
+    }
   };
 
   const PROPERTY_ROSTER = [
@@ -2217,13 +2262,13 @@ The Unique Haven Homes Property Management`;
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:18px;">
           ${renderSwitchCard({
             id: 'cfgSendWelcome',
-            checked: c.send_welcome !== false,
+            checked: c.send_welcome === true,
             title: '🔑 Guest Booking Pass & Check-In Details',
             subtitle: 'New booking aate hi guest ke WhatsApp mobile par instant luxury pass bhejta hai.'
           })}
           ${renderSwitchCard({
             id: 'cfgSendBookingGroup',
-            checked: c.send_booking_group !== false,
+            checked: c.send_booking_group === true,
             title: '🛎️ 📒Booking Data Group Alert',
             subtitle: 'Booking confirm hote hi 📒Booking Data WhatsApp group me instant booking alert bhejta hai.'
           })}
@@ -2372,17 +2417,7 @@ The Unique Haven Homes Property Management`;
     const newState = !HUB.config.auto_send_enabled;
     HUB.config.auto_send_enabled = newState;
     delete HUB.config.dry_run_mode;
-    setLocalConfig(HUB.config);
-
-    try {
-      if (window.sb) {
-        await sb.from('whatsapp_config').upsert({
-          id: 1,
-          auto_send_enabled: newState,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (e) {}
+    await saveCloudAndLocalConfig(HUB.config);
 
     if (window.fsn) fsn.success('Updated', `Master Automation is now ${newState ? '🟢 ACTIVE' : '🔴 PAUSED'}`);
     renderWhatsAppHub();
@@ -2400,8 +2435,8 @@ The Unique Haven Homes Property Management`;
 
     const updates = {
       auto_send_enabled: document.getElementById('cfgAutoSend') ? document.getElementById('cfgAutoSend').checked : (HUB.config.auto_send_enabled !== false),
-      send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : (HUB.config.send_welcome !== false),
-      send_booking_group: document.getElementById('cfgSendBookingGroup') ? document.getElementById('cfgSendBookingGroup').checked : (HUB.config.send_booking_group !== false),
+      send_welcome: document.getElementById('cfgSendWelcome') ? document.getElementById('cfgSendWelcome').checked : (HUB.config.send_welcome === true),
+      send_booking_group: document.getElementById('cfgSendBookingGroup') ? document.getElementById('cfgSendBookingGroup').checked : (HUB.config.send_booking_group === true),
       send_investor_booking: document.getElementById('cfgSendInvestorBooking') ? document.getElementById('cfgSendInvestorBooking').checked : (HUB.config.send_investor_booking === true),
       send_housekeeping_checkout: false,
       send_investor_reports: document.getElementById('cfgSendInvestor')?.checked === true,
@@ -2420,20 +2455,9 @@ The Unique Haven Homes Property Management`;
 
     HUB.config = { ...HUB.config, ...updates };
     delete HUB.config.dry_run_mode;
-    setLocalConfig(HUB.config);
+    await saveCloudAndLocalConfig(HUB.config);
 
-    try {
-      if (window.sb) {
-        await sb.from('whatsapp_config').upsert({
-          id: 1,
-          auto_send_enabled: updates.auto_send_enabled,
-          gateway_url: updates.gateway_url,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (e) {}
-
-    if (window.fsn) fsn.success('Saved', '✅ Automation settings updated successfully!');
+    if (window.fsn) fsn.success('Saved', '✅ Automation settings updated & synced to cloud!');
     renderWhatsAppHub();
   };
 
