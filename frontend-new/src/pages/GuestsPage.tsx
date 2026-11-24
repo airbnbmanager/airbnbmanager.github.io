@@ -54,7 +54,7 @@ export function GuestsPage() {
         title="Guest Directory & CRM"
         subtitle={`${guests?.length ?? 0} repeat travelers and VIP profiles`}
         action={
-          <Button onClick={() => toast.info('Guest creation form - coming soon')} className="gap-1.5">
+          <Button onClick={() => toast.info('Guest creation form - coming soon')} className="gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs h-9">
             <Plus size={15} /> Add Guest
           </Button>
         }

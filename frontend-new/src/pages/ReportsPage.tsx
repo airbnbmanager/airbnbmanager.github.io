@@ -106,7 +106,7 @@ export function ReportsPage() {
                     fontSize: '12px',
                   }}
                 />
-                <Bar dataKey="revenue" fill="hsl(32 73% 47%)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="revenue" fill="#0284C7" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

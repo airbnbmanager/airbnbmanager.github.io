@@ -81,7 +81,7 @@ export function LaundryPage() {
         title="Linen & Laundry Tracker"
         subtitle="Manage dhobi dispatches, bedsheet counts, pressing quality, and vendor expenses"
         action={
-          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
+          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs h-9">
             <Plus size={15} /> Dispatch Laundry Batch
           </Button>
         }

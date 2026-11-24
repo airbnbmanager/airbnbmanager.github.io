@@ -109,7 +109,7 @@ export function ExpensesPage() {
         title="Expenses & Outflows"
         subtitle="Track laundry bills, property maintenance, society dues, Wi-Fi, and employee advances"
         action={
-          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
+          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs h-9">
             <Plus size={15} /> Add Expense
           </Button>
         }
@@ -165,9 +165,9 @@ export function ExpensesPage() {
             <button
               key={c}
               onClick={() => setCategoryFilter(c)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 categoryFilter === c
-                  ? 'bg-primary text-white shadow-sm'
+                  ? 'bg-[#0284C7] text-white shadow-xs'
                   : 'bg-muted text-muted-foreground hover:bg-accent'
               }`}
             >
@@ -184,7 +184,8 @@ export function ExpensesPage() {
           <p className="text-xs text-muted-foreground">Every outgoing transaction recorded for CA audit</p>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
@@ -219,14 +220,14 @@ export function ExpensesPage() {
                       {exp.property_id || 'General Portfolio'}
                     </td>
                     <td className="py-3.5 pr-4">
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted">
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted font-bold">
                         {exp.payment_source}
                       </span>
                     </td>
                     <td className="py-3.5 pr-4 text-xs text-muted-foreground">
                       {formatDate(exp.date)}
                     </td>
-                    <td className="py-3.5 pr-4 font-bold text-foreground">
+                    <td className="py-3.5 pr-4 font-black text-foreground">
                       {formatCurrency(exp.amount)}
                     </td>
                     <td className="py-3.5 text-right">
@@ -243,6 +244,50 @@ export function ExpensesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile & Tablet Card View (Touch Friendly) */}
+          <div className="space-y-2.5 md:hidden">
+            {filtered.map(exp => (
+              <div
+                key={exp.id}
+                className="p-3.5 rounded-xl border border-border bg-card/70 space-y-2 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-extrabold text-sm text-foreground truncate">{exp.title}</h4>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[exp.category] || 'bg-muted'}`}>
+                        {exp.category}
+                      </span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        {exp.property_id || 'Portfolio'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-black text-sm text-foreground">{formatCurrency(exp.amount)}</div>
+                    <div className="text-[10px] text-muted-foreground">{formatDate(exp.date)}</div>
+                  </div>
+                </div>
+
+                {exp.notes && (
+                  <p className="text-xs text-muted-foreground italic bg-muted/40 p-2 rounded-lg">
+                    "{exp.notes}"
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px]">
+                  <span className="text-muted-foreground font-mono">Paid via {exp.payment_source}</span>
+                  <button
+                    onClick={() => handleDelete(exp.id)}
+                    className="text-red-500 hover:text-red-600 font-bold flex items-center gap-1 py-1 px-2 rounded hover:bg-red-50 dark:hover:bg-red-950"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

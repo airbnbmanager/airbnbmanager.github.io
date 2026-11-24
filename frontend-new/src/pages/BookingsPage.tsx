@@ -72,7 +72,7 @@ export function BookingsPage() {
             <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5 hidden sm:inline-flex">
               <Download size={15} /> Export
             </Button>
-            <Button size="sm" onClick={() => setIsNewBookingOpen(true)} className="gap-1.5">
+            <Button size="sm" onClick={() => setIsNewBookingOpen(true)} className="gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs h-9">
               <Plus size={15} /> New Booking
             </Button>
           </div>
@@ -112,9 +112,9 @@ export function BookingsPage() {
               onClick={() =>
                 setFilters(f => ({ ...f, status: s === 'all' ? undefined : s, page: 1 }))
               }
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-all ${
                 activeStatus === s
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-[#0284C7] text-white shadow-xs'
                   : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >

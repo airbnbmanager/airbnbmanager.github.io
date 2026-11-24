@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { MobileNav } from './MobileNav';
@@ -62,9 +63,21 @@ export function AppLayout() {
           onNewBookingClick={() => setIsNewBookingOpen(true)}
           title={title}
         />
-        <main className="flex-1 pb-20 lg:pb-8">
+        <main className="flex-1 pb-24 lg:pb-8">
           <Outlet />
         </main>
+      </div>
+
+      {/* Mobile Quick Action Floating Button (90% Mobile / iPad usage) */}
+      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-20 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setIsNewBookingOpen(true)}
+          title="Create New Booking"
+          className="w-12 h-12 rounded-full bg-[#0284C7] hover:bg-[#0369A1] text-white flex items-center justify-center shadow-lg active:scale-95 transition-all"
+        >
+          <Plus size={24} />
+        </button>
       </div>
 
       <MobileNav />

@@ -116,6 +116,58 @@ export interface Employee {
   notes?: string;
 }
 
+export type AttendanceStatus = 'Present' | 'Half Day' | 'Absent' | 'Paid Leave';
+
+export interface AttendanceRecord {
+  id: string;
+  emp_id: string;
+  emp_name: string;
+  role: string;
+  date: string;
+  status: AttendanceStatus;
+  check_in_time?: string;
+  notes?: string;
+}
+
+export interface StaffAdvance {
+  id: string;
+  emp_id: string;
+  emp_name: string;
+  amount: number;
+  date_given: string;
+  reason: string;
+  repaid_amount: number;
+  remaining_balance: number;
+  is_deducted: boolean;
+  payment_mode: 'Cash' | 'UPI' | 'Company Account';
+}
+
+export interface TurnaroundTask {
+  id: string;
+  room_id: string;
+  property_name: string;
+  cleaner_id: string;
+  cleaner_name: string;
+  date: string;
+  rate_per_flat: number;
+  status: 'Dirty' | 'Cleaning' | 'Clean & Inspected';
+  linen_changed: boolean;
+  toiletries_restocked: boolean;
+  is_paid: boolean;
+  notes?: string;
+}
+
+export interface CompanyAdvance {
+  id: string;
+  given_by: string;
+  given_to: string;
+  amount_given: number;
+  amount_spent: number;
+  advance_date: string;
+  status: 'Active' | 'Settled';
+  notes?: string;
+}
+
 // ─── EXPENSES & P&L ───────────────────────────────────────────────────────────
 export type ExpenseChannel =
   | 'Laundry'

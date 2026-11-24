@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, Mail, Calendar, BedDouble, Users, FileText, CheckCircle2, ShieldCheck, Printer } from 'lucide-react';
+import { X, Phone, Mail, Calendar, BedDouble, Users, FileText, CheckCircle2, ShieldCheck, Printer, MessageCircle } from 'lucide-react';
 import type { Booking } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,25 +92,34 @@ export function BookingDrawer({ booking, onClose, onViewInvoice, onStatusChange 
               {/* Contact Information */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                  Guest Contact
+                  Guest Contact & Direct Actions
                 </h3>
                 <div className="space-y-2">
-                  <a
-                    href={`tel:${booking.phone}`}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <span className="flex items-center gap-2 text-sm text-foreground">
-                      <Phone size={15} className="text-muted-foreground" /> {booking.phone}
-                    </span>
-                    <span className="text-xs text-primary font-semibold">Call</span>
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href={`tel:${booking.phone}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border hover:bg-muted/50 transition-colors text-xs font-bold text-foreground"
+                    >
+                      <Phone size={14} className="text-muted-foreground" /> Call Guest
+                    </a>
+                    <a
+                      href={`https://wa.me/91${booking.phone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
+                        `Hello ${booking.guest_name}, greetings from The Unique Haven Homes! Regarding your stay (${booking.booking_id}) at ${booking.room_id} (Check-in: ${booking.check_in}):`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border border-emerald-500/25 transition-colors text-xs font-bold"
+                    >
+                      <MessageCircle size={14} /> WhatsApp
+                    </a>
+                  </div>
                   {booking.email && (
                     <a
                       href={`mailto:${booking.email}`}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-colors"
                     >
-                      <span className="flex items-center gap-2 text-sm text-foreground truncate">
-                        <Mail size={15} className="text-muted-foreground flex-shrink-0" />
+                      <span className="flex items-center gap-2 text-xs text-foreground truncate">
+                        <Mail size={14} className="text-muted-foreground flex-shrink-0" />
                         <span className="truncate">{booking.email}</span>
                       </span>
                       <span className="text-xs text-primary font-semibold flex-shrink-0 ml-2">Email</span>

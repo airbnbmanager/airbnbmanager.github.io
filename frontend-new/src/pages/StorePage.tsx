@@ -82,9 +82,9 @@ export function StorePage() {
             <Button
               size="sm"
               onClick={() => { setTxnType('In'); setIsTxnModalOpen(true); }}
-              className="gap-1"
+              className="gap-1 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs"
             >
-              <ArrowDownLeft size={14} className="text-emerald-500" /> Stock In
+              <ArrowDownLeft size={14} className="text-white" /> Stock In
             </Button>
           </div>
         }

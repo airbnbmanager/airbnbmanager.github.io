@@ -92,7 +92,7 @@ export function MaintenancePage() {
         title="Maintenance & Work Orders"
         subtitle="AC repairs, plumbing leaks, fiber connectivity, appliances, and handyman tickets"
         action={
-          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
+          <Button onClick={() => setIsAddModalOpen(true)} className="gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white shadow-xs font-bold text-xs h-9">
             <Plus size={15} /> Log Issue
           </Button>
         }
