@@ -30,6 +30,54 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+// 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync)
+// ═══════════════════════════════════════════════════════════
+window.getPropertyPdfGuides = async function() {
+  try {
+    let cached = null;
+    try {
+      const c = localStorage.getItem('tuhh_property_pdf_guides');
+      if (c) cached = JSON.parse(c);
+    } catch(e) {}
+
+    if (window.sb) {
+      const { data, error } = await sb.from('app_settings').select('value').eq('key', 'property_pdf_guides').maybeSingle();
+      if (!error && data && data.value) {
+        const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+        localStorage.setItem('tuhh_property_pdf_guides', JSON.stringify(parsed));
+        return parsed || {};
+      }
+    }
+    return cached || {};
+  } catch(err) {
+    console.warn('Could not load property_pdf_guides:', err);
+    try {
+      return JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+    } catch(e) {
+      return {};
+    }
+  }
+};
+
+window.savePropertyPdfGuides = async function(guidesMap) {
+  try {
+    const valStr = JSON.stringify(guidesMap || {});
+    localStorage.setItem('tuhh_property_pdf_guides', valStr);
+    if (window.sb) {
+      await sb.from('app_settings').upsert({
+        key: 'property_pdf_guides',
+        value: valStr,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+    }
+    return true;
+  } catch(err) {
+    console.error('Error saving property_pdf_guides:', err);
+    return false;
+  }
+};
+
 /**
  * Properties & Flats Module
  * THE UNIQUE HAVEN HOMES PRIVATE LIMITED
@@ -85,9 +133,10 @@ async function renderManageRooms() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('list');
 
   renderShell(`<div class="loading">Loading...</div>`, 'rooms');
-  const [{ data: rooms, error }, { data: emps }] = await Promise.all([
+  const [{ data: rooms, error }, { data: emps }, pdfGuides] = await Promise.all([
     sb.from("rooms").select("*").order("room_id"),
-    sb.from("employees").select("emp_id,name,phone,property_role,role,status").eq("status", "Active").order("name")
+    sb.from("employees").select("emp_id,name,phone,property_role,role,status").eq("status", "Active").order("name"),
+    window.getPropertyPdfGuides()
   ]);
   if (error) { renderShell(`<div class="card"><div class="error">${error.message}</div></div>`, 'rooms'); return; }
 
@@ -110,10 +159,10 @@ async function renderManageRooms() {
       }
       .units-action-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 6px;
         width: 100%;
-        max-width: 620px;
+        max-width: 760px;
       }
       .units-grid {
         display: grid;
@@ -245,6 +294,9 @@ async function renderManageRooms() {
             <button onclick="renderQuickMapManager()" style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🧭</span> Map Pins
             </button>
+            <button onclick="renderQuickPdfManager()" style="background:#B45309;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(180,83,9,0.25);" title="Manage Google Drive PDFs & House Manuals">
+              <span>📑</span> Property PDFs
+            </button>
             <button onclick="navigate('showcase-admin')" style="background:#0F766E;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🌐</span> Website CMS
             </button>
@@ -342,18 +394,27 @@ async function renderManageRooms() {
                 ${mgrPhone ? `<a href="tel:${mgrPhone}" style="color:#2563EB;font-weight:700;text-decoration:none;font-size:11px;display:inline-block;margin-top:2px;">📞 ${mgrPhone}</a>` : '<div style="color:#94A3B8;font-size:10.5px;">No phone</div>'}
               </div>
 
-              <div class="unit-meta-item" style="grid-column: span 2; display:flex; justify-content:space-between; align-items:center;">
+              <div class="unit-meta-item" style="grid-column: span 2; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                 <div style="font-size:11.5px;color:#334155;">
                   <strong>Floor:</strong> ${r.floor || '-'} &bull; <strong>Max:</strong> ${r.max_guests ? r.max_guests + ' Guests' : '-'}
                 </div>
-                <div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   ${r.map_link ? `
-                    <a href="${r.map_link}" target="_blank" style="text-decoration:none;font-weight:700;color:#2563EB;font-size:11.5px;display:inline-flex;align-items:center;gap:3px;">
+                    <a href="${r.map_link}" target="_blank" style="text-decoration:none;font-weight:700;color:#2563EB;font-size:11.5px;display:inline-flex;align-items:center;gap:3px;" title="Open Google Maps Location">
                       📍 Map Pin ↗
                     </a>
                   ` : `
                     <span style="color:#DC2626;font-size:10.5px;font-weight:700;cursor:pointer;background:#FEE2E2;padding:2px 6px;border-radius:4px;" onclick="renderQuickMapManager()">
                       ⚠️ Missing Pin
+                    </span>
+                  `}
+                  ${(pdfGuides && pdfGuides[r.room_id]) ? `
+                    <a href="${pdfGuides[r.room_id]}" target="_blank" style="text-decoration:none;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;padding:2px 7px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:3px;" title="Open Property PDF / House Manual">
+                      📑 PDF ↗
+                    </a>
+                  ` : `
+                    <span style="color:#64748B;font-size:10.5px;font-weight:600;cursor:pointer;background:#F1F5F9;padding:2px 6px;border-radius:4px;" onclick="renderQuickPdfManager('${r.room_id}')" title="Attach Google Drive / PDF Link">
+                      📑 + PDF
                     </span>
                   `}
                 </div>
@@ -2265,5 +2326,184 @@ window.saveAllRoomMaps = async function() {
   if (window.fsn) fsn.success('Updated', `Successfully updated map links for all ${count} properties!`);
   const modal = document.getElementById('quickMapModal');
   if (modal) modal.remove();
-  renderProperties();
+  if (typeof window.renderManageRooms === 'function') window.renderManageRooms();
+};
+
+// ============ QUICK PROPERTY PDF / GOOGLE DRIVE MANAGER ============
+window.renderQuickPdfManager = async function(focusRoomId) {
+  const [{ data: rooms, error }, pdfGuides] = await Promise.all([
+    sb.from('rooms').select('room_id, property_name, nickname, unit_no').order('room_id'),
+    window.getPropertyPdfGuides ? window.getPropertyPdfGuides() : Promise.resolve({})
+  ]);
+  if (error) { if (window.fsn) fsn.error('Error', error.message); return; }
+
+  const existingModal = document.getElementById('quickPdfModal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'quickPdfModal';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:880px;width:95vw;max-height:90vh;overflow-y:auto;padding:22px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,0.18);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:12px;">
+        <div>
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:#0F172A;display:flex;align-items:center;gap:8px;">
+            📑 Property PDFs &amp; House Manuals (Google Drive Portal)
+          </h2>
+          <div style="font-size:12px;color:#64748B;margin-top:4px;">
+            Attach &amp; manage Google Drive PDF links for guest guides, brochures &amp; rules for each homestay.
+          </div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('quickPdfModal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748B;">✕</button>
+      </div>
+
+      <!-- Instructions & Tip Box -->
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:20px;line-height:1;">💡</span>
+        <div style="font-size:12px;color:#92400E;line-height:1.45;">
+          <strong>How to attach a Google Drive PDF:</strong>
+          Upload your PDF to Google Drive &bull; Right click &rarr; <strong>Share</strong> &bull; Set General Access to <strong>"Anyone with the link can view"</strong> &bull; Click <strong>Copy link</strong> &bull; Paste in the property row below and click <strong>Save</strong>.
+        </div>
+      </div>
+
+      <!-- Quick Search Inside Modal -->
+      <div style="margin-bottom:14px;">
+        <input type="text" id="pdfModalSearchInput" placeholder="🔍 Search property (e.g. 101, Awadh, Blossom, Gomti)..." 
+               oninput="window.filterPdfModalList(this.value)"
+               style="width:100%;padding:9px 12px;font-size:13px;border:1px solid #CBD5E1;border-radius:8px;box-sizing:border-box;outline:none;" />
+      </div>
+
+      <div id="pdfModalListContainer" style="display:grid;gap:10px;">
+        ${(rooms || []).map(r => {
+          const label = r.nickname || r.unit_no || r.property_name || r.room_id;
+          const currentUrl = (pdfGuides && pdfGuides[r.room_id]) || '';
+          const hasPdf = !!currentUrl;
+          const isFocused = focusRoomId && focusRoomId === r.room_id;
+
+          return `
+            <div class="pdf-room-item" data-search="${(r.room_id + ' ' + label + ' ' + (r.unit_no || '')).toLowerCase()}" style="display:flex;align-items:center;gap:10px;background:${isFocused ? '#FEF9C3' : '#F8FAFC'};border:1px solid ${hasPdf ? '#86EFAC' : '#CBD5E1'};padding:10px 14px;border-radius:10px;flex-wrap:wrap;">
+              <div style="width:170px;flex-shrink:0;">
+                <div style="font-weight:800;font-size:13px;color:#0F172A;line-height:1.2;">${label}</div>
+                <div style="font-size:11px;color:#64748B;margin-top:2px;">${r.room_id} &bull; Unit ${r.unit_no || '-'}</div>
+              </div>
+              <div style="flex:1;min-width:220px;">
+                <input
+                  id="pdf_input_${r.room_id}"
+                  value="${currentUrl}"
+                  placeholder="Paste Google Drive or PDF link (https://drive.google.com/...)"
+                  style="width:100%;padding:8px 10px;font-size:12px;border:1px solid ${hasPdf ? '#86EFAC' : '#CBD5E1'};border-radius:6px;box-sizing:border-box;background:#fff;outline:none;"
+                />
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button
+                  type="button"
+                  class="btn-sm"
+                  onclick="window.testRoomPdf('${r.room_id}')"
+                  title="Test / Open PDF link in new tab"
+                  style="background:#0F172A;color:#fff;font-size:11.5px;padding:7px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+                >
+                  👁️ Open
+                </button>
+                <button
+                  type="button"
+                  class="btn-sm"
+                  onclick="window.saveSingleRoomPdf('${r.room_id}')"
+                  title="Save PDF link for this property"
+                  style="background:#16A34A;color:#fff;font-size:11.5px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+                >
+                  💾 Save
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #E2E8F0;padding-top:16px;flex-wrap:wrap;">
+        <div style="font-size:12px;color:#64748B;">
+          Links are automatically saved to Supabase cloud and accessible across all devices.
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="secondary" onclick="document.getElementById('quickPdfModal').remove()" style="padding:8px 18px;border-radius:6px;border:1px solid #CBD5E1;background:#fff;cursor:pointer;font-weight:600;">Close</button>
+          <button class="green-btn" onclick="window.saveAllRoomPdfs()" style="background:#059669;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:800;">💾 Save All Changes</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  if (focusRoomId) {
+    setTimeout(() => {
+      const inp = document.getElementById('pdf_input_' + focusRoomId);
+      if (inp) {
+        inp.focus();
+        inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+};
+
+window.filterPdfModalList = function(q) {
+  const query = (q || '').toLowerCase().trim();
+  const items = document.querySelectorAll('.pdf-room-item');
+  items.forEach(el => {
+    const s = el.getAttribute('data-search') || '';
+    el.style.display = (!query || s.includes(query)) ? 'flex' : 'none';
+  });
+};
+
+window.testRoomPdf = function(roomId) {
+  const input = document.getElementById('pdf_input_' + roomId);
+  const url = input?.value?.trim();
+  if (!url) {
+    if (window.fsn) fsn.warn('No Link', 'Please enter a Google Drive or PDF URL first.');
+    return;
+  }
+  window.open(url, '_blank');
+};
+
+window.saveSingleRoomPdf = async function(roomId) {
+  const input = document.getElementById('pdf_input_' + roomId);
+  const url = input?.value?.trim() || '';
+  const current = await window.getPropertyPdfGuides();
+  if (url) {
+    current[roomId] = url;
+  } else {
+    delete current[roomId];
+  }
+  const ok = await window.savePropertyPdfGuides(current);
+  if (ok) {
+    if (window.fsn) fsn.success('Saved', `Property PDF link saved for ${roomId}!`);
+    if (typeof window.renderManageRooms === 'function') window.renderManageRooms();
+  } else {
+    if (window.fsn) fsn.error('Error', 'Could not save PDF link to cloud.');
+  }
+};
+
+window.saveAllRoomPdfs = async function() {
+  const inputs = document.querySelectorAll('input[id^="pdf_input_"]');
+  const current = await window.getPropertyPdfGuides();
+  let count = 0;
+  for (const inp of inputs) {
+    const roomId = inp.id.replace('pdf_input_', '');
+    const url = inp.value.trim();
+    if (url) {
+      current[roomId] = url;
+      count++;
+    } else {
+      delete current[roomId];
+    }
+  }
+  const ok = await window.savePropertyPdfGuides(current);
+  if (ok) {
+    if (window.fsn) fsn.success('Saved', `Successfully saved PDF links for ${count} properties!`);
+    const modal = document.getElementById('quickPdfModal');
+    if (modal) modal.remove();
+    if (typeof window.renderManageRooms === 'function') window.renderManageRooms();
+  } else {
+    if (window.fsn) fsn.error('Error', 'Could not save PDF links.');
+  }
 };
