@@ -300,6 +300,7 @@ window.renderAirbnbGuestItem = function (b, feedType) {
 // ═══════════════════════════════════════════════════════════
 // MAIN DASHBOARD RENDER
 // ═══════════════════════════════════════════════════════════
+window.renderDashboard = renderDashboard;
 async function renderDashboard() {
   if (window.showLoadingSkeleton) window.showLoadingSkeleton('metrics');
   renderShell(`<div class="loading">Loading dashboard...</div>`, 'dashboard');
@@ -673,10 +674,14 @@ async function renderDashboard() {
     window.setDashboardPeriod = function (period) {
       window._dashPeriod = period;
       if (period !== 'custom') window._dashCustomMonth = '';
-      if (typeof window.renderExecutiveDashboard === 'function') {
-        window.renderExecutiveDashboard();
-      } else if (typeof window.renderDashboard === 'function') {
-        window.renderDashboard();
+      if (window.SESSION?.currentPage === 'dashboard') {
+        if (typeof window.renderDashboard === 'function') window.renderDashboard();
+      } else {
+        if (typeof window.renderExecutiveDashboard === 'function') {
+          window.renderExecutiveDashboard();
+        } else if (typeof window.renderDashboard === 'function') {
+          window.renderDashboard();
+        }
       }
     };
 
@@ -684,10 +689,14 @@ async function renderDashboard() {
       if (!monthVal) return;
       window._dashPeriod = 'custom';
       window._dashCustomMonth = monthVal;
-      if (typeof window.renderExecutiveDashboard === 'function') {
-        window.renderExecutiveDashboard();
-      } else if (typeof window.renderDashboard === 'function') {
-        window.renderDashboard();
+      if (window.SESSION?.currentPage === 'dashboard') {
+        if (typeof window.renderDashboard === 'function') window.renderDashboard();
+      } else {
+        if (typeof window.renderExecutiveDashboard === 'function') {
+          window.renderExecutiveDashboard();
+        } else if (typeof window.renderDashboard === 'function') {
+          window.renderDashboard();
+        }
       }
     };
 
@@ -2744,7 +2753,8 @@ window.renderExecutiveDashboard = async function () {
   }
 };
 
-window.renderFullDashboardAnalytics = window.renderExecutiveDashboard;
+window.renderDashboard = renderDashboard;
+window.renderExecutiveDashboard = window.renderExecutiveDashboard;
 window.renderAnalytics = window.renderExecutiveDashboard;
 
 

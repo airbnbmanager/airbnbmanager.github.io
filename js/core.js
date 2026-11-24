@@ -2786,7 +2786,7 @@ function navigate(page) {
   const map = {
     menu: () => (window.renderAppMenu || renderAppMenu)(),
     investors: () => (window.renderManageInvestors || renderManageInvestors)(),
-    dashboard: () => (window.renderFullDashboardAnalytics || window.renderDashboard || renderDashboard)(),
+    dashboard: () => (window.renderDashboard || renderDashboard)(),
     reports: () => (window.renderReports || window.renderCalendar || (() => {}))(),
     calendar: () => (window.renderCalendar || window.renderReports || (() => {}))(),
     rooms: () => (window.renderManageRooms || renderManageRooms)(),
@@ -2836,7 +2836,7 @@ function navigate(page) {
     'employee-ledger': () => navigate('advance'),
     'employee-pay-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
     'cleaner-report': () => (window.renderEmployeePayReport || renderEmployeePayReport)(),
-    analytics: () => (window.renderFullDashboardAnalytics || window.renderAnalytics || renderAnalytics)(),
+    analytics: () => (window.renderExecutiveDashboard || window.renderAnalytics || renderAnalytics)(),
     'whatsapp-hub': () => (window.renderWhatsAppHub || renderWhatsAppHub)(),
     settings: () => (window.renderSettings || renderSettings)(),
     investors: () => (window.renderManageInvestors || renderManageInvestors)(),
