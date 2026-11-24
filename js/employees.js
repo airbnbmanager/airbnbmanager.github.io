@@ -177,41 +177,41 @@ async function renderManageEmployees() {
     ${renderEmployeeSubNav('employees')}
 
     <!-- KPI Ribbon -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
-      <div class="card" onclick="window._empFilterStatus='All';window._empRoleFilter='All';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #4F46E5;transition:all 0.15s;${statusFilter==='All'&&roleFilter==='All'?'box-shadow:0 0 0 2px #4F46E5;':''}">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">👥 Total Staff</div>
-        <div style="font-size:22px;font-weight:800;color:var(--text);margin-top:2px;">${totalCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">All registered</div>
+    <div class="emp-kpi-grid">
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='All';window._empRoleFilter='All';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #4F46E5;transition:all 0.15s;${statusFilter==='All'&&roleFilter==='All'?'box-shadow:0 0 0 2px #4F46E5;':''}">
+        <div class="emp-kpi-label" style="color:var(--muted);">👥 Total Staff</div>
+        <div class="emp-kpi-val" style="color:var(--text);">${totalCount}</div>
+        <div class="emp-kpi-sub">All registered</div>
       </div>
 
-      <div class="card" onclick="window._empFilterStatus='Active';window._empRoleFilter='All';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #059669;transition:all 0.15s;${statusFilter==='Active'&&roleFilter==='All'?'box-shadow:0 0 0 2px #059669;':''}">
-        <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;">🟢 Active</div>
-        <div style="font-size:22px;font-weight:800;color:#059669;margin-top:2px;">${activeCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">On-duty / live</div>
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='Active';window._empRoleFilter='All';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #059669;transition:all 0.15s;${statusFilter==='Active'&&roleFilter==='All'?'box-shadow:0 0 0 2px #059669;':''}">
+        <div class="emp-kpi-label" style="color:#059669;">🟢 Active</div>
+        <div class="emp-kpi-val" style="color:#059669;">${activeCount}</div>
+        <div class="emp-kpi-sub">On-duty / live</div>
       </div>
 
-      <div class="card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Caretaker';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #10B981;transition:all 0.15s;${roleFilter==='Caretaker'?'box-shadow:0 0 0 2px #10B981;':''}">
-        <div style="font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;">🛡️ Caretakers</div>
-        <div style="font-size:22px;font-weight:800;color:#047857;margin-top:2px;">${caretakersCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">On-ground care</div>
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Caretaker';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #10B981;transition:all 0.15s;${roleFilter==='Caretaker'?'box-shadow:0 0 0 2px #10B981;':''}">
+        <div class="emp-kpi-label" style="color:#047857;">🛡️ Caretakers</div>
+        <div class="emp-kpi-val" style="color:#047857;">${caretakersCount}</div>
+        <div class="emp-kpi-sub">On-ground care</div>
       </div>
 
-      <div class="card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Cleaning Staff';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #8B5CF6;transition:all 0.15s;${roleFilter==='Cleaning Staff'?'box-shadow:0 0 0 2px #8B5CF6;':''}">
-        <div style="font-size:11px;font-weight:700;color:#7E22CE;text-transform:uppercase;">🧹 Cleaning Staff</div>
-        <div style="font-size:22px;font-weight:800;color:#7E22CE;margin-top:2px;">${cleanersCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">Housekeeping</div>
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Cleaning Staff';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #8B5CF6;transition:all 0.15s;${roleFilter==='Cleaning Staff'?'box-shadow:0 0 0 2px #8B5CF6;':''}">
+        <div class="emp-kpi-label" style="color:#7E22CE;">🧹 Cleaners</div>
+        <div class="emp-kpi-val" style="color:#7E22CE;">${cleanersCount}</div>
+        <div class="emp-kpi-sub">Housekeeping</div>
       </div>
 
-      <div class="card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Maid';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #EC4899;transition:all 0.15s;${roleFilter==='Maid'?'box-shadow:0 0 0 2px #EC4899;':''}">
-        <div style="font-size:11px;font-weight:700;color:#BE185D;text-transform:uppercase;">🌸 Maids</div>
-        <div style="font-size:22px;font-weight:800;color:#BE185D;margin-top:2px;">${maidsCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">Daily turnover</div>
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='Active';window._empRoleFilter='Maid';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #EC4899;transition:all 0.15s;${roleFilter==='Maid'?'box-shadow:0 0 0 2px #EC4899;':''}">
+        <div class="emp-kpi-label" style="color:#BE185D;">🌸 Maids</div>
+        <div class="emp-kpi-val" style="color:#BE185D;">${maidsCount}</div>
+        <div class="emp-kpi-sub">Daily turnover</div>
       </div>
 
-      <div class="card" onclick="window._empFilterStatus='Inactive';window._empRoleFilter='All';renderManageEmployees()" style="padding:12px;cursor:pointer;border-left:4px solid #DC2626;transition:all 0.15s;${statusFilter==='Inactive'?'box-shadow:0 0 0 2px #DC2626;':''}">
-        <div style="font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;">🔴 Inactive / Off</div>
-        <div style="font-size:22px;font-weight:800;color:#DC2626;margin-top:2px;">${inactiveCount}</div>
-        <div style="font-size:10.5px;color:var(--muted);">Deactivated</div>
+      <div class="card emp-kpi-card" onclick="window._empFilterStatus='Inactive';window._empRoleFilter='All';renderManageEmployees()" style="cursor:pointer;border-left:4px solid #DC2626;transition:all 0.15s;${statusFilter==='Inactive'?'box-shadow:0 0 0 2px #DC2626;':''}">
+        <div class="emp-kpi-label" style="color:#DC2626;">🔴 Inactive</div>
+        <div class="emp-kpi-val" style="color:#DC2626;">${inactiveCount}</div>
+        <div class="emp-kpi-sub">Deactivated</div>
       </div>
     </div>
 
@@ -313,36 +313,37 @@ async function renderManageEmployees() {
 // 📱 Responsive Cards View (Mobile & Grid friendly)
 function renderEmployeeCardsView(emps, isO, roomMap) {
   return `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));gap:14px;">
       ${emps.map(e => {
         const isActive = isEmployeeActive(e);
         const assignedArr = (e.assigned_rooms || '').split(',').map(s => s.trim()).filter(Boolean);
-              const totalPropsCount = Object.keys(roomMap).length || (window._allRooms || []).length || 18;
-              const isAllAssigned = assignedArr.length >= (totalPropsCount - 1) || (e.role && e.role.toLowerCase().includes('manager')) || (e.name && e.name.toLowerCase().includes('praveen'));
+        const totalPropsCount = Object.keys(roomMap).length || (window._allRooms || []).length || 18;
+        const isAllAssigned = assignedArr.length >= (totalPropsCount - 1) || (e.role && e.role.toLowerCase().includes('manager')) || (e.name && e.name.toLowerCase().includes('praveen'));
         const cleanPhone = (e.phone || '').replace(/\D/g, '');
         const whatsappPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
         const initial = (e.name || 'S').trim().charAt(0).toUpperCase();
 
         return `
-          <div class="card" style="padding:16px;display:flex;flex-direction:column;justify-content:space-between;border-top:3px solid ${isActive ? '#10B981' : '#EF4444'};position:relative;">
-            <!-- Top Header: Avatar + Name + Badges -->
+          <div class="card emp-card" style="padding:16px;border-top:3px solid ${isActive ? '#10B981' : '#EF4444'};">
+            <!-- Top Content Area -->
             <div>
+              <!-- Top Header: Avatar + Name + Badges + Salary -->
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;box-shadow:0 2px 6px rgba(79,70,229,0.3);">
+                  <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;box-shadow:0 2px 6px rgba(79,70,229,0.3);flex-shrink:0;">
                     ${initial}
                   </div>
                   <div>
                     <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--text);line-height:1.2;">
                       ${escapeHtml(e.name)}
                     </h3>
-                    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap;">
                       ${getEmpRoleBadge(e.role)}
                       ${(e.shift === 'night')
-                        ? `<span class="badge" style="background:#312E81;color:#E0E7FF;font-size:10px;padding:2px 7px;">🌙 Night (9PM–9AM)</span>`
+                        ? `<span class="badge" style="background:#312E81;color:#E0E7FF;font-size:10px;padding:2px 7px;">🌙 Night</span>`
                         : ((e.shift === 'full')
-                          ? `<span class="badge" style="background:#065F46;color:#D1FAE5;font-size:10px;padding:2px 7px;">🔄 24x7 Duty</span>`
-                          : `<span class="badge" style="background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;">☀️ Day (9AM–9PM)</span>`)}
+                          ? `<span class="badge" style="background:#065F46;color:#D1FAE5;font-size:10px;padding:2px 7px;">🔄 24x7</span>`
+                          : `<span class="badge" style="background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;">☀️ Day</span>`)}
                       <span class="badge ${isActive ? 'green' : 'red'}" style="font-size:10px;padding:2px 7px;">
                         ${isActive ? 'Active' : (e.status || 'Disabled')}
                       </span>
@@ -351,20 +352,18 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
                 </div>
 
                 <!-- Salary Tag -->
-                <div style="text-align:right;">
+                <div style="text-align:right;flex-shrink:0;">
                   ${isEmpCleanerPieceRate(e) ? `
                     <div style="font-size:14px;font-weight:800;color:#4338CA;">
                       ₹${Number(localStorage.getItem('tuhh_cleaner_rate_' + e.emp_id)) || e.per_flat_rate || 133} / flat
                     </div>
-                    <div style="font-size:10.5px;color:#4F46E5;font-weight:700;">🧹 Piece Rate (100 flats = ₹13,300)</div>
+                    <div style="font-size:10px;color:#4F46E5;font-weight:700;">🧹 Piece Rate</div>
                   ` : `
                     <div style="font-size:15px;font-weight:800;color:#DC2626;">
                       ₹${(e.monthly_salary || 0).toLocaleString('en-IN')}
                     </div>
                     <div style="font-size:10px;color:var(--muted);font-weight:600;">per month · Fixed</div>
                   `}
-                </div>
-                  <div style="font-size:10px;color:var(--muted);font-weight:600;">per month</div>
                 </div>
               </div>
 
@@ -386,20 +385,24 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
               <div style="background:var(--card-sub-bg,#F8FAFC);padding:10px;border-radius:8px;border:1px solid var(--border,#E2E8F0);margin-bottom:10px;">
                 <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">
                   🏢 Assigned Properties (${assignedArr.length})
-                ${assignedArr.length === 0 ? `
-                  <div style="font-size:12px;color:var(--muted);font-style:italic;">No properties assigned</div>
-                ` : (isAllAssigned ? `
-                  <span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:11.5px;background:#EFF6FF;color:#1D4ED8;font-weight:700;border:1px solid #BFDBFE;">
-                    ✨ All Properties Assigned (${totalPropsCount} Units)
-                  </span>
-                ` : `
-                    ${assignedArr.map(roomId => `
-                      <span style="font-size:11px;padding:2px 7px;border-radius:6px;background:var(--card-bg,#fff);border:1px solid var(--border,#CBD5E1);color:var(--text);font-weight:600;">
-                        ${escapeHtml(roomMap[roomId] || roomId)}
-                      </span>
-                    `).join('')}
-                  </div>
-                `)}
+                </div>
+                <div>
+                  ${assignedArr.length === 0 ? `
+                    <div style="font-size:12px;color:var(--muted);font-style:italic;">No properties assigned</div>
+                  ` : (isAllAssigned ? `
+                    <span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:11.5px;background:#EFF6FF;color:#1D4ED8;font-weight:700;border:1px solid #BFDBFE;">
+                      ✨ All Properties Assigned (${totalPropsCount} Units)
+                    </span>
+                  ` : `
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                      ${assignedArr.map(roomId => `
+                        <span style="font-size:11px;padding:2px 7px;border-radius:6px;background:var(--card-bg,#fff);border:1px solid var(--border,#CBD5E1);color:var(--text);font-weight:600;">
+                          ${escapeHtml(roomMap[roomId] || roomId)}
+                        </span>
+                      `).join('')}
+                    </div>
+                  `)}
+                </div>
               </div>
 
               <!-- Details Row -->
@@ -430,7 +433,7 @@ function renderEmployeeCardsView(emps, isO, roomMap) {
 
             <!-- Card Actions Footer -->
             ${isO ? `
-              <div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border,#E2E8F0);margin-top:auto;">
+              <div class="emp-card-actions">
                 <button class="btn-sm secondary" onclick="editEmp('${e.emp_id}')" style="flex:1;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:5px;">
                   ✏️ Edit
                 </button>
@@ -2922,8 +2925,8 @@ async function renderAdvanceTracker() {
     </div>
 
     <!-- METRICS BREAKDOWN -->
-    <div class="card">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;">
+    <div class="card" style="padding:14px;">
+      <div class="adv-kpi-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;">
         <div style="text-align:center;padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;">
           <div style="font-size:11px;color:#475569;font-weight:700;">💰 TOTAL GIVEN</div>
           <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:2px;">₹${totalBetweenGiven.toLocaleString('en-IN')}</div>
@@ -4475,38 +4478,6 @@ async function renderEmployeePayReport() {
       <div class="epr-desktop-table card" style="padding:0;overflow:hidden;border-radius:14px;">
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
           <table style="width:100%;border-collapse:collapse;min-width:680px;">
-            <thead>
-              <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
-                <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">🏠 Work / Flats</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">💰 Salary Rate</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">📊 Total Earned</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">✅ Salary Paid</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">🔸 Advance</th>
-                <th style="padding:10px 8px;text-align:right;font-size:11.5px;color:var(--muted);">⚖️ Balance</th>
-                <th style="padding:10px 8px;text-align:center;font-size:11.5px;color:var(--muted);">📲</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows || '<tr><td colspan="8" style="padding:28px;text-align:center;color:var(--muted);">No active staff found matching current filters.</td></tr>'}
-            </tbody>
-            <tfoot>
-              <tr style="background:#F8FAFC;border-top:2px solid var(--border);font-weight:800;">
-                <td style="padding:10px 8px;font-size:13px;">📊 GRAND TOTAL (${countedEmployees} Staff)</td>
-                <td style="text-align:center;padding:10px 8px;color:#7E22CE;font-size:16px;">${grandFlats > 0 ? `${grandFlats} flats` : '-'}</td>
-                <td></td>
-                <td style="text-align:right;padding:10px 8px;color:#1D4ED8;font-size:14px;">₹${grandEarned.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:#059669;font-size:13px;">₹${grandPaid.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:#B45309;font-size:13px;">₹${grandAdv.toLocaleString('en-IN')}</td>
-                <td style="text-align:right;padding:10px 8px;color:${grandBalColor};font-size:14px;">
-                  ${grandBalance > 0 ? `₹${grandBalance.toLocaleString('en-IN')} बाकी` : grandBalance < 0 ? `₹${Math.abs(grandBalance).toLocaleString('en-IN')} ज़्यादा` : '✅ Clear'}
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
             <thead>
               <tr style="background:#F1F5F9;border-bottom:2px solid var(--border);">
                 <th style="padding:10px 8px;text-align:left;font-size:11.5px;color:var(--muted);">👤 Employee</th>
