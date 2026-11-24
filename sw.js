@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuhh-live-v517';
+const CACHE_NAME = 'tuhh-live-v518';
 const RUNTIME_CACHE = 'tuhh-runtime-v500';
 
 const CORE_ASSETS = [
@@ -72,6 +72,12 @@ self.addEventListener('activate', event => {
     );
     await self.clients.claim();
   })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', event => {

@@ -81,7 +81,7 @@
   <script src="js/airbnb-audit-data.js?v=492"></script>
   <script src="js/ca-audit-pack.js?v=492"></script>
   <script src="js/per-day-calc.js?v=492"></script>
-  <script src="js/properties.js?v=517"></script>
+  <script src="js/properties.js?v=518"></script>
   <script src="js/employees.js?v=504"></script>
   <script src="js/expenses.js?v=492"></script>
   <script src="js/store.js?v=492"></script>
@@ -115,16 +115,35 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=500').then(reg => {
+        navigator.serviceWorker.register('/sw.js?v=518').then(reg => {
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            }
+          });
           // Check for service worker updates periodically & on focus
           try { reg.update(); } catch(e) {}
           window.addEventListener('focus', () => { try { reg.update(); } catch(e) {} });
         }).catch(err => {
           console.warn('SW registration notice:', err.message);
         });
+      });
+
+      // Auto-reload once when service worker controller changes so all devices instantly see newest updates
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
       });
     }
 
