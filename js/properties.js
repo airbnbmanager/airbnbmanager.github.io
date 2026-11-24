@@ -31,13 +31,56 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 };
 
 // ═══════════════════════════════════════════════════════════
-// 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync)
+// 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync & Direct Download)
 // ═══════════════════════════════════════════════════════════
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // Starlight Blue PentHouse (GOM-501)
   'GOM-501': 'https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing',
   // Pink Paradise (3rd Floor) - front of lulu mall 3 bhk (VIL-108)
   'VIL-108': 'https://drive.google.com/file/d/1DLY90HRpIKU9__lXHibImrjq9mh6UoFD/view?usp=sharing'
+};
+
+// Converts Google Drive view link to high-speed DIRECT DOWNLOAD link
+window.getDirectDownloadPdfUrl = function(rawUrl) {
+  if (!rawUrl) return '';
+  const str = String(rawUrl).trim();
+  // Match standard Google Drive file patterns
+  const m = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m && m[1]) {
+    return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+  }
+  return str;
+};
+
+// 1-Click Direct Download for any property PDF guide
+window.downloadPropertyPdf = function(roomId, e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+  let guides = {};
+  try {
+    guides = JSON.parse(localStorage.getItem('tuhh_property_pdf_guides') || '{}');
+  } catch(err) {}
+
+  const rawUrl = (guides && guides[roomId]) || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]);
+  if (!rawUrl) {
+    if (window.fsn) {
+      fsn.warn('PDF Not Available', 'Is property ka PDF guide abhi upload nahi hua hai. Upar "⚙️ Manage PDFs" se attach karein.');
+    } else {
+      alert('Is property ka PDF guide abhi upload nahi hua hai.');
+    }
+    return;
+  }
+
+  const dlUrl = window.getDirectDownloadPdfUrl(rawUrl);
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.target = '_blank';
+  a.download = (roomId || 'property') + '-guide.pdf';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { try { a.remove(); } catch(_) {} }, 1500);
 };
 
 window.getPropertyPdfGuides = async function() {
@@ -323,8 +366,8 @@ async function renderManageRooms() {
             <button onclick="renderQuickMapManager()" style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🧭</span> Map Pins
             </button>
-            <button onclick="renderQuickPdfManager()" style="background:#B45309;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(180,83,9,0.25);" title="Manage Google Drive PDFs & House Manuals">
-              <span>📑</span> Property PDFs
+            <button onclick="renderQuickPdfManager()" style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(15,23,42,0.25);" title="Manage & Attach Google Drive PDFs for all homestays">
+              <span>⚙️</span> Manage PDFs
             </button>
             <button onclick="navigate('showcase-admin')" style="background:#0F766E;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🌐</span> Website CMS
@@ -438,13 +481,23 @@ async function renderManageRooms() {
                     </span>
                   `}
                   ${(pdfGuides && pdfGuides[r.room_id]) ? `
-                    <a href="${pdfGuides[r.room_id]}" target="_blank" style="text-decoration:none;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;padding:2px 7px;border-radius:4px;font-size:11px;display:inline-flex;align-items:center;gap:3px;" title="Open Property PDF / House Manual">
-                      📑 PDF ↗
-                    </a>
+                    <button type="button" onclick="downloadPropertyPdf('${r.room_id}', event)" style="background:#059669;color:#fff;border:none;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" title="Direct Download Property PDF Guide">
+                      📥 Download PDF
+                    </button>
+                    ${isO ? `
+                      <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#475569;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;" title="Change / Edit PDF link">
+                        ✏️
+                      </button>
+                    ` : ''}
                   ` : `
-                    <span style="color:#64748B;font-size:10.5px;font-weight:600;cursor:pointer;background:#F1F5F9;padding:2px 6px;border-radius:4px;" onclick="renderQuickPdfManager('${r.room_id}')" title="Attach Google Drive / PDF Link">
-                      📑 + PDF
+                    <span style="color:#94A3B8;font-size:10.5px;font-weight:600;background:#F1F5F9;padding:2px 7px;border-radius:6px;border:1px solid #E2E8F0;" title="No PDF Attached Yet">
+                      📄 No PDF
                     </span>
+                    ${isO ? `
+                      <button type="button" onclick="renderQuickPdfManager('${r.room_id}')" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#2563EB;border-radius:5px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;" title="Attach Google Drive PDF Link">
+                        ➕ Attach PDF
+                      </button>
+                    ` : ''}
                   `}
                 </div>
               </div>
@@ -2430,10 +2483,10 @@ window.renderQuickPdfManager = async function(focusRoomId) {
                   type="button"
                   class="btn-sm"
                   onclick="window.testRoomPdf('${r.room_id}')"
-                  title="Test / Open PDF link in new tab"
-                  style="background:#0F172A;color:#fff;font-size:11.5px;padding:7px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
+                  title="Direct Download PDF"
+                  style="background:#059669;color:#fff;font-size:11.5px;padding:7px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:4px;"
                 >
-                  👁️ Open
+                  📥 Download
                 </button>
                 <button
                   type="button"
@@ -2491,7 +2544,14 @@ window.testRoomPdf = function(roomId) {
     if (window.fsn) fsn.warn('No Link', 'Please enter a Google Drive or PDF URL first.');
     return;
   }
-  window.open(url, '_blank');
+  const dlUrl = window.getDirectDownloadPdfUrl(url);
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.target = '_blank';
+  a.download = (roomId || 'property') + '-guide.pdf';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { try { a.remove(); } catch(_) {} }, 1500);
 };
 
 window.saveSingleRoomPdf = async function(roomId) {
