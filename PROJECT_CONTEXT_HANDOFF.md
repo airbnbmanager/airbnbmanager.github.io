@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v522` (`tuhh-live-v522` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v523` (`tuhh-live-v523` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
 > **Last Updated**: November 25, 2026 (Ready for Windows PC Session)
@@ -175,3 +175,24 @@ npm start
 - **Supabase Cloud App Settings Key for WhatsApp**: `whatsapp_hub_config`
 - **Supabase Cloud App Settings Key for PDFs**: `property_pdf_guides`
 - **Supported Properties Count**: 20 Homestay properties across Lucknow
+
+---
+
+## 🧠 8. CRITICAL KNOWLEDGE & USER PREFERENCES (DO NOT FORGET)
+
+1. **Accidental "Monthly bulk entry" (2026-11-22)**:
+   - On Nov 22, 2026, test entries were saved via `saveMonthlyExpenses()` on Penthouse (`GOM-501` / Flat 501) under description `Monthly bulk entry`.
+   - **User Resolution**: User instructed to permanently delete and remember this context.
+   - An auto-purge hook and strict runtime filter are in place in `js/expenses.js`.
+   - An **Action column (`🗑️ Delete`)** is now permanently added to the unified Expenses table so any record can be deleted with 1 click.
+
+2. **Property PDF Link Status (Google Drive Portal)**:
+   - The user has updated PDF links for all properties EXCEPT these 6 (links to be provided later by user):
+     * **The Brown**
+     * **The Unique**
+     * **Celebrity Garden**
+     * **The Pink House**
+     * **The Green House**
+     * **The Yellow House**
+   - **Rule**: NEVER overwrite other properties with the Penthouse link. Keep the above 6 blank until the user explicitly provides their links.
+

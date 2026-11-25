@@ -15,6 +15,16 @@ async function renderExpenses() {
     const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const ml = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
 
+    // 🧹 One-time auto-purge for accidental 2026-11-22 'Monthly bulk entry' test records requested by user
+    if (!window._hasPurged22NovBulkExps) {
+      window._hasPurged22NovBulkExps = true;
+      try {
+        await sb.from('expenses').delete().eq('notes', 'Monthly bulk entry').eq('entry_date', '2026-11-22');
+      } catch (purgeErr) {
+        console.warn('Purge 2026-11-22 bulk expenses:', purgeErr);
+      }
+    }
+
     // Fetch all 5 expense channels concurrently with safe fallback
     const [
       catsRes,
@@ -39,7 +49,8 @@ async function renderExpenses() {
     ]);
 
     const cats = catsRes?.data || [];
-    const exps = expsRes?.data || [];
+    // Strict filter: Exclude accidental 2026-11-22 Monthly bulk entries
+    const exps = (expsRes?.data || []).filter(e => !(e.notes === 'Monthly bulk entry' && (e.entry_date === '2026-11-22' || (e.created_at || '').startsWith('2026-11-22'))));
     const gs = gsRes?.data || [];
     const rooms = roomsRes?.data || [];
     const reimbs = reimbsRes?.data || [];
@@ -512,11 +523,12 @@ function applyExpenseFilters() {
               <th>Account (Source)</th>
               <th>Amount</th>
               <th>Salary Deductible?</th>
+              <th style="text-align:center;">Action</th>
             </tr>
           </thead>
           <tbody>
             ${list.length === 0
-              ? '<tr><td colspan="8" class="sub" style="text-align:center;padding:20px;">No expenses match the selected filters</td></tr>'
+              ? '<tr><td colspan="9" class="sub" style="text-align:center;padding:20px;">No expenses match the selected filters</td></tr>'
               : list.map(item => `
                 <tr>
                   <td data-label="Date" style="font-size:12px;white-space:nowrap;">${item.date || '-'}</td>
@@ -545,6 +557,13 @@ function applyExpenseFilters() {
                       : `<span style="color:#059669;font-size:11px;font-weight:600;white-space:nowrap;">🛡️ No (Company Paid)</span>`
                     }
                   </td>
+                  <td data-label="Action" style="text-align:center;white-space:nowrap;">
+                    ${item.id ? `
+                      <button type="button" class="btn-sm" onclick="window.delExpense('${item.id}', '${item.channel}')" title="Delete Expense" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;border-radius:6px;padding:4px 8px;cursor:pointer;font-weight:700;font-size:11px;display:inline-flex;align-items:center;gap:3px;">
+                        <span>🗑️</span>
+                      </button>
+                    ` : '-'}
+                  </td>
                 </tr>
               `).join('')
             }
@@ -554,7 +573,7 @@ function applyExpenseFilters() {
               <tr style="font-weight:800;background:#F8FAFC;">
                 <td colspan="6" style="text-align:right;">Total Filtered Outflow:</td>
                 <td style="color:#DC2626;font-size:15px;">₹${total.toLocaleString('en-IN')}</td>
-                <td></td>
+                <td colspan="2"></td>
               </tr>
             </tfoot>` : ''
           }
@@ -1770,26 +1789,71 @@ async function updateExpense(id) {
 }
 
 // ============ DELETE EXPENSE ============
-async function delExpense(id) {
-  if (!confirm('Delete this expense?')) return;
-  const { data: exp } = await sb.from('expenses').select('amount, notes, expense_categories(category_name), rooms(nickname)').eq('id', id).single();
-  const { error } = await sb.from('expenses').delete().eq('id', id);
-  if (error) { fsn.error('Error', '❌ ' + error.message); return; }
+async function delExpense(id, channel) {
+  if (!confirm('Are you sure you want to delete this expense record?')) return;
+  try {
+    let error = null;
+    let exp = null;
 
-  // 📋 Audit log for Developer
-  if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
-    window.UserActionAudit.recordAction('expense_delete', {
-      expenseId: id,
-      amount: exp?.amount,
-      categoryName: exp?.expense_categories?.category_name,
-      roomName: exp?.rooms?.nickname,
-      notes: exp?.notes
-    });
+    if (channel === 'advance') {
+      const res = await sb.from('advance_tracker').delete().eq('id', id);
+      error = res.error;
+    } else if (channel === 'laundry') {
+      const res = await sb.from('laundry_payments').delete().eq('id', id);
+      error = res.error;
+    } else if (channel === 'maintenance') {
+      const { data: expRow } = await sb.from('expenses').select('id').eq('id', id).maybeSingle();
+      if (expRow) {
+        const res = await sb.from('expenses').delete().eq('id', id);
+        error = res.error;
+      } else {
+        const res = await sb.from('maintenance_log').delete().eq('id', id);
+        error = res.error;
+      }
+    } else if (channel === 'staff_spend') {
+      const { data: expRow } = await sb.from('expenses').select('id').eq('id', id).maybeSingle();
+      if (expRow) {
+        const res = await sb.from('expenses').delete().eq('id', id);
+        error = res.error;
+      } else {
+        const res = await sb.from('reimbursements').delete().eq('id', id);
+        error = res.error;
+      }
+    } else {
+      // Default: regular expenses table
+      const resExp = await sb.from('expenses').select('amount, notes, expense_categories(category_name), rooms(nickname)').eq('id', id).maybeSingle();
+      exp = resExp.data;
+      const res = await sb.from('expenses').delete().eq('id', id);
+      error = res.error;
+    }
+
+    if (error) {
+      if (window.fsn) fsn.error('Error', '❌ ' + error.message);
+      else alert('Error: ' + error.message);
+      return;
+    }
+
+    // 📋 Audit log for Developer
+    if (window.UserActionAudit && typeof window.UserActionAudit.recordAction === 'function') {
+      window.UserActionAudit.recordAction('expense_delete', {
+        expenseId: id,
+        channel: channel || 'general',
+        amount: exp?.amount,
+        categoryName: exp?.expense_categories?.category_name,
+        roomName: exp?.rooms?.nickname,
+        notes: exp?.notes
+      });
+    }
+
+    if (window.fsn) fsn.success('Success', '✅ Expense record deleted');
+    else alert('Deleted');
+    renderExpenses();
+  } catch (err) {
+    console.error('Delete expense error:', err);
+    alert('Delete failed: ' + err.message);
   }
-
-  fsn.success('Success', '✅ Deleted');
-  renderExpenses();
 }
+window.delExpense = delExpense;
 
 // ============ PROPERTY REPORT ============
 async function renderPropertyReport(roomId, range = 'Month') {
