@@ -114,6 +114,12 @@ window.downloadPropertyPdf = function(roomId, e) {
     return;
   }
 
+  // If link points to Google Drive folder, open the folder directly in a new tab
+  if (rawUrl.includes('/drive/folders/')) {
+    window.open(rawUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
   const dlUrl = window.getDirectDownloadPdfUrl(rawUrl);
   const a = document.createElement('a');
   a.href = dlUrl;
