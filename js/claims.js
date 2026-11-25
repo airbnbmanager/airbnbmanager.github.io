@@ -96,15 +96,41 @@ window.renderClaims = async function () {
     </div>
 
     <!-- UHHS-OD LIVE ACCOUNT BANNER -->
+    ${(() => {
+      const isDec = (window._tuhhOdCycle === 'dec2026') || (!window._tuhhOdCycle && new Date() >= new Date('2026-12-01'));
+      return `
     <div class="card claims-od-banner" style="background:#F0FDF4;border:1.5px solid #86EFAC;padding:16px;">
+      <!-- Multi-Cycle OD Switcher Bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed #CBD5E1;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11.5px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.5px;">🏦 OD Cycle:</span>
+          <button type="button" onclick="window.setOdCycle('dec2026')" style="padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;background:${isDec ? '#0284C7' : '#F1F5F9'};color:${isDec ? '#fff' : '#475569'};border:1px solid ${isDec ? '#0284C7' : '#CBD5E1'};box-shadow:${isDec ? '0 1px 3px rgba(2,132,199,0.3)' : 'none'};">
+            ⭐ New Account (1 Dec 2026 Onwards)
+          </button>
+          <button type="button" onclick="window.setOdCycle('sep2026')" style="padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;background:${!isDec ? '#0F766E' : '#F1F5F9'};color:${!isDec ? '#fff' : '#475569'};border:1px solid ${!isDec ? '#0F766E' : '#CBD5E1'};box-shadow:${!isDec ? '0 1px 3px rgba(15,118,110,0.3)' : 'none'};">
+            🏛️ Cycle 1 (17 Sep – 30 Nov Settled)
+          </button>
+        </div>
+        <div>
+          <button type="button" onclick="window.openOdDecOpeningBalanceModal()" style="padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:800;cursor:pointer;background:#FEF3C7;color:#92400E;border:1.5px solid #FCD34D;display:inline-flex;align-items:center;gap:5px;">
+            <span>⚙️</span> Set 1-Dec Opening Balance
+          </button>
+        </div>
+      </div>
+
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
         <div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:20px;">🏦</span>
-            <strong style="font-size:16px;color:#15803D;">TUHH-OD Account (Online Balance)</strong>
+            <strong style="font-size:16px;color:#15803D;" id="claims-od-banner-title">
+              ${isDec ? 'TUHH-OD Account (Cycle 2: 1-Dec-2026 Onwards)' : 'TUHH-OD Account (Cycle 1: Sep–Nov 2026)'}
+            </strong>
           </div>
-          <div style="font-size:12px;color:#64748B;margin-top:2px;">
-            Money received online from Firoz &amp; spent via TUHH-OD (Post-Checkpoint: 17-Sep onwards · Opening Balance: ₹0)
+          <div style="font-size:12px;color:#64748B;margin-top:2px;" id="claims-od-banner-subtitle">
+            ${isDec
+              ? `Active New Account · Fresh ledger starting 1-Dec-2026 · Opening Balance: ₹${(Number(window._tuhhDecOpeningBalance) || 0).toLocaleString('en-IN')}`
+              : 'Settled historical cycle: 17-Sep to 30-Nov 2026 (Opening Balance: ₹0)'
+            }
           </div>
         </div>
         <div class="claims-od-stats-row" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
@@ -129,6 +155,8 @@ window.renderClaims = async function () {
         </div>
       </div>
     </div>
+    `;
+    })()}
 
     <!-- 📅 TODAY'S OD BALANCE & CLOSING PROOF (OWNER TRUST CARD) -->
     <style>

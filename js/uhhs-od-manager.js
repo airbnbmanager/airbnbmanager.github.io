@@ -9,6 +9,140 @@ const UHHS_PAYMENT_SOURCES = {
     COMPANY: 'COMPANY'
 };
 
+// =========================================================================
+// 🏦 MULTI-CYCLE OD ACCOUNTS: 1-DEC-2026 NEW ACCOUNT & OPENING BALANCE ENGINE
+// =========================================================================
+window._tuhhOdCycle = window._tuhhOdCycle || (new Date() >= new Date('2026-12-01') ? 'dec2026' : 'sep2026');
+window._tuhhDecOpeningBalance = window._tuhhDecOpeningBalance || 0;
+window._tuhhDecOpeningNote = window._tuhhDecOpeningNote || 'Opening balance as of 1 Dec 2026';
+
+async function loadOdDecConfig(client) {
+    try {
+        const sbClient = client || window.sb;
+        if (!sbClient) return;
+        const { data, error } = await sbClient
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'tuhh_od_dec_config')
+            .maybeSingle();
+        if (!error && data?.value) {
+            const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+            if (parsed && typeof parsed.openingBalance === 'number') {
+                window._tuhhDecOpeningBalance = parsed.openingBalance;
+                window._tuhhDecOpeningNote = parsed.openingNote || 'Opening balance as of 1 Dec 2026';
+            }
+        }
+    } catch (e) {
+        console.warn('loadOdDecConfig error:', e);
+    }
+}
+
+window.openOdDecOpeningBalanceModal = function() {
+    const old = document.getElementById('odDecOpeningModalOverlay');
+    if (old) old.remove();
+
+    const curBal = Number(window._tuhhDecOpeningBalance || 0);
+    const curNote = window._tuhhDecOpeningNote || 'Opening balance as of 1 Dec 2026';
+
+    const modal = document.createElement('div');
+    modal.id = 'odDecOpeningModalOverlay';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:9999999;padding:14px;box-sizing:border-box;backdrop-filter:blur(4px);';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+        <div class="modal-box" style="background:#fff;border-radius:16px;padding:24px;max-width:500px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.3);box-sizing:border-box;border:1px solid #e2e8f0;" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;">
+                <h3 style="margin:0;font-size:18px;color:#0F172A;font-weight:800;display:flex;align-items:center;gap:8px;">
+                    <span>🏦</span> 1-Dec-2026 OD Account Opening
+                </h3>
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>
+            </div>
+
+            <div style="background:#EFF6FF;border:1px solid #BFDBFE;padding:12px;border-radius:10px;font-size:12.5px;color:#1E40AF;margin-bottom:16px;line-height:1.45;">
+                <strong>New OD Account Cycle:</strong> Effective from <strong>1 December 2026</strong>. You can enter or update the opening balance below (0, positive credit in-hand, or negative overdraft debt) at any time.
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#334155;">Effective Start Date</label>
+                <input type="date" value="2026-12-01" readonly style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;background:#F8FAFC;color:#64748B;font-weight:700;" />
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#334155;">Opening Balance Amount (₹) *</label>
+                <input id="odDecBalInput" type="number" step="any" value="${curBal}" placeholder="0 (e.g. 0, 50000, -1869)" style="width:100%;padding:10px 12px;border:1.5px solid #0284C7;border-radius:8px;font-size:16px;box-sizing:border-box;font-weight:800;" />
+                <div style="font-size:11.5px;color:#64748B;margin-top:4px;">
+                    Enter <code>0</code> for fresh zero balance, positive (e.g. <code>50000</code>) for funds in hand, or negative (e.g. <code>-5000</code>) if starting in OD deficit.
+                </div>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;color:#334155;">Opening Note / Settlement Details</label>
+                <input id="odDecNoteInput" type="text" value="${curNote}" placeholder="e.g. Starting balance from Nov settlement / Firoz deposit" style="width:100%;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:13px;box-sizing:border-box;" />
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="this.closest('.modal-overlay').remove()" style="padding:9px 18px;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="window.saveOdDecOpeningBalance()" style="padding:9px 22px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,0.3);">💾 Save Opening Balance</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('odDecBalInput')?.focus();
+};
+
+window.saveOdDecOpeningBalance = async function() {
+    const balVal = parseFloat(document.getElementById('odDecBalInput')?.value || 0);
+    const noteVal = (document.getElementById('odDecNoteInput')?.value || '').trim() || 'Opening balance as of 1 Dec 2026';
+    const client = window.sb || window.supabase;
+
+    window._tuhhDecOpeningBalance = isNaN(balVal) ? 0 : balVal;
+    window._tuhhDecOpeningNote = noteVal;
+
+    if (client) {
+        try {
+            const configPayload = {
+                openingDate: '2026-12-01',
+                openingBalance: window._tuhhDecOpeningBalance,
+                openingNote: window._tuhhDecOpeningNote,
+                updated_at: new Date().toISOString()
+            };
+            await client.from('app_settings').upsert({
+                key: 'tuhh_od_dec_config',
+                value: JSON.stringify(configPayload)
+            }, { onConflict: 'key' });
+        } catch (e) {
+            console.warn('Error saving tuhh_od_dec_config:', e);
+        }
+    }
+
+    document.getElementById('odDecOpeningModalOverlay')?.remove();
+    if (window.fsn?.success) {
+        fsn.success('Saved', '✅ 1-Dec Opening Balance saved successfully!');
+    } else {
+        alert('✅ 1-Dec Opening Balance saved successfully!');
+    }
+
+    // Refresh live calculations
+    if (window.UHHSODManager && window.UHHSODManager.calculateBalance) {
+        window.UHHSODManager.calculateBalance(client);
+    }
+    if (typeof window.renderClaims === 'function') {
+        window.renderClaims();
+    }
+};
+
+window.setOdCycle = function(cycle) {
+    window._tuhhOdCycle = cycle;
+    const client = window.sb || window.supabase;
+    if (window.UHHSODManager && window.UHHSODManager.calculateBalance) {
+        window.UHHSODManager.calculateBalance(client);
+    }
+    if (typeof window.renderClaims === 'function') {
+        window.renderClaims();
+    }
+};
+
 // 1. Payment Source Dropdown HTML Generator
 function getPaymentSourceDropdownHTML(selected = 'UHHS-OD', id = 'payment_source') {
     return `
@@ -361,20 +495,24 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
 }
 
 // 3. Live UHHS-OD Ledger Engine & Single Source of Truth
-async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
+async function getLedgerData(supabaseClient, customStartDate, customEndDate, customOpeningBalance = null) {
     const client = supabaseClient || window.sb || window.supabaseClient || window.supabase;
     if (!client) return { txns: [], totalInflow: 0, totalOutflow: 0, netBalance: 0, openingBalance: 0 };
 
-    const CHECKPOINT_START = "2026-09-17";
+    const cycle = window._tuhhOdCycle || (new Date() >= new Date('2026-12-01') ? 'dec2026' : 'sep2026');
+    const isDecCycle = (customStartDate === '2026-12-01') || (cycle === 'dec2026' && !customStartDate);
+    const CHECKPOINT_START = isDecCycle ? "2026-12-01" : "2026-09-17";
     const startDate = customStartDate || CHECKPOINT_START;
-    const endDate = customEndDate || null;
+    const endDate = customEndDate || (isDecCycle ? null : (cycle === 'dec2026' ? '2026-11-30' : null));
 
-    // ─── 0. CALCULATE OPENING BALANCE B/F (If startDate is after Checkpoint 17-Sep) ───
+    // ─── 0. CALCULATE OPENING BALANCE B/F ───
     let openingBalance = 0;
     let openingInflow = 0;
     let openingOutflow = 0;
 
-    if (startDate > CHECKPOINT_START) {
+    if (isDecCycle) {
+        openingBalance = customOpeningBalance !== null ? Number(customOpeningBalance) : (Number(window._tuhhDecOpeningBalance) || 0);
+    } else if (startDate > CHECKPOINT_START) {
         const d = new Date(startDate);
         d.setDate(d.getDate() - 1);
         const dayBefore = d.toISOString().slice(0, 10);
@@ -568,7 +706,9 @@ async function getLedgerData(supabaseClient, customStartDate, customEndDate) {
             db_id: null,
             date: startDate,
             type: 'OPENING_BAL',
-            desc: `💼 Opening Balance B/F (accumulated from 17-Sep to ${startDate})`,
+            desc: isDecCycle
+                ? `💼 1-Dec-2026 OD Account Opening: ${window._tuhhDecOpeningNote || 'Opening Balance'}`
+                : `💼 Opening Balance B/F (accumulated from 17-Sep to ${startDate})`,
             amount: Math.abs(openingBalance),
             isDep: openingBalance >= 0,
             isOpening: true
@@ -840,15 +980,38 @@ async function calculateLiveODBalance(supabaseClient) {
     if (!client) return { inflow: 0, outflow: 0, balance: 0 };
 
     try {
-        // 🏦 CRITICAL RULE: Top Banner ALWAYS calculates from the Checkpoint (2026-09-17) onwards,
-        // so filtering the table below never distorts the true bank running balance!
-        const { txns, totalInflow, totalOutflow, netBalance } = await getLedgerData(client, "2026-09-17", null);
+        await loadOdDecConfig(client);
+
+        const cycle = window._tuhhOdCycle || (new Date() >= new Date('2026-12-01') ? 'dec2026' : 'sep2026');
+        const isDecCycle = (cycle === 'dec2026');
+        const startDate = isDecCycle ? "2026-12-01" : "2026-09-17";
+        const endDate = isDecCycle ? null : (new Date() >= new Date('2026-12-01') ? "2026-11-30" : null);
+
+        // 🏦 CRITICAL RULE: Calculates based on selected active cycle (or defaults to 1-Dec when reached)
+        const { txns, totalInflow, totalOutflow, netBalance } = await getLedgerData(
+            client, 
+            startDate, 
+            endDate, 
+            isDecCycle ? (window._tuhhDecOpeningBalance || 0) : null
+        );
 
         // Update Claims Manager Inflow / Outflow Sub-elements if present
         const inEl = document.getElementById('claims-od-inflow');
         if (inEl) inEl.innerText = `₹${totalInflow.toLocaleString('en-IN')}`;
         const outEl = document.getElementById('claims-od-outflow');
         if (outEl) outEl.innerText = `₹${totalOutflow.toLocaleString('en-IN')}`;
+
+        // Update banner titles & subtitles if present
+        const titleEl = document.getElementById('claims-od-banner-title');
+        if (titleEl) {
+            titleEl.innerText = isDecCycle ? 'TUHH-OD Account (Cycle 2: 1-Dec-2026 Onwards)' : 'TUHH-OD Account (Cycle 1: Sep–Nov 2026)';
+        }
+        const subEl = document.getElementById('claims-od-banner-subtitle');
+        if (subEl) {
+            subEl.innerText = isDecCycle
+                ? `Active New Account · Fresh ledger starting 1-Dec-2026 · Opening Balance: ₹${(Number(window._tuhhDecOpeningBalance) || 0).toLocaleString('en-IN')}`
+                : 'Settled historical cycle: 17-Sep to 30-Nov 2026 (Opening Balance: ₹0)';
+        }
 
         const bannerCard = document.querySelector('.claims-od-banner');
         if (bannerCard) {

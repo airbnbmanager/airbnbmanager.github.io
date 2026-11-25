@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v524` (`tuhh-live-v524` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v525` (`tuhh-live-v525` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
 > **Last Updated**: November 25, 2026 (Ready for Windows PC Session)
@@ -200,4 +200,11 @@ npm start
    - The Top Banner ("TUHH-OD Account Online Balance") and the Daily Statement ("OD Balance & Daily Closing Statement" + Mobile Proof Screenshot) must ALWAYS stay 100% synchronized.
    - Fixed an edge-case where a deposit dated on or after a guest's future check-in date was omitted when filtering cumulative closing balance up to Today's date (`25-Nov`), creating an artificial ₹1,000 difference (`-₹869.94` vs `-₹1,869.94`).
    - `renderClosingStatementForDate` now computes full live ledger totals for Today's view, ensuring `Total Deposited - Total Utilized = Closing Balance` (`-₹869.94`) consistently across both banners and mobile screenshots.
+
+4. **New TUHH-OD Account Cycle (1 Dec 2026 Onwards)**:
+   - Built dynamic multi-cycle OD support:
+     * **Cycle 2 (New OD Account)**: Effective from `2026-12-01`. Fresh ledger for all deposits & claims starting 1 Dec.
+     * **Cycle 1 (Previous OD Account)**: `17-Sep to 30-Nov-2026` settled historical ledger safely archived and switchable with 1 click.
+   - **Opening Balance**: Can be set/updated by user anytime via modal button `⚙️ Set 1-Dec Opening Balance`. Saved into Supabase `app_settings` (`tuhh_od_dec_config`).
+   - On reaching 1-Dec-2026, the app automatically defaults to the new cycle. User can toggle between cycles using the top banner pills.
 
