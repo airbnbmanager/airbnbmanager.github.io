@@ -1,205 +1,206 @@
 #!/usr/bin/env python3
 """
 Generate Luxury Branded Cover Pages and Compiles Descriptive Location-Named PDFs
-for all 20 properties in The Unique Haven Homes portfolio.
+WITHOUT any floor references (to prevent guest cancellations), with exact BHK & Beds count.
 """
 
 import os
 import re
 import sys
 import time
+import glob
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import img2pdf
 
 BASE_DIR = '/Users/praveen/Developer/Property PDFs'
 LOGO_PATH = '/Users/praveen/Developer/airbnbmanager.github.io/assets/logo-crest.png'
 
-# Portfolio definitions with verified location metadata
+# 20 Homestays with verified BHK, Beds, and Location (ZERO FLOOR REFERENCES)
 PORTFOLIO = [
-    # ── 10 Properties in Vikalp Khand, Chinhat, Gomti Nagar ──
+    # ── 10 Properties in Vikalp Khand, Chinhat, Gomti Nagar (3 BHK · 4 Beds) ──
     {
         'folder': 'Black Beauty',
         'display_name': 'BLACK BEAUTY',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 102, 1st Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'Black Beauty - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Black Beauty - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'RedRose Palace',
         'display_name': 'REDROSE PALACE',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 101, 1st Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'RedRose Palace - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'RedRose Palace - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Dark Blue',
         'display_name': 'THE DARK BLUE',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 201, 2nd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Dark Blue - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Dark Blue - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Brown',
         'display_name': 'THE BROWN',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 202, 2nd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Brown - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Brown - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Light Green',
         'display_name': 'THE LIGHT GREEN',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 301, 3rd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Light Green - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Light Green - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Unique',
         'display_name': 'THE UNIQUE',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 302, 3rd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Unique - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Unique - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Nawabi Stay',
         'display_name': 'THE NAWABI STAY',
-        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'type': '3 BHK Luxury Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Flat 401, 4th Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Nawabi Stay - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Nawabi Stay - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'Starlight Blue PentHouse',
         'display_name': 'STARLIGHT BLUE PENTHOUSE',
-        'type': 'Luxury PentHouse · Private Rooftop Terrace',
+        'type': 'Luxury PentHouse · 4 Beds · Private Open Terrace',
         'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
-        'full_address': 'Penthouse 501, 5th Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    🌟 Private Terrace    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'Starlight Blue PentHouse - Luxury Penthouse (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+        'full_address': 'Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Lounge Bed)    🚿 3 Attached Baths    🌟 Private Terrace    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Starlight Blue PentHouse - Luxury Penthouse 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Tehzeeb Nest',
         'display_name': 'THE TEHZEEB NEST',
-        'type': '3 BHK Luxury Skyline Homestay · Serviced Living',
+        'type': '3 BHK Luxury Skyline Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
-        'full_address': 'Flat 402, 4th Floor, Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Tehzeeb Nest - 3BHK Luxury Flat (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
+        'full_address': 'Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Tehzeeb Nest - 3 BHK 4 Beds (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
     },
     {
         'folder': 'Sukoon Stay',
         'display_name': 'SUKOON STAY',
-        'type': '3 BHK Luxury Skyline Homestay · Serviced Living',
+        'type': '3 BHK Luxury Skyline Homestay · 4 Beds · Fully Air-Conditioned',
         'area_badge': 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
-        'full_address': 'Flat 502, 5th Floor, Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'Sukoon Stay - 3BHK Luxury Flat (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
+        'full_address': 'Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Sukoon Stay - 3 BHK 4 Beds (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
     },
 
     # ── 3 Properties in Vishesh Khand 3, Gomti Nagar ──
     {
         'folder': 'The Yellow House',
         'display_name': 'THE YELLOW HOUSE',
-        'type': '3 BHK Luxury Villa · Ground Floor Private Entry',
+        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
         'area_badge': 'Vishesh Khand 3, Gomti Nagar',
-        'full_address': 'Ground Floor, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    🚗 Dedicated Parking    ❄️ 100% AC',
-        'filename': 'The Yellow House - 3BHK Luxury Villa Ground Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+        'full_address': '3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    🚗 Parking    ❄️ 100% AC',
+        'filename': 'The Yellow House - 3 BHK 4 Beds (Vishesh Khand 3, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Green House',
         'display_name': 'THE GREEN HOUSE',
-        'type': '3 BHK Luxury Villa · 1st Floor with Balcony',
+        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
         'area_badge': 'Vishesh Khand 3, Gomti Nagar',
-        'full_address': '1st Floor, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    🌿 Private Balcony    👥 Up to 8 Guests    ❄️ 100% AC',
-        'filename': 'The Green House - 3BHK Luxury Villa 1st Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+        'full_address': '3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    🌿 Balcony    👥 Up to 8 Guests    ❄️ 100% AC',
+        'filename': 'The Green House - 3 BHK 4 Beds (Vishesh Khand 3, Gomti Nagar).pdf'
     },
     {
         'folder': 'The Pink House',
         'display_name': 'THE PINK HOUSE',
-        'type': '5 BHK Grand Luxury Duplex Villa with Private Terrace',
+        'type': '5 BHK Grand Luxury Homestay Villa · 6 Beds',
         'area_badge': 'Vishesh Khand 3, Gomti Nagar',
-        'full_address': '2nd & 3rd Floor Duplex, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
-        'specs': '🛏️ 5 King Bedrooms    🚿 5 Attached Baths    👥 Up to 15 Guests    🌟 Private Rooftop    ❄️ 100% AC',
-        'filename': 'The Pink House - 5BHK Luxury Villa 2nd & 3rd Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+        'full_address': '3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 6 Beds (5 King + Living Bed)    🚿 5 Attached Baths    👥 Up to 15 Guests    🌟 Terrace    ❄️ 100% AC',
+        'filename': 'The Pink House - 5 BHK 6 Beds (Vishesh Khand 3, Gomti Nagar).pdf'
     },
 
     # ── 7 Properties Near Lulu Mall / Shaheed Path / Golf City ──
     {
         'folder': 'Celebrity Garden',
         'display_name': 'CELEBRITY GARDEN',
-        'type': '4 BHK Grand Luxury Flat & Private Lawn',
+        'type': '4 BHK Grand Luxury Homestay with Private Lawn · 4 Beds',
         'area_badge': 'Celebrity Greens, Sushant Golf City (Near Lulu Mall)',
         'full_address': 'Celebrity Greens, Sushant Golf City, Near Lulu Mall & Shaheed Path, Lucknow',
-        'specs': '🛏️ 4 King Bedrooms    🚿 4 Attached Baths    🌳 Private Lawn    👥 Up to 12 Guests    ❄️ 100% AC',
-        'filename': 'Celebrity Garden - 4BHK Grand Flat & Lawn (Celebrity Greens, Near Lulu Mall).pdf'
+        'specs': '🛏️ 4 King Beds    🚿 4 Attached Baths    🌳 Private Lawn    👥 Up to 12 Guests    ❄️ 100% AC',
+        'filename': 'Celebrity Garden - 4 BHK 4 Beds with Lawn (Near Lulu Mall, Shaheed Path).pdf'
     },
     {
         'folder': 'The Luxe Haven',
         'display_name': 'THE LUXE HAVEN',
-        'type': '1 BHK Luxury Executive Flat · Couple & Business Friendly',
+        'type': '1 BHK Luxury Executive Flat · 2 Beds',
         'area_badge': 'Golf City, Near Lulu Mall & Medanta Hospital',
         'full_address': 'Near Lulu Mall & Medanta Hospital, Golf City, Shaheed Path, Lucknow',
-        'specs': '🛏️ 1 King Bedroom    🚿 1 Luxury Bath    👥 Up to 3 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Luxe Haven - 1BHK Luxury Flat (Near Lulu Mall & Medanta, Golf City).pdf'
+        'specs': '🛏️ 2 Beds (1 Queen + Sofa Bed)    🚿 1 Luxury Bath    👥 Up to 3 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Luxe Haven - 1 BHK 2 Beds (Near Lulu Mall, Golf City).pdf'
     },
     {
         'folder': 'Gomti Grand Villa',
         'display_name': 'GOMTI GRAND VILLA',
-        'type': '4 BHK Luxury Independent Villa · Private Porch',
+        'type': '4 BHK Luxury Independent Homestay Villa · 4 Beds',
         'area_badge': 'Geetapuri, Near Lulu & Phoenix Palassio Mall',
         'full_address': 'Villa One, Geetapuri Colony, Near Lulu & Phoenix Palassio Mall, Lucknow',
-        'specs': '🛏️ 4 King Bedrooms    🚿 4 Attached Baths    👥 Up to 12 Guests    🚗 Private Car Porch    ❄️ 100% AC',
-        'filename': 'Gomti Grand Villa - 4BHK Luxury Villa (Geetapuri, Near Lulu & Palassio Mall).pdf'
+        'specs': '🛏️ 4 King Beds    🚿 4 Attached Baths    👥 Up to 12 Guests    🚗 Private Car Porch    ❄️ 100% AC',
+        'filename': 'Gomti Grand Villa - 4 BHK 4 Beds Villa (Near Lulu & Palassio Mall).pdf'
     },
     {
         'folder': 'Royal White House',
         'display_name': 'ROYAL WHITE HOUSE',
-        'type': 'Royal Luxury Independent Villa · Grand Event Friendly',
+        'type': 'Royal Independent Luxury Homestay Villa · 5 Beds',
         'area_badge': 'Omaxe City, Shaheed Path (Near Lulu Mall & Airport)',
         'full_address': 'Omaxe City, Shaheed Path, Near Lulu Mall, Medanta & Airport, Lucknow',
-        'specs': '🛏️ Grand Royal Villa    🚿 Luxury Baths    👥 Large Family Stays    🚗 Private Parking    ❄️ 100% AC',
-        'filename': 'Royal White House - Royal Luxury Villa (Shaheed Path, Near Lulu Mall).pdf'
+        'specs': '🛏️ 5 King Beds    🚿 Luxury Baths    👥 Large Family Stays    🚗 Private Parking    ❄️ 100% AC',
+        'filename': 'Royal White House - Royal Villa 5 Beds (Shaheed Path, Near Lulu Mall).pdf'
     },
     {
         'folder': 'The Velvet House',
         'display_name': 'THE VELVET HOUSE',
-        'type': '3 BHK Luxury Serviced Villa · 1st Floor',
+        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
         'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
         'full_address': 'Shaheed Path, Near Medanta Hospital & Lulu Mall, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Velvet House - 3BHK Luxury Villa (Shaheed Path, Near Medanta & Lulu Mall).pdf'
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Velvet House - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
     },
     {
         'folder': 'Green Forest',
         'display_name': 'GREEN FOREST',
-        'type': '3 BHK Luxury Serviced Villa · 2nd Floor',
+        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
         'area_badge': 'Ansal Golf City, Shaheed Path (Near Lulu Mall & Ekana)',
         'full_address': 'Ansal Golf City, Shaheed Path, Near Lulu Mall & Ekana Stadium, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'Green Forest - 3BHK Luxury Villa (Shaheed Path, Near Lulu Mall & Ekana).pdf'
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Green Forest - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
     },
     {
         'folder': 'Pink Paradise',
         'display_name': 'PINK PARADISE',
-        'type': '3 BHK Luxury Serviced Villa · 3rd Floor',
+        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
         'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
         'full_address': 'Near Medanta Hospital, Shaheed Path, Near Lulu Mall, Lucknow',
-        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
-        'filename': 'Pink Paradise - 3BHK Luxury Villa (Shaheed Path, Near Medanta & Lulu Mall).pdf'
+        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Pink Paradise - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
     }
 ]
 
@@ -217,7 +218,7 @@ def create_branded_cover_page(item, prop_folder):
     f_title = ImageFont.truetype(f_bold_path, 60)
     f_type = ImageFont.truetype(f_bold_path, 30)
     f_loc = ImageFont.truetype(f_bold_path, 26)
-    f_body = ImageFont.truetype(f_bold_path, 24)
+    f_body = ImageFont.truetype(f_bold_path, 23)
     f_sub = ImageFont.truetype(f_reg_path, 21)
 
     # 1. Top Premium Header (Deep Obsidian Navy)
@@ -238,11 +239,11 @@ def create_branded_cover_page(item, prop_folder):
     # 2. Luxurious Warm Gold Divider Accent Line
     draw.rectangle([(0, 160), (W, 168)], fill='#D4AF37')
 
-    # 3. Property Title & Type
+    # 3. Property Title & Type (NO FLOOR REFERENCES)
     draw.text((80, 215), item['display_name'], fill='#0F172A', font=f_title)
     draw.text((80, 295), item['type'], fill='#D97706', font=f_type)
 
-    # 4. Location Callout Badge (High-Contrast Box with Location Pin)
+    # 4. Location Callout Badge (NO FLOOR REFERENCES)
     draw.rounded_rectangle([(80, 355), (W - 80, 435)], radius=12, fill='#F8FAFC', outline='#CBD5E1', width=2)
     loc_text = f"📍 Location: {item['full_address']}"
     draw.text((105, 380), loc_text, fill='#0F172A', font=f_loc)
@@ -260,10 +261,10 @@ def create_branded_cover_page(item, prop_folder):
         except Exception as e:
             print(f"Error pasting hero image for {item['display_name']}: {e}")
 
-    # 6. Specs & Amenity Highlights Bar
+    # 6. Specs & Amenity Highlights Bar (BHK, Beds, Baths)
     box_y = 1880
     draw.rounded_rectangle([(80, box_y), (W - 80, box_y + 105)], radius=12, fill='#0F172A')
-    draw.text((115, box_y + 36), item['specs'], fill='#F8FAFC', font=f_body)
+    draw.text((110, box_y + 36), item['specs'], fill='#F8FAFC', font=f_body)
 
     # 7. Trust & Booking Assurance Footer
     foot_y = H - 200
@@ -320,20 +321,37 @@ def build_property_pdf(item):
         print(f"   ❌ Error building PDF for {name}: {e}")
         return False, new_pdf_name, 0, 0
 
+def cleanup_old_intermediate_pdfs():
+    # Remove previous intermediate PDFs containing old naming patterns
+    patterns = [
+        os.path.join(BASE_DIR, "* - *Luxury Flat*.pdf"),
+        os.path.join(BASE_DIR, "* - *Luxury Villa*.pdf"),
+        os.path.join(BASE_DIR, "* - *Penthouse (*.pdf")
+    ]
+    for pat in patterns:
+        for f in glob.glob(pat):
+            try:
+                os.remove(f)
+                print(f"Cleaned up previous intermediate PDF: {os.path.basename(f)}")
+            except Exception:
+                pass
+
 def main():
-    print("🚀 Initializing Branded Cover Page & Location-Named PDF Generation (20 Homestays)")
+    print("🚀 Initializing No-Floor Branded PDF Generator (Exact BHK & Beds)")
+    cleanup_old_intermediate_pdfs()
+    
     results = []
     for item in PORTFOLIO:
         success, fname, mb, pages = build_property_pdf(item)
         if success:
             results.append((fname, mb, pages))
             
-    print("\n" + "="*80)
-    print("🏁 FINAL REPORT: ALL 20 BRANDED PDFs GENERATED WITH LOCATION IN FILENAMES")
-    print("="*80)
+    print("\n" + "="*85)
+    print("🏁 FINAL REPORT: ALL 20 NO-FLOOR BRANDED PDFs READY WITH BHK & BEDS")
+    print("="*85)
     for fname, mb, pages in results:
-        print(f" • {fname:<70} | {mb:>6.2f} MB | {pages:>3} pages")
-    print("="*80)
+        print(f" • {fname:<72} | {mb:>6.2f} MB | {pages:>3} pages")
+    print("="*85)
 
 if __name__ == '__main__':
     main()
