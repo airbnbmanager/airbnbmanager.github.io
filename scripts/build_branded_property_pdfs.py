@@ -1,0 +1,339 @@
+#!/usr/bin/env python3
+"""
+Generate Luxury Branded Cover Pages and Compiles Descriptive Location-Named PDFs
+for all 20 properties in The Unique Haven Homes portfolio.
+"""
+
+import os
+import re
+import sys
+import time
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+import img2pdf
+
+BASE_DIR = '/Users/praveen/Developer/Property PDFs'
+LOGO_PATH = '/Users/praveen/Developer/airbnbmanager.github.io/assets/logo-crest.png'
+
+# Portfolio definitions with verified location metadata
+PORTFOLIO = [
+    # ── 10 Properties in Vikalp Khand, Chinhat, Gomti Nagar ──
+    {
+        'folder': 'Black Beauty',
+        'display_name': 'BLACK BEAUTY',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 102, 1st Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'Black Beauty - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'RedRose Palace',
+        'display_name': 'REDROSE PALACE',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 101, 1st Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'RedRose Palace - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Dark Blue',
+        'display_name': 'THE DARK BLUE',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 201, 2nd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Dark Blue - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Brown',
+        'display_name': 'THE BROWN',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 202, 2nd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Brown - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Light Green',
+        'display_name': 'THE LIGHT GREEN',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 301, 3rd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Light Green - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Unique',
+        'display_name': 'THE UNIQUE',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 302, 3rd Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Unique - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Nawabi Stay',
+        'display_name': 'THE NAWABI STAY',
+        'type': '3 BHK Luxury Homestay · Fully Air-Conditioned',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Flat 401, 4th Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Nawabi Stay - 3BHK Luxury Flat (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'Starlight Blue PentHouse',
+        'display_name': 'STARLIGHT BLUE PENTHOUSE',
+        'type': 'Luxury PentHouse · Private Rooftop Terrace',
+        'area_badge': 'Vikalp Khand, Chinhat, Gomti Nagar',
+        'full_address': 'Penthouse 501, 5th Floor, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    🌟 Private Terrace    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'Starlight Blue PentHouse - Luxury Penthouse (Vikalp Khand, Chinhat, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Tehzeeb Nest',
+        'display_name': 'THE TEHZEEB NEST',
+        'type': '3 BHK Luxury Skyline Homestay · Serviced Living',
+        'area_badge': 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
+        'full_address': 'Flat 402, 4th Floor, Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Tehzeeb Nest - 3BHK Luxury Flat (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'Sukoon Stay',
+        'display_name': 'SUKOON STAY',
+        'type': '3 BHK Luxury Skyline Homestay · Serviced Living',
+        'area_badge': 'Blossom Skyline, Vikalp Khand, Gomti Nagar',
+        'full_address': 'Flat 502, 5th Floor, Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'Sukoon Stay - 3BHK Luxury Flat (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf'
+    },
+
+    # ── 3 Properties in Vishesh Khand 3, Gomti Nagar ──
+    {
+        'folder': 'The Yellow House',
+        'display_name': 'THE YELLOW HOUSE',
+        'type': '3 BHK Luxury Villa · Ground Floor Private Entry',
+        'area_badge': 'Vishesh Khand 3, Gomti Nagar',
+        'full_address': 'Ground Floor, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    🚗 Dedicated Parking    ❄️ 100% AC',
+        'filename': 'The Yellow House - 3BHK Luxury Villa Ground Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Green House',
+        'display_name': 'THE GREEN HOUSE',
+        'type': '3 BHK Luxury Villa · 1st Floor with Balcony',
+        'area_badge': 'Vishesh Khand 3, Gomti Nagar',
+        'full_address': '1st Floor, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    🌿 Private Balcony    👥 Up to 8 Guests    ❄️ 100% AC',
+        'filename': 'The Green House - 3BHK Luxury Villa 1st Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+    },
+    {
+        'folder': 'The Pink House',
+        'display_name': 'THE PINK HOUSE',
+        'type': '5 BHK Grand Luxury Duplex Villa with Private Terrace',
+        'area_badge': 'Vishesh Khand 3, Gomti Nagar',
+        'full_address': '2nd & 3rd Floor Duplex, 3/64 Vishesh Khand 3, Gomti Nagar, Lucknow',
+        'specs': '🛏️ 5 King Bedrooms    🚿 5 Attached Baths    👥 Up to 15 Guests    🌟 Private Rooftop    ❄️ 100% AC',
+        'filename': 'The Pink House - 5BHK Luxury Villa 2nd & 3rd Floor (Vishesh Khand 3, Gomti Nagar).pdf'
+    },
+
+    # ── 7 Properties Near Lulu Mall / Shaheed Path / Golf City ──
+    {
+        'folder': 'Celebrity Garden',
+        'display_name': 'CELEBRITY GARDEN',
+        'type': '4 BHK Grand Luxury Flat & Private Lawn',
+        'area_badge': 'Celebrity Greens, Sushant Golf City (Near Lulu Mall)',
+        'full_address': 'Celebrity Greens, Sushant Golf City, Near Lulu Mall & Shaheed Path, Lucknow',
+        'specs': '🛏️ 4 King Bedrooms    🚿 4 Attached Baths    🌳 Private Lawn    👥 Up to 12 Guests    ❄️ 100% AC',
+        'filename': 'Celebrity Garden - 4BHK Grand Flat & Lawn (Celebrity Greens, Near Lulu Mall).pdf'
+    },
+    {
+        'folder': 'The Luxe Haven',
+        'display_name': 'THE LUXE HAVEN',
+        'type': '1 BHK Luxury Executive Flat · Couple & Business Friendly',
+        'area_badge': 'Golf City, Near Lulu Mall & Medanta Hospital',
+        'full_address': 'Near Lulu Mall & Medanta Hospital, Golf City, Shaheed Path, Lucknow',
+        'specs': '🛏️ 1 King Bedroom    🚿 1 Luxury Bath    👥 Up to 3 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Luxe Haven - 1BHK Luxury Flat (Near Lulu Mall & Medanta, Golf City).pdf'
+    },
+    {
+        'folder': 'Gomti Grand Villa',
+        'display_name': 'GOMTI GRAND VILLA',
+        'type': '4 BHK Luxury Independent Villa · Private Porch',
+        'area_badge': 'Geetapuri, Near Lulu & Phoenix Palassio Mall',
+        'full_address': 'Villa One, Geetapuri Colony, Near Lulu & Phoenix Palassio Mall, Lucknow',
+        'specs': '🛏️ 4 King Bedrooms    🚿 4 Attached Baths    👥 Up to 12 Guests    🚗 Private Car Porch    ❄️ 100% AC',
+        'filename': 'Gomti Grand Villa - 4BHK Luxury Villa (Geetapuri, Near Lulu & Palassio Mall).pdf'
+    },
+    {
+        'folder': 'Royal White House',
+        'display_name': 'ROYAL WHITE HOUSE',
+        'type': 'Royal Luxury Independent Villa · Grand Event Friendly',
+        'area_badge': 'Omaxe City, Shaheed Path (Near Lulu Mall & Airport)',
+        'full_address': 'Omaxe City, Shaheed Path, Near Lulu Mall, Medanta & Airport, Lucknow',
+        'specs': '🛏️ Grand Royal Villa    🚿 Luxury Baths    👥 Large Family Stays    🚗 Private Parking    ❄️ 100% AC',
+        'filename': 'Royal White House - Royal Luxury Villa (Shaheed Path, Near Lulu Mall).pdf'
+    },
+    {
+        'folder': 'The Velvet House',
+        'display_name': 'THE VELVET HOUSE',
+        'type': '3 BHK Luxury Serviced Villa · 1st Floor',
+        'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
+        'full_address': 'Shaheed Path, Near Medanta Hospital & Lulu Mall, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Velvet House - 3BHK Luxury Villa (Shaheed Path, Near Medanta & Lulu Mall).pdf'
+    },
+    {
+        'folder': 'Green Forest',
+        'display_name': 'GREEN FOREST',
+        'type': '3 BHK Luxury Serviced Villa · 2nd Floor',
+        'area_badge': 'Ansal Golf City, Shaheed Path (Near Lulu Mall & Ekana)',
+        'full_address': 'Ansal Golf City, Shaheed Path, Near Lulu Mall & Ekana Stadium, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'Green Forest - 3BHK Luxury Villa (Shaheed Path, Near Lulu Mall & Ekana).pdf'
+    },
+    {
+        'folder': 'Pink Paradise',
+        'display_name': 'PINK PARADISE',
+        'type': '3 BHK Luxury Serviced Villa · 3rd Floor',
+        'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
+        'full_address': 'Near Medanta Hospital, Shaheed Path, Near Lulu Mall, Lucknow',
+        'specs': '🛏️ 3 King Bedrooms    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 High-Speed Wi-Fi    ❄️ 100% AC',
+        'filename': 'Pink Paradise - 3BHK Luxury Villa (Shaheed Path, Near Medanta & Lulu Mall).pdf'
+    }
+]
+
+def create_branded_cover_page(item, prop_folder):
+    W, H = 1654, 2338  # A4 standard at ~200 DPI
+    im = Image.new('RGB', (W, H), '#FFFFFF')
+    draw = ImageDraw.Draw(im)
+
+    # Fonts
+    f_bold_path = '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
+    f_reg_path = '/System/Library/Fonts/Supplemental/Arial.ttf'
+
+    f_brand = ImageFont.truetype(f_bold_path, 36)
+    f_brand_sub = ImageFont.truetype(f_reg_path, 20)
+    f_title = ImageFont.truetype(f_bold_path, 60)
+    f_type = ImageFont.truetype(f_bold_path, 30)
+    f_loc = ImageFont.truetype(f_bold_path, 26)
+    f_body = ImageFont.truetype(f_bold_path, 24)
+    f_sub = ImageFont.truetype(f_reg_path, 21)
+
+    # 1. Top Premium Header (Deep Obsidian Navy)
+    draw.rectangle([(0, 0), (W, 160)], fill='#0F172A')
+
+    # Paste Logo
+    if os.path.exists(LOGO_PATH):
+        try:
+            logo = Image.open(LOGO_PATH).convert('RGBA')
+            logo.thumbnail((120, 120), Image.Resampling.LANCZOS)
+            im.paste(logo, (80, 20), logo)
+        except Exception:
+            pass
+
+    draw.text((220, 45), 'THE UNIQUE HAVEN HOMES', fill='#FFFFFF', font=f_brand)
+    draw.text((220, 95), 'LUXURY HOMESTAYS & SERVICED VILLAS · LUCKNOW', fill='#94A3B8', font=f_brand_sub)
+
+    # 2. Luxurious Warm Gold Divider Accent Line
+    draw.rectangle([(0, 160), (W, 168)], fill='#D4AF37')
+
+    # 3. Property Title & Type
+    draw.text((80, 215), item['display_name'], fill='#0F172A', font=f_title)
+    draw.text((80, 295), item['type'], fill='#D97706', font=f_type)
+
+    # 4. Location Callout Badge (High-Contrast Box with Location Pin)
+    draw.rounded_rectangle([(80, 355), (W - 80, 435)], radius=12, fill='#F8FAFC', outline='#CBD5E1', width=2)
+    loc_text = f"📍 Location: {item['full_address']}"
+    draw.text((105, 380), loc_text, fill='#0F172A', font=f_loc)
+
+    # 5. Hero Photo Frame
+    hero_path = os.path.join(prop_folder, '01.jpg')
+    target_w = W - 160
+    target_h = 1380
+    if os.path.exists(hero_path):
+        try:
+            hero = Image.open(hero_path).convert('RGB')
+            hero_fitted = ImageOps.fit(hero, (target_w, target_h), Image.Resampling.LANCZOS)
+            im.paste(hero_fitted, (80, 465))
+            draw.rounded_rectangle([(80, 465), (80 + target_w, 465 + target_h)], radius=16, outline='#0F172A', width=3)
+        except Exception as e:
+            print(f"Error pasting hero image for {item['display_name']}: {e}")
+
+    # 6. Specs & Amenity Highlights Bar
+    box_y = 1880
+    draw.rounded_rectangle([(80, box_y), (W - 80, box_y + 105)], radius=12, fill='#0F172A')
+    draw.text((115, box_y + 36), item['specs'], fill='#F8FAFC', font=f_body)
+
+    # 7. Trust & Booking Assurance Footer
+    foot_y = H - 200
+    draw.rectangle([(0, foot_y), (W, H)], fill='#F8FAFC')
+    draw.line([(80, foot_y), (W - 80, foot_y)], fill='#E2E8F0', width=2)
+    draw.text((80, foot_y + 35), '🛡️ Verified Homestay by The Unique Haven Homes Private Limited', fill='#0F172A', font=ImageFont.truetype(f_bold_path, 25))
+    draw.text((80, foot_y + 75), 'Professional Housekeeping · 100% Sanitized Linens · Dedicated Ground Caretaker', fill='#64748B', font=f_sub)
+    draw.text((80, foot_y + 115), 'Direct Bookings: +91 91700 00000  |  Website: uniquehavenhomesstay.com', fill='#0284C7', font=ImageFont.truetype(f_bold_path, 24))
+
+    cover_file = os.path.join(prop_folder, '00_cover.jpg')
+    im.save(cover_file, quality=95)
+    return cover_file
+
+def build_property_pdf(item):
+    name = item['display_name']
+    prop_folder = os.path.join(BASE_DIR, item['folder'])
+    new_pdf_name = item['filename']
+    new_pdf_path = os.path.join(BASE_DIR, new_pdf_name)
+    
+    print(f"\n==================================================")
+    print(f"🎨 Generating Branded PDF: {name}")
+    print(f"📍 Location: {item['area_badge']}")
+    print(f"📄 Output File: {new_pdf_name}")
+    print(f"==================================================")
+    
+    # 1. Generate branded cover page (Page 1)
+    t0 = time.time()
+    cover_path = create_branded_cover_page(item, prop_folder)
+    print(f"   ✓ Cover Page generated: {os.path.basename(cover_path)}")
+    
+    # 2. Collect all images in sequence: Cover (Page 1) + 01.jpg, 02.jpg ...
+    all_imgs = [cover_path]
+    for i in range(1, 150):
+        fname = f"{i:02d}.jpg"
+        fpath = os.path.join(prop_folder, fname)
+        if os.path.exists(fpath) and os.path.getsize(fpath) > 1000:
+            all_imgs.append(fpath)
+            
+    print(f"   ✓ Collected {len(all_imgs)} pages ({len(all_imgs)-1} property photos + 1 Branded Cover)")
+    
+    # 3. Compile PDF using img2pdf
+    a4inpt = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
+    layout_fun = img2pdf.get_layout_fun(a4inpt)
+    
+    try:
+        pdf_bytes = img2pdf.convert(all_imgs, layout_fun=layout_fun)
+        with open(new_pdf_path, 'wb') as f:
+            f.write(pdf_bytes)
+            
+        mb = os.path.getsize(new_pdf_path) / (1024 * 1024)
+        print(f"   🎉 Built {new_pdf_name} ({mb:.2f} MB, {len(all_imgs)} pages) in {time.time()-t0:.2f}s")
+        return True, new_pdf_name, mb, len(all_imgs)
+    except Exception as e:
+        print(f"   ❌ Error building PDF for {name}: {e}")
+        return False, new_pdf_name, 0, 0
+
+def main():
+    print("🚀 Initializing Branded Cover Page & Location-Named PDF Generation (20 Homestays)")
+    results = []
+    for item in PORTFOLIO:
+        success, fname, mb, pages = build_property_pdf(item)
+        if success:
+            results.append((fname, mb, pages))
+            
+    print("\n" + "="*80)
+    print("🏁 FINAL REPORT: ALL 20 BRANDED PDFs GENERATED WITH LOCATION IN FILENAMES")
+    print("="*80)
+    for fname, mb, pages in results:
+        print(f" • {fname:<70} | {mb:>6.2f} MB | {pages:>3} pages")
+    print("="*80)
+
+if __name__ == '__main__':
+    main()
