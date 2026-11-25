@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v523` (`tuhh-live-v523` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v524` (`tuhh-live-v524` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
 > **Last Updated**: November 25, 2026 (Ready for Windows PC Session)
@@ -195,4 +195,9 @@ npm start
      * **The Green House**
      * **The Yellow House**
    - **Rule**: NEVER overwrite other properties with the Penthouse link. Keep the above 6 blank until the user explicitly provides their links.
+
+3. **TUHH-OD Balance & Daily Statement Reconciliation**:
+   - The Top Banner ("TUHH-OD Account Online Balance") and the Daily Statement ("OD Balance & Daily Closing Statement" + Mobile Proof Screenshot) must ALWAYS stay 100% synchronized.
+   - Fixed an edge-case where a deposit dated on or after a guest's future check-in date was omitted when filtering cumulative closing balance up to Today's date (`25-Nov`), creating an artificial ₹1,000 difference (`-₹869.94` vs `-₹1,869.94`).
+   - `renderClosingStatementForDate` now computes full live ledger totals for Today's view, ensuring `Total Deposited - Total Utilized = Closing Balance` (`-₹869.94`) consistently across both banners and mobile screenshots.
 

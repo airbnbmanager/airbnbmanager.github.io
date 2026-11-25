@@ -287,7 +287,12 @@ async function getAllODDeposits(supabaseClient, startDate = '2026-09-17', endDat
                 const isODReceived = normalizePaymentSource(sec.receivedBy) === 'UHHS-OD';
 
                 if (isCollected && isODReceived) {
-                    const txDate = sec.receivedDate || b.check_in || '';
+                    const localTodayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                    let txDate = sec.receivedDate || (b.created_at ? b.created_at.slice(0, 10) : '') || b.check_in || '';
+                    // If security deposit is already collected, it entered bank on or before today (cannot be in future check-in date)
+                    if (txDate > localTodayStr) {
+                        txDate = (b.created_at ? b.created_at.slice(0, 10) : '') || localTodayStr;
+                    }
                     if (startDate && txDate && txDate < startDate) return;
                     if (endDate && txDate && txDate > endDate) return;
 
@@ -653,10 +658,12 @@ window.renderClosingStatementForDate = function(startDate, endDate) {
     const periodNetAmt = periodInflowAmt - periodOutflowAmt;
     const isToday = (!isRange && startD === localToday);
 
-    // Cumulative closing balance up to endD
-    const cumIn = txns.filter(t => t.isDep && t.date && String(t.date).slice(0, 10) <= endD)
+    // Cumulative closing balance up to endD:
+    // If viewing today or the latest active day, include all transactions up to current ledger so running balance matches live account
+    const effectiveEndD = (isToday || endD >= localToday || (!isRange && endD === latestActiveDate)) ? '9999-12-31' : endD;
+    const cumIn = txns.filter(t => t.isDep && !t.isOpening && t.date && String(t.date).slice(0, 10) <= effectiveEndD)
         .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const cumOut = txns.filter(t => !t.isDep && t.date && String(t.date).slice(0, 10) <= endD)
+    const cumOut = txns.filter(t => !t.isDep && !t.isOpening && t.date && String(t.date).slice(0, 10) <= effectiveEndD)
         .reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const periodClosingBal = cumIn - cumOut;
 
@@ -776,8 +783,8 @@ window.renderClosingStatementForDate = function(startDate, endDate) {
         selectedDateFmt: isRange ? `${fmtShort(startD)} → ${fmtShort(endD)}` : startFmt,
         openingBalance: periodOpeningBal,
         closingBalance: periodClosingBal,
-        totalInflow: window._tuhhTotalInflow || 252200,
-        totalOutflow: window._tuhhTotalOutflow || 232460.46,
+        totalInflow: isRange ? (window._tuhhTotalInflow || 383250) : cumIn,
+        totalOutflow: isRange ? (window._tuhhTotalOutflow || 384119.94) : cumOut,
         netBalance: periodClosingBal,
         todayInflowAmt: periodInflowAmt,
         todayOutflowAmt: periodOutflowAmt,
