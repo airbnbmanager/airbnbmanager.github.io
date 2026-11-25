@@ -38,6 +38,7 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 // Master Google Drive Folder for all Property PDFs & Guides
 window.DEFAULT_MASTER_PDF_FOLDER = 'https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing';
 window.DEFAULT_MASTER_PDF_GUIDE = window.DEFAULT_MASTER_PDF_FOLDER;
+window.DEFAULT_WHATSAPP_CATALOG_URL = 'https://wa.me/c/919194109911';
 
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // The Luxe Haven - 1 BHK 2 Beds (Near Lulu Mall, Golf City).pdf
@@ -510,6 +511,9 @@ async function renderManageRooms() {
             </button>
             <a href="https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing" target="_blank" rel="noopener" style="background:#166534;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(22,101,52,0.25);" title="Open Master Google Drive Folder with all 20 property PDFs">
               <span>📂</span> Drive PDFs
+            </a>
+            <a href="https://wa.me/c/919194109911" target="_blank" rel="noopener" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(5,150,105,0.25);" title="Open Official WhatsApp Business Catalog">
+              <span>🛍️</span> WhatsApp Catalog
             </a>
             <button onclick="navigate('showcase-admin')" style="background:#0F766E;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🌐</span> Website CMS
