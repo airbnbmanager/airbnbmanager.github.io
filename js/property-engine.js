@@ -245,6 +245,7 @@
       this.renderAgodaSearchBar();
       this.renderAirbnbSubnav();
       this.renderMetaHeader();
+      this.renderPdfActionBtn();
       this.renderHeroMosaic();
       this.renderCategoryStrip();
       this.renderAgodaScoreCard();
@@ -1098,6 +1099,45 @@
 
       const breadcrumbStay = document.getElementById('luxe-crumb-name');
       if (breadcrumbStay) breadcrumbStay.textContent = p.name;
+    }
+
+    renderPdfActionBtn() {
+      const actionsEl = document.querySelector('.luxe-header-actions');
+      if (!actionsEl) return;
+      if (actionsEl.querySelector('.luxe-pdf-action-btn')) return;
+
+      const p = this.prop;
+      const roomId = p.id || p.room_id || this.identifier;
+      const PDF_GUIDES = {
+        'GOM-501': 'https://drive.google.com/uc?export=download&id=1sj0cmad-yu7b_oHqd66tmjKaH-Id_wXH',
+        'VIL-108': 'https://drive.google.com/uc?export=download&id=194K9aH0dQDc2QZG9eXDBK6M8DBDMgG9Q',
+        'GOM-102': 'https://drive.google.com/uc?export=download&id=1L3ol8y_E73-IXnLnyldPyFxXAHu16fXI',
+        'VIL-101': 'https://drive.google.com/uc?export=download&id=1i2CybMB92vktflT_ghygUsHv8-Uh6nit',
+        'VIL-106': 'https://drive.google.com/uc?export=download&id=1sva10t3Gz3SvFcugfnXa_opjKFw4Pz3x',
+        'GOM-101': 'https://drive.google.com/uc?export=download&id=1x4tJ4dgUVOPHhBrviG41BzKgYrsQiIio',
+        'VIL-102': 'https://drive.google.com/uc?export=download&id=1JNzn8Rnpwr6zabhFl-ToR4c7FfgGZBI_',
+        'GOM-201': 'https://drive.google.com/uc?export=download&id=1jf-tAaklj5XwbWTaf9Fa2UetWslbO7FP',
+        'GOM-301': 'https://drive.google.com/uc?export=download&id=12Y92ozI2KvdB4_lB-YAAls3Lb7rLQiMG',
+        'LUL-101': 'https://drive.google.com/uc?export=download&id=1-jty4KDn0-no9q0LcdoMxOsb1UPWLitb',
+        'GOM-401': 'https://drive.google.com/uc?export=download&id=1gvXPuH9v0rplTByLSOqB9TC8lWOIPL0b',
+        'Flat 402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+        'GOM-402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+        'VIL-107': 'https://drive.google.com/uc?export=download&id=1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu'
+      };
+
+      const dlUrl = PDF_GUIDES[roomId] || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId] ? (window.getDirectDownloadPdfUrl ? window.getDirectDownloadPdfUrl(window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : '');
+      if (!dlUrl) return;
+
+      const btn = document.createElement('a');
+      btn.className = 'luxe-action-btn luxe-pdf-action-btn';
+      btn.href = dlUrl;
+      btn.target = '_blank';
+      btn.rel = 'noopener';
+      btn.title = `Download Official ${p.name || 'Homestay'} Brochure & House Manual (PDF)`;
+      btn.style.cssText = 'background:#059669; color:#fff; border-color:#059669; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(5,150,105,0.25);';
+      btn.innerHTML = '<span>📥</span> Download PDF Guide';
+
+      actionsEl.insertBefore(btn, actionsEl.firstChild);
     }
 
     renderHeroMosaic() {

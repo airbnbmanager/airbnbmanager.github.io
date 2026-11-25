@@ -1286,6 +1286,23 @@
 
         if (error || !rooms) return;
 
+        const PDF_GUIDES = {
+          'GOM-501': 'https://drive.google.com/uc?export=download&id=1sj0cmad-yu7b_oHqd66tmjKaH-Id_wXH',
+          'VIL-108': 'https://drive.google.com/uc?export=download&id=194K9aH0dQDc2QZG9eXDBK6M8DBDMgG9Q',
+          'GOM-102': 'https://drive.google.com/uc?export=download&id=1L3ol8y_E73-IXnLnyldPyFxXAHu16fXI',
+          'VIL-101': 'https://drive.google.com/uc?export=download&id=1i2CybMB92vktflT_ghygUsHv8-Uh6nit',
+          'VIL-106': 'https://drive.google.com/uc?export=download&id=1sva10t3Gz3SvFcugfnXa_opjKFw4Pz3x',
+          'GOM-101': 'https://drive.google.com/uc?export=download&id=1x4tJ4dgUVOPHhBrviG41BzKgYrsQiIio',
+          'VIL-102': 'https://drive.google.com/uc?export=download&id=1JNzn8Rnpwr6zabhFl-ToR4c7FfgGZBI_',
+          'GOM-201': 'https://drive.google.com/uc?export=download&id=1jf-tAaklj5XwbWTaf9Fa2UetWslbO7FP',
+          'GOM-301': 'https://drive.google.com/uc?export=download&id=12Y92ozI2KvdB4_lB-YAAls3Lb7rLQiMG',
+          'LUL-101': 'https://drive.google.com/uc?export=download&id=1-jty4KDn0-no9q0LcdoMxOsb1UPWLitb',
+          'GOM-401': 'https://drive.google.com/uc?export=download&id=1gvXPuH9v0rplTByLSOqB9TC8lWOIPL0b',
+          'Flat 402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+          'GOM-402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+          'VIL-107': 'https://drive.google.com/uc?export=download&id=1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu'
+        };
+
         rooms.forEach(room => {
           const card = document.querySelector(`.dir-card[data-room-id="${room.room_id}"]`);
           if (!card) return;
@@ -1312,6 +1329,23 @@
             const mainPriceEl = card.querySelector('.dir-card-price-main');
             if (mainPriceEl) {
               mainPriceEl.innerHTML = `₹${liveRent.toLocaleString('en-IN')} <small>/ night</small>`;
+            }
+          }
+
+          // 3. Official Property PDF Guide Direct Download Button
+          const pdfDlUrl = PDF_GUIDES[room.room_id];
+          if (pdfDlUrl) {
+            const actionsEl = card.querySelector('.dir-card-actions');
+            if (actionsEl && !actionsEl.querySelector('.dir-btn-pdf')) {
+              const pdfBtn = document.createElement('a');
+              pdfBtn.className = 'dir-btn-pdf';
+              pdfBtn.href = pdfDlUrl;
+              pdfBtn.target = '_blank';
+              pdfBtn.rel = 'noopener';
+              pdfBtn.title = 'Download Official Homestay Brochure & Guide (PDF)';
+              pdfBtn.style.cssText = 'padding:6px 11px; font-size:11px; font-weight:700; color:#065F46; background:#D1FAE5; border:1px solid #86EFAC; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 3px rgba(6,95,70,0.12); cursor:pointer;';
+              pdfBtn.innerHTML = '📥 PDF';
+              actionsEl.insertBefore(pdfBtn, actionsEl.firstChild);
             }
           }
         });

@@ -33,11 +33,37 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 // ═══════════════════════════════════════════════════════════
 // 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync & Direct Download)
 // ═══════════════════════════════════════════════════════════
+// Master Default Homestay Guide PDF (optional fallback)
+window.DEFAULT_MASTER_PDF_GUIDE = '';
+
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // Starlight Blue PentHouse (GOM-501)
-  'GOM-501': 'https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing',
-  // Pink Paradise (3rd Floor) - front of lulu mall 3 bhk (VIL-108)
-  'VIL-108': 'https://drive.google.com/file/d/1DLY90HRpIKU9__lXHibImrjq9mh6UoFD/view?usp=sharing'
+  'GOM-501': 'https://drive.google.com/file/d/1sj0cmad-yu7b_oHqd66tmjKaH-Id_wXH/view?usp=sharing',
+  // Pink Paradise (3rd Floor) (VIL-108)
+  'VIL-108': 'https://drive.google.com/file/d/194K9aH0dQDc2QZG9eXDBK6M8DBDMgG9Q/view?usp=sharing',
+  // Black Beauty (GOM-102)
+  'GOM-102': 'https://drive.google.com/file/d/1L3ol8y_E73-IXnLnyldPyFxXAHu16fXI/view?usp=sharing',
+  // Gomti Grand Villa (VIL-101)
+  'VIL-101': 'https://drive.google.com/file/d/1i2CybMB92vktflT_ghygUsHv8-Uh6nit/view?usp=sharing',
+  // Green Forest (2nd Floor) (VIL-106)
+  'VIL-106': 'https://drive.google.com/file/d/1sva10t3Gz3SvFcugfnXa_opjKFw4Pz3x/view?usp=sharing',
+  // RedRose Palace (GOM-101)
+  'GOM-101': 'https://drive.google.com/file/d/1x4tJ4dgUVOPHhBrviG41BzKgYrsQiIio/view?usp=sharing',
+  // Royal White House (VIL-102)
+  'VIL-102': 'https://drive.google.com/file/d/1JNzn8Rnpwr6zabhFl-ToR4c7FfgGZBI_/view?usp=sharing',
+  // The Dark Blue (GOM-201)
+  'GOM-201': 'https://drive.google.com/file/d/1jf-tAaklj5XwbWTaf9Fa2UetWslbO7FP/view?usp=sharing',
+  // The Light Green (GOM-301)
+  'GOM-301': 'https://drive.google.com/file/d/12Y92ozI2KvdB4_lB-YAAls3Lb7rLQiMG/view?usp=sharing',
+  // The Luxe Haven (LUL-101)
+  'LUL-101': 'https://drive.google.com/file/d/1-jty4KDn0-no9q0LcdoMxOsb1UPWLitb/view?usp=sharing',
+  // The Nawabi Stay (GOM-401)
+  'GOM-401': 'https://drive.google.com/file/d/1gvXPuH9v0rplTByLSOqB9TC8lWOIPL0b/view?usp=sharing',
+  // The Tehzeeb Nest (Flat 402 & GOM-402)
+  'Flat 402': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
+  'GOM-402': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
+  // The Velvet House (1st Floor) (VIL-107)
+  'VIL-107': 'https://drive.google.com/file/d/1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu/view?usp=sharing'
 };
 
 // Gets the active PDF guide URL for any room (custom > property default > empty)
