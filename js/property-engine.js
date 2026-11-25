@@ -1122,6 +1122,8 @@
         'GOM-401': 'https://drive.google.com/uc?export=download&id=1gvXPuH9v0rplTByLSOqB9TC8lWOIPL0b',
         'Flat 402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
         'GOM-402': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+        'Flat 502': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
+        'GOM-502': 'https://drive.google.com/uc?export=download&id=1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl',
         'VIL-107': 'https://drive.google.com/uc?export=download&id=1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu'
       };
 

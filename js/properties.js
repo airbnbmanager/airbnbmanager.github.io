@@ -62,6 +62,9 @@ window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // The Tehzeeb Nest (Flat 402 & GOM-402)
   'Flat 402': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
   'GOM-402': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
+  // Sukoon Stay (Flat 502 & GOM-502) - Shares Tehzeeb Nest guide
+  'Flat 502': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
+  'GOM-502': 'https://drive.google.com/file/d/1aDVug66HE-c8cn67GxgyUfTJBsPK1yQl/view?usp=sharing',
   // The Velvet House (1st Floor) (VIL-107)
   'VIL-107': 'https://drive.google.com/file/d/1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu/view?usp=sharing'
 };
