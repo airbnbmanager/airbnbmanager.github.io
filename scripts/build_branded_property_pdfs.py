@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate Luxury Branded Cover Pages and Compiles Descriptive Location-Named PDFs
-WITHOUT any floor references (to prevent guest cancellations), with exact BHK & Beds count.
+WITHOUT any floor references, with EXACT user-verified BHK, Beds, and Location specs.
 """
 
 import os
@@ -139,14 +139,15 @@ PORTFOLIO = [
     },
 
     # ── 7 Properties Near Lulu Mall / Shaheed Path / Golf City ──
+    # Celebrity Garden: 5 Beds with Lawn
     {
         'folder': 'Celebrity Garden',
         'display_name': 'CELEBRITY GARDEN',
-        'type': '4 BHK Grand Luxury Homestay with Private Lawn · 4 Beds',
+        'type': '4 BHK Grand Luxury Homestay with Private Lawn · 5 Beds',
         'area_badge': 'Celebrity Greens, Sushant Golf City (Near Lulu Mall)',
         'full_address': 'Celebrity Greens, Sushant Golf City, Near Lulu Mall & Shaheed Path, Lucknow',
-        'specs': '🛏️ 4 King Beds    🚿 4 Attached Baths    🌳 Private Lawn    👥 Up to 12 Guests    ❄️ 100% AC',
-        'filename': 'Celebrity Garden - 4 BHK 4 Beds with Lawn (Near Lulu Mall, Shaheed Path).pdf'
+        'specs': '🛏️ 5 Beds (4 King + Lounge Bed)    🚿 4 Attached Baths    🌳 Private Lawn    👥 Up to 12 Guests    ❄️ 100% AC',
+        'filename': 'Celebrity Garden - 4 BHK 5 Beds with Lawn (Near Lulu Mall, Shaheed Path).pdf'
     },
     {
         'folder': 'The Luxe Haven',
@@ -157,50 +158,53 @@ PORTFOLIO = [
         'specs': '🛏️ 2 Beds (1 Queen + Sofa Bed)    🚿 1 Luxury Bath    👥 Up to 3 Guests    📶 Wi-Fi    ❄️ 100% AC',
         'filename': 'The Luxe Haven - 1 BHK 2 Beds (Near Lulu Mall, Golf City).pdf'
     },
+    # Gomti Grand Villa: 5 Beds
     {
         'folder': 'Gomti Grand Villa',
         'display_name': 'GOMTI GRAND VILLA',
-        'type': '4 BHK Luxury Independent Homestay Villa · 4 Beds',
+        'type': '4 BHK Luxury Independent Homestay Villa · 5 Beds',
         'area_badge': 'Geetapuri, Near Lulu & Phoenix Palassio Mall',
         'full_address': 'Villa One, Geetapuri Colony, Near Lulu & Phoenix Palassio Mall, Lucknow',
-        'specs': '🛏️ 4 King Beds    🚿 4 Attached Baths    👥 Up to 12 Guests    🚗 Private Car Porch    ❄️ 100% AC',
-        'filename': 'Gomti Grand Villa - 4 BHK 4 Beds Villa (Near Lulu & Palassio Mall).pdf'
+        'specs': '🛏️ 5 Beds (4 King + Extra Bed)    🚿 4 Attached Baths    👥 Up to 14 Guests    🚗 Private Car Porch    ❄️ 100% AC',
+        'filename': 'Gomti Grand Villa - 4 BHK 5 Beds Villa (Near Lulu & Palassio Mall).pdf'
     },
+    # Royal White House: 6 BHK
     {
         'folder': 'Royal White House',
         'display_name': 'ROYAL WHITE HOUSE',
-        'type': 'Royal Independent Luxury Homestay Villa · 5 Beds',
+        'type': '6 BHK Royal Independent Luxury Homestay Villa',
         'area_badge': 'Omaxe City, Shaheed Path (Near Lulu Mall & Airport)',
         'full_address': 'Omaxe City, Shaheed Path, Near Lulu Mall, Medanta & Airport, Lucknow',
-        'specs': '🛏️ 5 King Beds    🚿 Luxury Baths    👥 Large Family Stays    🚗 Private Parking    ❄️ 100% AC',
-        'filename': 'Royal White House - Royal Villa 5 Beds (Shaheed Path, Near Lulu Mall).pdf'
+        'specs': '🛏️ 6 Luxury Bedrooms    🚿 Attached Baths    👥 Grand Family Stays    🚗 Private Parking    ❄️ 100% AC',
+        'filename': 'Royal White House - 6 BHK Royal Villa (Shaheed Path, Near Lulu Mall).pdf'
     },
+    # Madhav Kunj: 3 BHK · 3 Beds (The Velvet House, Green Forest, Pink Paradise)
     {
         'folder': 'The Velvet House',
         'display_name': 'THE VELVET HOUSE',
-        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
-        'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
-        'full_address': 'Shaheed Path, Near Medanta Hospital & Lulu Mall, Lucknow',
-        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
-        'filename': 'The Velvet House - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
+        'type': '3 BHK Luxury Homestay Villa · 3 Beds',
+        'area_badge': 'Madhav Kunj (Near Lulu Mall & Medanta)',
+        'full_address': 'Madhav Kunj, Shaheed Path, Near Medanta Hospital & Lulu Mall, Lucknow',
+        'specs': '🛏️ 3 King Beds    🚿 3 Attached Baths    👥 Up to 6-8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'The Velvet House - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf'
     },
     {
         'folder': 'Green Forest',
         'display_name': 'GREEN FOREST',
-        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
-        'area_badge': 'Ansal Golf City, Shaheed Path (Near Lulu Mall & Ekana)',
-        'full_address': 'Ansal Golf City, Shaheed Path, Near Lulu Mall & Ekana Stadium, Lucknow',
-        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
-        'filename': 'Green Forest - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
+        'type': '3 BHK Luxury Homestay Villa · 3 Beds',
+        'area_badge': 'Madhav Kunj (Near Lulu Mall & Ekana)',
+        'full_address': 'Madhav Kunj, Shaheed Path, Near Lulu Mall & Ekana Stadium, Lucknow',
+        'specs': '🛏️ 3 King Beds    🚿 3 Attached Baths    👥 Up to 6-8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Green Forest - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf'
     },
     {
         'folder': 'Pink Paradise',
         'display_name': 'PINK PARADISE',
-        'type': '3 BHK Luxury Homestay Villa · 4 Beds',
-        'area_badge': 'Shaheed Path, Near Medanta Hospital & Lulu Mall',
-        'full_address': 'Near Medanta Hospital, Shaheed Path, Near Lulu Mall, Lucknow',
-        'specs': '🛏️ 4 Beds (3 King + Living Bed)    🚿 3 Attached Baths    👥 Up to 8 Guests    📶 Wi-Fi    ❄️ 100% AC',
-        'filename': 'Pink Paradise - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
+        'type': '3 BHK Luxury Homestay Villa · 3 Beds',
+        'area_badge': 'Madhav Kunj (Near Lulu Mall & Medanta)',
+        'full_address': 'Madhav Kunj, Shaheed Path, Near Medanta Hospital & Lulu Mall, Lucknow',
+        'specs': '🛏️ 3 King Beds    🚿 3 Attached Baths    👥 Up to 6-8 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Pink Paradise - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf'
     }
 ]
 
@@ -321,24 +325,28 @@ def build_property_pdf(item):
         print(f"   ❌ Error building PDF for {name}: {e}")
         return False, new_pdf_name, 0, 0
 
-def cleanup_old_intermediate_pdfs():
-    # Remove previous intermediate PDFs containing old naming patterns
-    patterns = [
-        os.path.join(BASE_DIR, "* - *Luxury Flat*.pdf"),
-        os.path.join(BASE_DIR, "* - *Luxury Villa*.pdf"),
-        os.path.join(BASE_DIR, "* - *Penthouse (*.pdf")
+def cleanup_outdated_pdfs():
+    # Remove files that are being renamed
+    to_clean = [
+        'Celebrity Garden - 4 BHK 4 Beds with Lawn (Near Lulu Mall, Shaheed Path).pdf',
+        'Gomti Grand Villa - 4 BHK 4 Beds Villa (Near Lulu & Palassio Mall).pdf',
+        'Royal White House - Royal Villa 5 Beds (Shaheed Path, Near Lulu Mall).pdf',
+        'The Velvet House - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf',
+        'Green Forest - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf',
+        'Pink Paradise - 3 BHK 4 Beds Villa (Shaheed Path, Near Lulu Mall).pdf'
     ]
-    for pat in patterns:
-        for f in glob.glob(pat):
+    for f in to_clean:
+        p = os.path.join(BASE_DIR, f)
+        if os.path.exists(p):
             try:
-                os.remove(f)
-                print(f"Cleaned up previous intermediate PDF: {os.path.basename(f)}")
+                os.remove(p)
+                print(f"Cleaned outdated PDF: {f}")
             except Exception:
                 pass
 
 def main():
-    print("🚀 Initializing No-Floor Branded PDF Generator (Exact BHK & Beds)")
-    cleanup_old_intermediate_pdfs()
+    print("🚀 Initializing Updated Branded PDF Generator (Gomti Grand Villa 5 Beds, Garden 5 Beds, Madhav Kunj 3 Beds, White House 6 BHK)")
+    cleanup_outdated_pdfs()
     
     results = []
     for item in PORTFOLIO:
@@ -347,7 +355,7 @@ def main():
             results.append((fname, mb, pages))
             
     print("\n" + "="*85)
-    print("🏁 FINAL REPORT: ALL 20 NO-FLOOR BRANDED PDFs READY WITH BHK & BEDS")
+    print("🏁 FINAL REPORT: ALL 20 UPDATED PDFs COMPILED WITH EXACT SPECS")
     print("="*85)
     for fname, mb, pages in results:
         print(f" • {fname:<72} | {mb:>6.2f} MB | {pages:>3} pages")
