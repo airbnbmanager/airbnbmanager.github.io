@@ -1072,7 +1072,9 @@ window.closeUhhsStatementModal = function () {
 window.showUhhsStatementModal = async function () {
   try {
     const { fromDate, toDate } = window._claimsState || {};
-    const fDate = fromDate || '2026-09-17';
+    const isDec = (window._tuhhOdCycle === 'dec2026') || (!window._tuhhOdCycle && new Date() >= new Date('2026-12-01'));
+    const defaultStart = isDec ? '2026-12-01' : '2026-09-17';
+    const fDate = fromDate || defaultStart;
     const tDate = toDate || new Date().toISOString().slice(0, 10);
 
     let ledger = null;
