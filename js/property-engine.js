@@ -1127,7 +1127,8 @@
         'VIL-107': 'https://drive.google.com/uc?export=download&id=1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu'
       };
 
-      const dlUrl = PDF_GUIDES[roomId] || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId] ? (window.getDirectDownloadPdfUrl ? window.getDirectDownloadPdfUrl(window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : '');
+      const MASTER_FOLDER_URL = 'https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing';
+      const dlUrl = PDF_GUIDES[roomId] || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId] ? (window.getDirectDownloadPdfUrl ? window.getDirectDownloadPdfUrl(window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) : MASTER_FOLDER_URL);
       if (!dlUrl) return;
 
       const btn = document.createElement('a');

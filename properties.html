@@ -1335,7 +1335,8 @@
           }
 
           // 3. Official Property PDF Guide Direct Download Button
-          const pdfDlUrl = PDF_GUIDES[room.room_id];
+          const MASTER_PDF_FOLDER = 'https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing';
+          const pdfDlUrl = PDF_GUIDES[room.room_id] || MASTER_PDF_FOLDER;
           if (pdfDlUrl) {
             const actionsEl = card.querySelector('.dir-card-actions');
             if (actionsEl && !actionsEl.querySelector('.dir-btn-pdf')) {

@@ -33,8 +33,11 @@ window.logCleanerTurnaround = function(roomId, cleanerEmpId, cleanerName, dateSt
 // ═══════════════════════════════════════════════════════════
 // 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync & Direct Download)
 // ═══════════════════════════════════════════════════════════
-// Master Default Homestay Guide PDF (optional fallback)
-window.DEFAULT_MASTER_PDF_GUIDE = '';
+// 📑 PROPERTY PDF & HOUSE MANUAL GUIDES (Cloud Sync & Direct Download)
+// ═══════════════════════════════════════════════════════════
+// Master Google Drive Folder for all Property PDFs & Guides
+window.DEFAULT_MASTER_PDF_FOLDER = 'https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing';
+window.DEFAULT_MASTER_PDF_GUIDE = window.DEFAULT_MASTER_PDF_FOLDER;
 
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // Starlight Blue PentHouse (GOM-501)
@@ -69,7 +72,7 @@ window.DEFAULT_PROPERTY_PDF_GUIDES = {
   'VIL-107': 'https://drive.google.com/file/d/1CSbCIeX4CaYfcorMYwlVfSS9FU06HQYu/view?usp=sharing'
 };
 
-// Gets the active PDF guide URL for any room (custom > property default > empty)
+// Gets the active PDF guide URL for any room (custom > property default > master folder)
 window.getPropertyPdfUrl = function(roomId) {
   let guides = {};
   try {
@@ -78,6 +81,7 @@ window.getPropertyPdfUrl = function(roomId) {
 
   return (guides && guides[roomId]) 
     || (window.DEFAULT_PROPERTY_PDF_GUIDES && window.DEFAULT_PROPERTY_PDF_GUIDES[roomId]) 
+    || window.DEFAULT_MASTER_PDF_FOLDER
     || '';
 };
 
@@ -456,6 +460,9 @@ async function renderManageRooms() {
             <button onclick="renderQuickPdfManager()" style="background:#0F172A;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(15,23,42,0.25);" title="Manage & Attach Google Drive PDFs for all homestays">
               <span>⚙️</span> Manage PDFs
             </button>
+            <a href="https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing" target="_blank" rel="noopener" style="background:#166534;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(22,101,52,0.25);" title="Open Master Google Drive Folder with all 20 property PDFs">
+              <span>📂</span> Drive PDFs
+            </a>
             <button onclick="navigate('showcase-admin')" style="background:#0F766E;color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span>🌐</span> Website CMS
             </button>
@@ -2529,6 +2536,25 @@ window.renderQuickPdfManager = async function(focusRoomId) {
           </div>
         </div>
         <button class="modal-close" onclick="document.getElementById('quickPdfModal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748B;">✕</button>
+      </div>
+
+      <!-- Master Drive Folder Bar -->
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:22px;">📂</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#166534;">Master Google Drive Folder (All 20 Properties)</div>
+            <div style="font-size:11px;color:#15803D;">Contains all official high-res branded property PDFs and photos.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <a href="https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing" target="_blank" rel="noopener" style="background:#166534;color:#fff;font-size:11.5px;font-weight:700;padding:7px 13px;border-radius:6px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+            Open in Drive ↗
+          </a>
+          <button type="button" onclick="navigator.clipboard.writeText('https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing'); if(window.fsn) fsn.success('Copied!', 'Master Drive folder link copied to clipboard!');" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;">
+            📋 Copy Link
+          </button>
+        </div>
       </div>
 
       <!-- Instructions & Tip Box -->
