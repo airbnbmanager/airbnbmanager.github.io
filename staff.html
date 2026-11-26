@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Staff & Caretaker Directory — The Unique Haven Homes</title>
+  <meta name="description" content="Location-wise official staff, property caretakers, supervisors, and operations directory for Unique Haven Homes Lucknow.">
+  <link rel="icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #D4AF37;
+      --primary-dark: #B48A1E;
+      --emerald: #10B981;
+      --sky: #0284C7;
+      --purple: #8B5CF6;
+      --bg-dark: #0B1120;
+      --surface: #1E293B;
+      --surface-elevated: #334155;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.1) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    .nav-shortcuts {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      justify-content: center;
+    }
+    .nav-pill {
+      font-size: 12px;
+      font-weight: 700;
+      color: #CBD5E1;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-glass);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-pill:hover {
+      background: var(--primary);
+      color: #000;
+    }
+
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 135px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-glass);
+      color: var(--text-sub);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(30, 41, 59, 0.95));
+      color: #FFF;
+      border-color: var(--sky);
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+    }
+
+    .tab-btn span.tab-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+    .tab-btn.active span.tab-sub {
+      color: #BAE6FD;
+    }
+
+    .location-cluster {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .location-cluster.active {
+      display: flex;
+    }
+
+    .cluster-banner {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cluster-banner strong {
+      color: #F8FAFC;
+    }
+
+    .staff-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .staff-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(2, 132, 199, 0.4);
+    }
+
+    .staff-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .staff-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+    }
+    .avatar-manager { background: rgba(212, 175, 55, 0.2); border-color: var(--primary); }
+    .avatar-caretaker { background: rgba(2, 132, 199, 0.2); border-color: var(--sky); }
+    .avatar-cleaner { background: rgba(16, 185, 129, 0.2); border-color: var(--emerald); }
+
+    .staff-info h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .role-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .role-lead { background: rgba(212, 175, 55, 0.2); color: #FDE68A; }
+    .role-caretaker { background: rgba(2, 132, 199, 0.2); color: #BAE6FD; }
+    .role-housekeeping { background: rgba(16, 185, 129, 0.2); color: #A7F3D0; }
+
+    .staff-responsibilities {
+      font-size: 12px;
+      color: #CBD5E1;
+      margin-top: 2px;
+    }
+    .staff-properties {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    .staff-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-call {
+      background: #10B981;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    .btn-call:hover { background: #059669; }
+    .btn-wa {
+      background: #25D366;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+    }
+    .btn-wa:hover { background: #1EBE5D; }
+
+    .quick-copy-bar {
+      margin-top: 10px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-glass);
+      border-radius: 14px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .btn-copy-all {
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid var(--sky);
+      color: #BAE6FD;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-copy-all:hover {
+      background: var(--sky);
+      color: #FFF;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 30px;
+      padding-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header class="header-card">
+      <div class="badge">👥 Operations & Staff Roster</div>
+      <h1>TUHH Staff & Caretaker Directory</h1>
+      <p class="subtitle">Official on-ground caretakers, supervisors, and operations team across all 20 luxury homestays.</p>
+      
+      <div class="nav-shortcuts">
+        <a href="vendors.html" class="nav-pill">🛠️ Maintenance & Vendors</a>
+        <a href="properties.html" class="nav-pill">🏡 View 20 Homestays</a>
+        <a href="admin.html" class="nav-pill">⚙️ Staff CRM Portal</a>
+      </div>
+    </header>
+
+    <!-- Location Tabs -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchStaffTab('central', this)">
+        <span>👑 Management</span>
+        <span class="tab-sub">Operations & Concierge</span>
+      </button>
+      <button class="tab-btn" onclick="switchStaffTab('vikalp', this)">
+        <span>📍 Vikalp Khand</span>
+        <span class="tab-sub">10 Homestays (Chinhat)</span>
+      </button>
+      <button class="tab-btn" onclick="switchStaffTab('vishesh', this)">
+        <span>🌿 Vishesh Khand</span>
+        <span class="tab-sub">3 Homestays (Gomti Ngr)</span>
+      </button>
+      <button class="tab-btn" onclick="switchStaffTab('shaheed', this)">
+        <span>🛣️ Shaheed Path</span>
+        <span class="tab-sub">7 Villas & Madhav Kunj</span>
+      </button>
+    </div>
+
+    <!-- 1. CENTRAL MANAGEMENT & CONCIERGE -->
+    <div class="location-cluster active" id="staff-central">
+      <div class="cluster-banner">
+        <span>⭐</span>
+        <span>Executive Operations, Guest Escalations, High-Priority Bookings & Accounts</span>
+      </div>
+
+      <!-- Praveen Singh -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-manager">👔</div>
+          <div class="staff-info">
+            <h3>Praveen Singh <span class="role-badge role-lead">Operations Head</span></h3>
+            <div class="staff-responsibilities">Overall Operations, Staff Management & Escalations</div>
+            <div class="staff-properties">All 20 Properties · 24x7 Emergency Contact</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+919194109911" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919194109911" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Host Concierge -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-manager">🛎️</div>
+          <div class="staff-info">
+            <h3>Host Concierge Desk <span class="role-badge role-lead">Support Line</span></h3>
+            <div class="staff-responsibilities">Guest Helpdesk, Payment Verification & Check-in Pass</div>
+            <div class="staff-properties">WhatsApp & Phone Support Desk</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+919450055554" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919450055554" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Kanchan -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-cleaner">✨</div>
+          <div class="staff-info">
+            <h3>Kanchan <span class="role-badge role-housekeeping">Housekeeping Supervisor</span></h3>
+            <div class="staff-responsibilities">Linen, Toiletries, Maid Turnaround & Cleaning Quality</div>
+            <div class="staff-properties">All City Locations · Quality Control Lead</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+919194109911" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919194109911?text=Housekeeping%20check%20required" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. VIKALP KHAND & CHINHAT TEAM -->
+    <div class="location-cluster" id="staff-vikalp">
+      <div class="cluster-banner">
+        <span>🏢</span>
+        <span>Covers: <strong>Black Beauty, The Dark Blue, The Brown, The Light Green, The Nawabi Stay, The Unique, RedRose Palace, Starlight PentHouse, The Tehzeeb Nest, Sukoon Stay</strong></span>
+      </div>
+
+      <!-- Arman Commandar -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-caretaker">🔑</div>
+          <div class="staff-info">
+            <h3>Arman Commandar <span class="role-badge role-caretaker">Primary Caretaker</span></h3>
+            <div class="staff-responsibilities">Guest Check-in, Keys, Luggage & Flat Maintenance</div>
+            <div class="staff-properties">Vikalp Khand & Blossom Skyline (10 Flats)</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+918467080284" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918467080284" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Shuaib -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-caretaker">⚡</div>
+          <div class="staff-info">
+            <h3>Shuaib <span class="role-badge role-caretaker">Field Executive</span></h3>
+            <div class="staff-responsibilities">Night Check-ins, Technical Support & Society Coordination</div>
+            <div class="staff-properties">Vikalp Khand Cluster</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+918957725081" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918957725081" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. VISHESH KHAND TEAM -->
+    <div class="location-cluster" id="staff-vishesh">
+      <div class="cluster-banner">
+        <span>🏡</span>
+        <span>Covers: <strong>The Pink House (5 BHK), The Green House (3 BHK), The Yellow House (3 BHK)</strong></span>
+      </div>
+
+      <!-- Aniket -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-caretaker">🏡</div>
+          <div class="staff-info">
+            <h3>Aniket <span class="role-badge role-caretaker">Villa Caretaker & Supervisor</span></h3>
+            <div class="staff-responsibilities">Villa Check-in, Keys, Lawn Maintenance & Guest Service</div>
+            <div class="staff-properties">Vishesh Khand 3 Villas (Pink, Green, Yellow)</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+919214246820" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919214246820" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SHAHEED PATH & MADHAV KUNJ TEAM -->
+    <div class="location-cluster" id="staff-shaheed">
+      <div class="cluster-banner">
+        <span>🛣️</span>
+        <span>Covers: <strong>Royal White House, Celebrity Garden, Gomti Grand Villa, Velvet House, Green Forest, Pink Paradise, The Luxe Haven</strong></span>
+      </div>
+
+      <!-- Sarvan -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-caretaker">🌴</div>
+          <div class="staff-info">
+            <h3>Sarvan <span class="role-badge role-caretaker">Property In-Charge</span></h3>
+            <div class="staff-responsibilities">Madhav Kunj Villas & Celebrity Garden Check-ins & Upkeep</div>
+            <div class="staff-properties">Madhav Kunj (3 Villas) + Celebrity Garden</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+918858034382" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918858034382" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Shrwan (Luxe Haven) -->
+      <div class="staff-card">
+        <div class="staff-left">
+          <div class="staff-avatar avatar-caretaker">🏢</div>
+          <div class="staff-info">
+            <h3>Shrwan <span class="role-badge role-caretaker">Golf City Caretaker</span></h3>
+            <div class="staff-responsibilities">The Luxe Haven Check-ins, Keys & Society Access</div>
+            <div class="staff-properties">The Luxe Haven (Golf City, Lulu Mall Zone)</div>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="tel:+918858034382" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918858034382" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Copy WhatsApp Text Box -->
+    <div class="quick-copy-bar">
+      <button class="btn-copy-all" onclick="copyWhatsAppStaffText()">
+        <span>📋</span> Copy WhatsApp Staff Roster (All Locations)
+      </button>
+      <div id="copyStaffNotice" style="font-size:12px;color:#10B981;margin-top:8px;display:none;font-weight:700;">
+        ✅ Copied to clipboard! Ready to paste into WhatsApp group.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      The Unique Haven Homes Private Limited · Official Operations Roster<br>
+      Operations Head: Praveen Singh (+91 9194109911) · Lucknow, UP
+    </footer>
+
+  </div>
+
+  <script>
+    function switchStaffTab(clusterKey, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.location-cluster').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      const el = document.getElementById('staff-' + clusterKey);
+      if (el) el.classList.add('active');
+    }
+
+    const STAFF_ROSTER_TEXT = `👥 *TUHH OFFICIAL STAFF & CARETAKER DIRECTORY*
+Location-wise on-ground team for smooth check-ins, guest service & cleaning.
+
+👑 *1. CENTRAL OPERATIONS & CONCIERGE:*
+• Praveen Singh (Operations Head): +91 9194109911
+• Host Concierge (Helpdesk Line): +91 9450055554
+• Kanchan (Housekeeping Supervisor): +91 9194109911
+
+📍 *2. VIKALP KHAND & CHINHAT HUB (10 FLATS):*
+(Black Beauty, Dark Blue, Brown, Light Green, Nawabi, Unique, RedRose, PentHouse, Tehzeeb Nest, Sukoon)
+• Arman Commandar (Primary Caretaker): +91 8467080284
+• Shuaib (Field Executive & Night Support): +91 8957725081
+
+🌿 *3. VISHESH KHAND HUB (3 VILLAS):*
+(The Pink House, The Green House, The Yellow House)
+• Aniket (Villa Caretaker & Supervisor): +91 9214246820
+
+🛣️ *4. SHAHEED PATH & MADHAV KUNJ (7 HOMESTAYS):*
+(Royal White House, Celebrity Garden, Gomti Grand Villa, Velvet, Green Forest, Pink Paradise, Luxe Haven)
+• Sarvan (Madhav Kunj & Celebrity Garden): +91 8858034382
+• Shrwan (The Luxe Haven - Golf City): +91 8858034382
+
+🌐 *Live 1-Tap Call Staff Directory:*
+https://airbnbmanager.github.io/staff.html
+
+🚨 *Emergency Escalation:* Praveen Singh (+91 9194109911)`;
+
+    function copyWhatsAppStaffText() {
+      navigator.clipboard.writeText(STAFF_ROSTER_TEXT).then(() => {
+        const notice = document.getElementById('copyStaffNotice');
+        notice.style.display = 'block';
+        setTimeout(() => { notice.style.display = 'none'; }, 3000);
+      });
+    }
+  </script>
+
+</body>
+</html>
