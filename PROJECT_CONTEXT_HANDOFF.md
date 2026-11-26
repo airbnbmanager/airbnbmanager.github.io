@@ -2,23 +2,25 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v527` (`tuhh-live-v527` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v529` (`tuhh-live-v529` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
-> **Local Dev URL**: `http://localhost:5500/admin.html` or `http://localhost:3000`  
-> **Last Updated**: November 25, 2026 (Ready for Windows PC Session)
+> **Website URL**: `https://uniquehavenhomesstay.com` (also at `https://airbnbmanager.github.io/properties.html`)  
+> **WhatsApp Business Catalog**: `https://wa.me/c/919194109911`  
+> **Master Property PDFs Folder**: `https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing`  
+> **Last Updated**: November 26, 2026 (100% Up-to-Date for Any PC / Cross-Device Resumption)
 
 ---
 
 ## 📌 1. EXECUTIVE SUMMARY & TECH STACK
 
-TUHH CRM is a high-performance, real-time property management software built for managing 20+ luxury villas and homestays across Lucknow (Gomti Nagar, Chinhat, Vibhuti Khand, Shaheed Path, etc.).
+TUHH CRM is a high-performance, real-time property management software built for managing 20+ luxury villas and homestays across Lucknow (Gomti Nagar, Chinhat, Vishesh Khand, Madhav Kunj, Shaheed Path, Golf City, etc.).
 
-- **Architecture**: Vanilla JavaScript (Modular ES6+ architecture in `js/*.js`), HTML5, CSS3 (`style.css` + `css/homeyindia-crm-theme.css`). Zero complex bundlers required — runs smoothly via any static HTTP server.
+- **Architecture**: Vanilla JavaScript (Modular ES6+ architecture in `js/*.js`), HTML5, CSS3 (`style.css` + `css/homeyindia-crm-theme.css`). Zero complex bundlers required — runs smoothly via any static HTTP server (VSCode Live Server, Python `http.server`, etc.).
 - **Database**: **Supabase** (PostgreSQL with real-time WebSocket subscriptions and row-level security).
   - Supabase Project URL: `https://vxxmigdzimnrbbmkjzoa.supabase.co`
   - Anon Key: `sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F`
 - **Automation Gateway**: Node.js + `@whiskeysockets/baileys` running on port `3000` (`http://localhost:3000`).
-- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v517`).
+- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v529`).
 
 ---
 
@@ -26,185 +28,179 @@ TUHH CRM is a high-performance, real-time property management software built for
 
 ```
 airbnbmanager.github.io/
-├── admin.html                 # Main single-page application shell (all tab hashes & script tags)
-├── style.css                  # Core CSS design system, responsive styles, mobile media queries
-├── sw.js                      # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v517')
-├── config.js                  # Supabase URL & Public API Keys
+├── admin.html                            # Main single-page application shell (all tab hashes & script tags)
+├── index.html                            # Public website homepage (with WhatsApp catalog & PDF links)
+├── properties.html                       # Public directory of all 20 homestays (with direct PDF buttons)
+├── style.css                             # Core CSS design system, responsive styles, mobile media queries
+├── sw.js                                 # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v529')
+├── config.js                             # Supabase URL & Public API Keys
 ├── css/
-│   └── homeyindia-crm-theme.css # Modern theme and UI styling rules
+│   └── homeyindia-crm-theme.css          # Modern theme and UI styling rules
 ├── js/
-│   ├── core.js                # Core app initialization, Supabase connection, routing engine
-│   ├── dashboard.js           # Today · Operations (#dashboard), check-ins/outs, cleaning status
-│   ├── bookings.js            # Bookings ledger (#bookings), payments, modals, receipts
-│   ├── calendar.js            # Visual calendar grid, iCal Airbnb sync visualizer
-│   ├── properties.js          # Properties & inventory (#properties), pricing, caretakers, PDF guides
-│   ├── expenses.js            # Operational expenses (#expenses), repairs, maintenance, Anwar OD
-│   ├── analytics.js           # Finances & Executive Analytics (#analytics), investor ROI
-│   ├── employees.js           # HRMS & Staff Activity (#employees / #hrms), 5 tabs
-│   ├── whatsapp-hub.js        # WhatsApp Automation Hub (#whatsapp-hub), 3 clean tabs
-│   ├── user-mgmt.js           # User management, screen time, security audit (#user-mgmt)
-│   ├── ical-sync.js           # Automatic 2-way Airbnb calendar synchronization
-│   └── notifications.js       # Live bell notifications, sound alerts, payment audits
-└── PROJECT_CONTEXT_HANDOFF.md # THIS MASTER HANDOFF FILE
+│   ├── core.js                           # Core app initialization, Supabase connection, routing engine
+│   ├── dashboard.js                      # Today · Operations (#dashboard), check-ins/outs, cleaning status
+│   ├── bookings.js                       # Bookings ledger (#bookings), payments, modals, receipts
+│   ├── calendar.js                       # Visual calendar grid, iCal Airbnb sync visualizer
+│   ├── properties.js                     # Properties & inventory (#properties), pricing, caretakers, 20 PDF guides
+│   ├── property-engine.js                # Showcase page engine, photo mosaic, direct PDF downloads
+│   ├── expenses.js                       # Operational expenses (#expenses), repairs, maintenance, Anwar OD
+│   ├── analytics.js                      # Finances & Executive Analytics (#analytics), investor ROI
+│   ├── employees.js                      # HRMS & Staff Activity (#employees / #hrms), 5 tabs
+│   ├── whatsapp-hub.js                   # WhatsApp Automation Hub (#whatsapp-hub), 3 clean tabs
+│   ├── user-mgmt.js                      # User management, screen time, security audit (#user-mgmt)
+│   ├── ical-sync.js                      # Automatic 2-way Airbnb calendar synchronization
+│   └── notifications.js                  # Live bell notifications, sound alerts, payment audits
+├── scripts/
+│   ├── build_branded_property_pdfs.py    # Python engine using img2pdf & Pillow for luxury branded PDFs
+│   ├── drive_pdf_links.json              # Scraped exact Google Drive file IDs and URLs
+│   └── full_property_pdf_map.json        # 20/20 property mapping (Room ID, Slug, Name, View & Download URLs)
+├── WHATSAPP_BUSINESS_CATALOGUE_MASTER.md # Location-wise WhatsApp catalogue listings (copy-paste ready)
+├── PROPERTY_GOOGLE_MAPS_DIRECTORY.md     # Google Maps check-in navigation cards (with & without caretaker)
+└── PROJECT_CONTEXT_HANDOFF.md            # THIS MASTER HANDOFF FILE
 ```
 
 ---
 
 ## 🧭 3. MODULE ROUTING & NAVIGATION (`admin.html`)
 
-| Hash Anchor | Module Name | Key JS File | Purpose & Architecture |
-|---|---|---|---|
-| `#dashboard` | **Today · Operations** | `js/dashboard.js` | Operations queue, today's check-ins, check-outs, room readiness. Must render `renderDashboard()` (never hijacked to Analytics). |
-| `#bookings` | **Bookings / Calendar** | `js/bookings.js`, `js/calendar.js` | Interactive booking grid, calendar timeline, booking receipts, guest passes. |
-| `#properties` | **Properties** | `js/properties.js` | Units, nightly rates, caretaker contacts, key codes, map pins, PDF guides. |
-| `#expenses` | **Expenses** | `js/expenses.js` | Laundry, maintenance, cleaning supplies, and vendor payments. |
-| `#analytics` | **Finances** | `js/analytics.js` | Executive financial dashboards, Net Revenue, Occupancy %, ADR, RevPAR, Investor Statements. |
-| `#employees` | **HRMS & Tasks** | `js/employees.js` | 5 tabs: Staff Master, Attendance, Tasks, Payroll, Performance (Mobile cards & Desktop table). |
-| `#whatsapp-hub` | **WhatsApp Hub** | `js/whatsapp-hub.js` | Automated WhatsApp gateway, QR code linking, group dispatching (Streamlined to 3 tabs). |
-| `#user-mgmt` | **User Management** | `js/user-mgmt.js` | System roles, developer login alerts, security logs. |
-| `#help` | **Help & Guide** | `admin.html` | Step-by-step CRM operating handbook and keyboard shortcuts. |
-| `#settings` | **Global Settings** | `js/core.js` | Bottom preference drawer in sidebar footer. |
+The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers `routeTo(hash)`:
+
+| Route Hash | Module Script | Purpose & Key Features |
+| :--- | :--- | :--- |
+| `#dashboard` | `js/dashboard.js` | Today's arrivals/departures, in-house guests, housekeeping board. |
+| `#bookings` | `js/bookings.js` | All Bookings ledger, new reservation modal, payment logging, UPI receipts. |
+| `#calendar` | `js/calendar.js` | Interactive 30-day multi-property calendar, block dates, iCal sync status. |
+| `#properties` | `js/properties.js` | 20 Units inventory, pricing, caretaker assignments, 1-click PDF download & link copy, WhatsApp catalog quick launch. |
+| `#expenses` | `js/expenses.js` | Expense entry, repairs/maintenance, Anwar OD ledger, 1-click delete action. |
+| `#analytics` | `js/analytics.js` | Executive finances, revenue vs. expense, Occupancy %, Investor P&L reports. |
+| `#employees` | `js/employees.js` | HRMS, attendance, payroll, cleaner turnaround logs, staff permissions. |
+| `#whatsapp-hub`| `js/whatsapp-hub.js` | WhatsApp gateway, QR pairing, live message logs, automated guest alerts. |
+| `#user-mgmt` | `js/user-mgmt.js` | Multi-user roles (Admin, Manager, Investor, Staff), audit activity log. |
 
 ---
 
-## ⚡ 4. CRITICAL SUBSYSTEMS & LATEST DEVELOPMENTS
+## ⚡ 4. CRITICAL SUBSYSTEMS & RECENT DEVELOPMENTS (v528–v529)
 
-### A. Property PDF & House Manual Guide System (`js/properties.js`) — *NEW (v513–v517)*
-1. **Direct Download Engine (`window.getDirectDownloadPdfUrl`)**:
-   - Automatically parses Google Drive URLs and converts web preview URLs (`/file/d/{ID}/view...`) into high-speed direct download links (`https://drive.google.com/uc?export=download&id={ID}`).
-   - Solves the mobile browser issue where clicking PDF opened a blank viewer or required multiple taps.
-2. **Buttons on Property Cards (`#properties`)**:
-   - **`📥 Download PDF`**: Green button on cards with PDFs. Triggers immediate `.pdf` file download.
-   - **`📋 Copy PDF Link`**: Blue button beside download. Copies the Google Drive PDF link to clipboard with instant `✅ Copied!` visual animation. Perfect for pasting into WhatsApp for guests.
-   - **`📄 No PDF` + `➕ Attach PDF`**: Clear separation for units without PDFs. Eliminates accidental modal popups.
-3. **Pre-Linked Verified Properties**:
-   - **Penthouse (Flat 501 / Starlight Blue PentHouse, ID `GOM-501`)**:
-     `https://drive.google.com/file/d/131sOZc5f8K3IOv-NsFTWZMVOfmzVTfkY/view?usp=sharing`
-   - **Pink Paradise Villa (Front of Lulu Mall 3 BHK / 3rd Floor, ID `VIL-108`)**:
-     `https://drive.google.com/file/d/1DLY90HRpIKU9__lXHibImrjq9mh6UoFD/view?usp=sharing`
-4. **Cloud Persistence**:
-   - Stored in Supabase `app_settings` under key `property_pdf_guides` and synchronized across all phones, tablets, and PCs.
-   - Header button **`⚙️ Manage PDFs`** opens the quick search and bulk edit portal.
+### A. All 20 Branded Property PDFs & Exact Drive Mapping
+1. **Lossless PDF Generation**:
+   - Built with `img2pdf` and custom luxury cover pages (`00_cover.jpg`) featuring the official gold-crested corporate emblem, address, hero photo, room specs, and host assurance.
+   - Output folder on Mac: `/Users/praveen/Developer/Property PDFs/` (20 official PDFs, 20 high-res photo folders, and backups).
+2. **Exact Google Drive File Mapping (NOT Generic Folder)**:
+   - Extracted exact 33-character Google Drive file IDs for all 20 PDFs in the user's master folder (`1DxckJITuNECeSN-SRSj4auwMsL_FOF_K`).
+   - Mapped in `scripts/drive_pdf_links.json` and `scripts/full_property_pdf_map.json`.
+   - Updated `window.DEFAULT_PROPERTY_PDF_GUIDES` in `js/properties.js`, `const PDF_GUIDES` in `js/property-engine.js`, and `properties.html`.
+   - Clicking "📥 PDF" on any property now opens/downloads **that specific property's PDF directly**.
 
-### B. WhatsApp Automation Hub (`js/whatsapp-hub.js`)
-1. **Streamlined to 3 Essential Tabs**:
-   - `⚙️ WhatsApp Automation & Groups` (`settings`): Master Switch, Guest Pass toggle, 📒 Booking Data group alert toggle, Investor Group Alerts, Group ID `120363425834560086@g.us`, property-wise routing.
-   - `📱 Link WhatsApp / QR Setting` (`device`): Real-time Baileys QR code scanner, paired phone number (+91...), switch number button.
-   - `📊 Message Delivery Logs` (`log`): Real-time delivery audit tracker, delivered/failed status, quick test send.
-2. **Central Cloud Sync (`app_settings` table)**:
-   - Config toggles are synced to Supabase `app_settings` under key `whatsapp_hub_config` so changes never revert when reloading or opening on phone/iPad.
-3. **Strict Guest Pass Firewall**:
-   - In `dispatchWhatsAppMessage()`, if `HUB.config.send_welcome !== true`, any automated message to a guest mobile number is **immediately blocked**.
-   - Group alerts to 📒 **Booking Data** (`120363425834560086@g.us`) dispatch independently without sending to guests.
+### B. WhatsApp Business Setup & Live Catalog
+1. **Statutory MCA Compliance**:
+   - Legal Name: `THE UNIQUE HAVEN HOMES PRIVATE LIMITED`
+   - Business Type: `Private Limited Company` (Corporate Registration)
+   - CIN: `U55101UP2026PTC244637`
+   - GSTIN: `09AAMCT8448C1ZX`
+   - Registered Address: `Plot No. 39 & 40, Radhikapuri Colony, Takrohi, Indira Nagar, Lucknow, Uttar Pradesh - 226016`
+   - Customer Care: `+91 9450055554` / `+91 9194109911` | `hello@uniquehavenhomes.com`
+   - Grievance Officer: `Praveen Singh` (+91 9194109911)
+2. **Live Catalog Link**:
+   - **`https://wa.me/c/919194109911`**
+   - Integrated into `index.html` (navbar & footer), `properties.html` (navbar & top banner pill), and `js/properties.js` (toolbar button).
+3. **Master Catalogue Guide**:
+   - Located at [WHATSAPP_BUSINESS_CATALOGUE_MASTER.md](file:///Users/praveen/Developer/airbnbmanager.github.io/WHATSAPP_BUSINESS_CATALOGUE_MASTER.md).
+   - Provides ready-to-copy listings for all 20 properties arranged location-wise.
 
-### C. Cash & Payment Receiver Ledger / Anwar OD
-- Full dual-party cash accounting: Caretakers and staff collecting cash on-ground vs. Anwar OD bank account.
-- Supports handover logs and balance tracking ("Kiske Paas Kitna Hai").
+### C. Google Maps Check-in Navigation Directory
+- Located at [PROPERTY_GOOGLE_MAPS_DIRECTORY.md](file:///Users/praveen/Developer/airbnbmanager.github.io/PROPERTY_GOOGLE_MAPS_DIRECTORY.md).
+- **Section A**: Complete cards with on-arrival caretaker contact numbers (for confirmed arriving guests).
+- **Section B**: Minimal cards without caretaker details (for inquiries and pre-booking privacy).
+- Structured as individual messages ready to be posted in the staff WhatsApp group for **1-click forwarding** to guests.
 
----
-
-## 💻 5. WINDOWS PC SETUP & RESUMPTION GUIDE (FOR TOMORROW)
-
-When starting on the Windows PC, follow this exact step-by-step procedure:
-
-### Step 1: Clone / Pull Latest Code
-```powershell
-# Open PowerShell or Windows Terminal in your projects folder
-cd C:\Users\<YourUser>\Developer\airbnbmanager.github.io
-
-# Fetch all branches and check status
-git fetch origin
-
-# Switch to the active feature branch and pull latest (v517)
-git checkout feature/tuhh-app-modern-ui
-git pull origin feature/tuhh-app-modern-ui
-
-# Verify fast-forward sync with main
-git checkout main
-git pull origin main
-git checkout feature/tuhh-app-modern-ui
-
-# Ensure working tree is clean
-git status
-```
-
-### Step 2: Start Local Dev Server
-```powershell
-# Option A: Using npx serve (recommended)
-npx serve -l 5500
-
-# Option B: Using Python built-in server
-python -m http.server 5500
-
-# Open in browser:
-# http://localhost:5500/admin.html
-```
-
-### Step 3: If Running WhatsApp Automation Gateway (Node.js)
-```powershell
-cd whatsapp-bot
-npm install
-npm start
-# Gateway runs on http://localhost:3000
-```
+### D. Group DP Assets
+- Created in `/Users/praveen/Developer/Property PDFs/` and `assets/`:
+  * `WhatsApp_Group_DP_Official.png` (Official TUHH gold-crested corporate emblem)
+  * `WhatsApp_Group_DP_3D_Luxury.jpg` (3D architectural gold embossed render)
 
 ---
 
-## 🛡️ 6. GOLDEN RULES FOR ALL SESSIONS
+## 🛡️ 5. GOLDEN RULES & PORTFOLIO SPECIFICATIONS
 
-1. **Synchronize Both Branches**:
-   - Always keep `feature/tuhh-app-modern-ui` and `main` branches fast-forward synchronized and pushed to `origin`.
-   - Never push broken code to `main`.
-2. **Mandatory Version Bumps on Every Release**:
-   - In `admin.html`: Bump `?v=XXX` on all modified script and stylesheet links.
-   - In `sw.js`: Bump `const CACHE_NAME = 'tuhh-live-vXXX';`.
-   - Current Version: **`v517`**. Next release will be **`v518`**.
-3. **Preserve Real Production Data**:
-   - Never delete Supabase tables, drop columns, or overwrite live booking data.
-   - Never introduce automated background scripts that write phantom adjustments without explicit user trigger.
-4. **Mobile + Desktop First**:
-   - Always ensure changes render cleanly on both mobile screens (375px–430px) and wide desktop displays.
-   - Keep horizontal navigation bars cleanly padded with `-webkit-overflow-scrolling: touch;`.
+### Rule 1: NEVER Mention Floor Numbers in Guest Content
+- **STRICT PROHIBITION**: Never write floor numbers ("1st Floor", "2nd Floor", "3rd Floor", "Ground Floor", "Flat 402", "Flat 502") in any property name, brochure title, description, website card, or WhatsApp catalogue entry.
+- Reason: User verified that floor mentions cause guest confusion and cancellations.
+- All 20 property titles across `properties.html`, `js/properties.js`, and catalogues have been cleaned of floor references.
+
+### Rule 2: Exact BHK & Bed Counts Portfolio Breakdown
+| Location | Property Name | Room ID | Verified Specs |
+| :--- | :--- | :--- | :--- |
+| **Shaheed Path** | Royal White House | `VIL-102` | `6 BHK Royal Villa` |
+| **Shaheed Path** | Celebrity Garden | `LUL-402` | `4 BHK 5 Beds with Lawn` |
+| **Gomti Nagar** | Gomti Grand Villa | `VIL-101` | `4 BHK 5 Beds Villa` |
+| **Vishesh Khand** | The Pink House | `VIL-103` | `5 BHK 6 Beds` |
+| **Vishesh Khand** | The Green House | `VIL-104` | `3 BHK 4 Beds` |
+| **Vishesh Khand** | The Yellow House | `VIL-105` | `3 BHK 4 Beds` |
+| **Madhav Kunj** | The Velvet House | `VIL-107` | `3 BHK 3 Beds Villa` |
+| **Madhav Kunj** | Green Forest | `VIL-106` | `3 BHK 3 Beds Villa` |
+| **Madhav Kunj** | Pink Paradise | `VIL-108` | `3 BHK 3 Beds Villa` |
+| **Vikalp Khand** | Black Beauty | `GOM-102` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | The Dark Blue | `GOM-201` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | The Brown | `GOM-202` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | The Light Green | `GOM-301` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | The Nawabi Stay | `GOM-401` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | The Unique | `GOM-302` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | RedRose Palace | `GOM-101` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | Starlight Blue PentHouse | `GOM-501` | `4 Beds Penthouse` |
+| **Vikalp Khand** | The Tehzeeb Nest | `GOM-402` | `3 BHK 4 Beds` |
+| **Vikalp Khand** | Sukoon Stay | `GOM-502` | `3 BHK 4 Beds` |
+| **Golf City** | The Luxe Haven | `LUL-101` | `1 BHK 2 Beds` |
+
+### Rule 3: Git Branch Discipline
+- Primary Working Branch: `feature/tuhh-app-modern-ui`
+- Production Branch: `main`
+- **Rule**: Every single commit made to `feature/tuhh-app-modern-ui` must be merged into `main` and pushed to `origin main` to keep both branches fast-forward synchronized.
+- Bump `CACHE_NAME` in `sw.js` (e.g. `tuhh-live-v529`) on every frontend release.
+
+---
+
+## 💻 6. CROSS-DEVICE / WINDOWS PC SETUP & RESUMPTION GUIDE
+
+When moving between your Mac and any Windows PC:
+
+1. **Clone or Pull Latest Changes**:
+   ```powershell
+   git checkout feature/tuhh-app-modern-ui
+   git pull origin feature/tuhh-app-modern-ui
+   git checkout main
+   git pull origin main
+   git checkout feature/tuhh-app-modern-ui
+   ```
+2. **Start Local Server**:
+   ```powershell
+   # Using Python:
+   python -m http.server 5500
+   # Then open in browser:
+   http://localhost:5500/admin.html
+   ```
+3. **If Running WhatsApp Gateway (Node.js)**:
+   ```powershell
+   cd whatsapp-bot
+   npm install
+   node server.js
+   ```
+4. **All Reference Files Available In Root**:
+   - `WHATSAPP_BUSINESS_CATALOGUE_MASTER.md` -> For copying catalogue listings.
+   - `PROPERTY_GOOGLE_MAPS_DIRECTORY.md` -> For copying guest navigation cards.
+   - `scripts/full_property_pdf_map.json` -> Complete mapping of all 20 properties with download & view URLs.
 
 ---
 
 ## 📞 7. REFERENCE CREDENTIALS & CONSTANTS
 
 - **General Booking WhatsApp Group ID**: `120363425834560086@g.us`
+- **WhatsApp Business Catalog URL**: `https://wa.me/c/919194109911`
 - **Gateway Endpoint**: `http://localhost:3000`
-- **Supabase Cloud App Settings Key for WhatsApp**: `whatsapp_hub_config`
-- **Supabase Cloud App Settings Key for PDFs**: `property_pdf_guides`
+- **Supabase Cloud App Settings Keys**:
+  * `property_pdf_guides` -> Stored custom/default PDF URLs
+  * `whatsapp_hub_config` -> Master automation toggles
 - **Supported Properties Count**: 20 Homestay properties across Lucknow
+- **Primary Support Numbers**: `+91 9194109911` / `+91 9450055554`
 
 ---
-
-## 🧠 8. CRITICAL KNOWLEDGE & USER PREFERENCES (DO NOT FORGET)
-
-1. **Accidental "Monthly bulk entry" (2026-11-22)**:
-   - On Nov 22, 2026, test entries were saved via `saveMonthlyExpenses()` on Penthouse (`GOM-501` / Flat 501) under description `Monthly bulk entry`.
-   - **User Resolution**: User instructed to permanently delete and remember this context.
-   - An auto-purge hook and strict runtime filter are in place in `js/expenses.js`.
-   - An **Action column (`🗑️ Delete`)** is now permanently added to the unified Expenses table so any record can be deleted with 1 click.
-
-2. **Property PDF Link Status (Google Drive Portal)**:
-   - The user has updated PDF links for all properties EXCEPT these 6 (links to be provided later by user):
-     * **The Brown**
-     * **The Unique**
-     * **Celebrity Garden**
-     * **The Pink House**
-     * **The Green House**
-     * **The Yellow House**
-   - **Rule**: NEVER overwrite other properties with the Penthouse link. Keep the above 6 blank until the user explicitly provides their links.
-
-3. **TUHH-OD Balance & Daily Statement Reconciliation**:
-   - The Top Banner ("TUHH-OD Account Online Balance") and the Daily Statement ("OD Balance & Daily Closing Statement" + Mobile Proof Screenshot) must ALWAYS stay 100% synchronized.
-   - Fixed an edge-case where a deposit dated on or after a guest's future check-in date was omitted when filtering cumulative closing balance up to Today's date (`25-Nov`), creating an artificial ₹1,000 difference (`-₹869.94` vs `-₹1,869.94`).
-   - `renderClosingStatementForDate` now computes full live ledger totals for Today's view, ensuring `Total Deposited - Total Utilized = Closing Balance` (`-₹869.94`) consistently across both banners and mobile screenshots.
-
-4. **New TUHH-OD Account Cycle (1 Dec 2026 Onwards)**:
-   - Built dynamic multi-cycle OD support:
-     * **Cycle 2 (New OD Account)**: Effective from `2026-12-01`. Fresh ledger for all deposits & claims starting 1 Dec.
-     * **Cycle 1 (Previous OD Account)**: `17-Sep to 30-Nov-2026` settled historical ledger safely archived and switchable with 1 click.
-   - **Opening Balance**: Can be set/updated by user anytime via modal button `⚙️ Set 1-Dec Opening Balance`. Saved into Supabase `app_settings` (`tuhh_od_dec_config`).
-   - On reaching 1-Dec-2026, the app automatically defaults to the new cycle. User can toggle between cycles using the top banner pills.
-
+*End of Master Handoff Guide — Version v529 Verified*
