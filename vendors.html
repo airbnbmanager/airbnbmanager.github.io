@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Emergency Maintenance & Vendor Directory — The Unique Haven Homes</title>
+  <meta name="description" content="Location-wise emergency maintenance contacts: Plumber, Electrician, Carpenter, and Sofa Deep Cleaning for Unique Haven Homes Lucknow.">
+  <link rel="icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #D4AF37;
+      --primary-dark: #B48A1E;
+      --emerald: #10B981;
+      --sky: #0284C7;
+      --bg-dark: #0B1120;
+      --surface: #1E293B;
+      --surface-elevated: #334155;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 130px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-glass);
+      color: var(--text-sub);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(30, 41, 59, 0.95));
+      color: #FFF;
+      border-color: var(--primary);
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .tab-btn span.tab-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+    .tab-btn.active span.tab-sub {
+      color: #FDE68A;
+    }
+
+    .location-cluster {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .location-cluster.active {
+      display: flex;
+    }
+
+    .cluster-banner {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cluster-banner strong {
+      color: #F8FAFC;
+    }
+
+    .vendor-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .vendor-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(212, 175, 55, 0.35);
+    }
+
+    .vendor-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .vendor-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .icon-plumber { background: rgba(2, 132, 199, 0.18); border: 1px solid rgba(2, 132, 199, 0.3); }
+    .icon-electrician { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .icon-carpenter { background: rgba(180, 83, 9, 0.18); border: 1px solid rgba(180, 83, 9, 0.3); }
+    .icon-cleaning { background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    .vendor-info h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #F8FAFC;
+      margin-bottom: 2px;
+    }
+    .vendor-name {
+      font-size: 12.5px;
+      color: #CBD5E1;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .vendor-meta {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    .vendor-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-call {
+      background: #10B981;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    .btn-call:hover {
+      background: #059669;
+    }
+    .btn-wa {
+      background: #25D366;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+    }
+    .btn-wa:hover {
+      background: #1EBE5D;
+    }
+
+    .quick-copy-bar {
+      margin-top: 10px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-glass);
+      border-radius: 14px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .btn-copy-all {
+      background: rgba(212, 175, 55, 0.2);
+      border: 1px solid var(--primary);
+      color: #FDE68A;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-copy-all:hover {
+      background: var(--primary);
+      color: #000;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 30px;
+      padding-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header class="header-card">
+      <div class="badge">🛠️ Quick Maintenance Portal</div>
+      <h1>TUHH Maintenance & Vendor Directory</h1>
+      <p class="subtitle">Location-wise verified technicians for emergency repairs & cleaning across all 20 homestays.</p>
+    </header>
+
+    <!-- Location Tabs -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchLocation('vikalp', this)">
+        <span>📍 Vikalp Khand Hub</span>
+        <span class="tab-sub">10 Homestays (Chinhat)</span>
+      </button>
+      <button class="tab-btn" onclick="switchLocation('vishesh', this)">
+        <span>🌿 Vishesh Khand</span>
+        <span class="tab-sub">3 Homestays (Gomti Ngr)</span>
+      </button>
+      <button class="tab-btn" onclick="switchLocation('shaheed', this)">
+        <span>🛣️ Shaheed Path & Lulu</span>
+        <span class="tab-sub">7 Villas & Homestays</span>
+      </button>
+    </div>
+
+    <!-- CLUSTER 1: VIKALP KHAND & CHINHAT -->
+    <div class="location-cluster active" id="cluster-vikalp">
+      <div class="cluster-banner">
+        <span>🏢</span>
+        <span>Covers: <strong>Black Beauty, The Dark Blue, The Brown, The Light Green, The Nawabi Stay, The Unique, RedRose Palace, Starlight PentHouse, The Tehzeeb Nest, Sukoon Stay</strong></span>
+      </div>
+
+      <!-- Plumber -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-plumber">🔧</div>
+          <div class="vendor-info">
+            <h3>Plumber (नल व पाइपलाइन)</h3>
+            <div class="vendor-name">Mohd. Arif / All Plumbing</div>
+            <div class="vendor-meta">Leakage, Taps, Flush & Geyser issues</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918467080284" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918467080284?text=Urgent%20Plumbing%20required%20at%20Vikalp%20Khand%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Electrician -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-electrician">⚡</div>
+          <div class="vendor-info">
+            <h3>Electrician (बिजली व AC)</h3>
+            <div class="vendor-name">Dinesh Electrician</div>
+            <div class="vendor-meta">MCB, AC cooling, Inverter & Wiring</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918957725081" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918957725081?text=Urgent%20Electrical%20repair%20required%20at%20Vikalp%20Khand%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Carpenter -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-carpenter">🪚</div>
+          <div class="vendor-info">
+            <h3>Carpenter (बढ़ई व फर्नीचर)</h3>
+            <div class="vendor-name">Aslam Carpenter</div>
+            <div class="vendor-meta">Door locks, Bed, Almirah & Handles</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918467080284" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918467080284?text=Carpenter%20work%20required%20at%20Vikalp%20Khand%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Sofa & Deep Cleaning -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-cleaning">🛋️</div>
+          <div class="vendor-info">
+            <h3>Sofa & Deep Cleaning</h3>
+            <div class="vendor-name">A1 Cleanify / Kanchan Team</div>
+            <div class="vendor-meta">Sofa shampooing, Curtains & Deep wash</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919194109911" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919194109911?text=Sofa%20deep%20cleaning%20required%20at%20Vikalp%20Khand%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLUSTER 2: VISHESH KHAND -->
+    <div class="location-cluster" id="cluster-vishesh">
+      <div class="cluster-banner">
+        <span>🏡</span>
+        <span>Covers: <strong>The Pink House (5 BHK), The Green House (3 BHK), The Yellow House (3 BHK)</strong></span>
+      </div>
+
+      <!-- Plumber -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-plumber">🔧</div>
+          <div class="vendor-info">
+            <h3>Plumber (नल व पाइपलाइन)</h3>
+            <div class="vendor-name">Aniket Supervisor / Local Plumber</div>
+            <div class="vendor-meta">Water tank, Pressure pump, Taps & Flush</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919214246820" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919214246820?text=Plumber%20required%20at%20Vishesh%20Khand%20Villa" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Electrician -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-electrician">⚡</div>
+          <div class="vendor-info">
+            <h3>Electrician (बिजली व AC)</h3>
+            <div class="vendor-name">Vishesh Khand Electrical Care</div>
+            <div class="vendor-meta">AC service, Lights, Geyser & Inverter</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919214246820" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919214246820?text=Electrical%20repair%20required%20at%20Vishesh%20Khand%20Villa" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Carpenter -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-carpenter">🪚</div>
+          <div class="vendor-info">
+            <h3>Carpenter (बढ़ई व फर्नीचर)</h3>
+            <div class="vendor-name">Gomti Nagar Woodworks</div>
+            <div class="vendor-meta">Door alignment, Wardrobe & Lock replacement</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919214246820" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919214246820?text=Carpenter%20required%20at%20Vishesh%20Khand%20Villa" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Sofa & Deep Cleaning -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-cleaning">🛋️</div>
+          <div class="vendor-info">
+            <h3>Sofa & Deep Cleaning</h3>
+            <div class="vendor-name">A1 Cleanify / Deep Scrub Team</div>
+            <div class="vendor-meta">Sofa dry cleaning, Rugs & Villa deep scrubbing</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919194109911" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919194109911?text=Deep%20cleaning%20required%20at%20Vishesh%20Khand%20Villa" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLUSTER 3: SHAHEED PATH, MADHAV KUNJ & GOLF CITY -->
+    <div class="location-cluster" id="cluster-shaheed">
+      <div class="cluster-banner">
+        <span>🛣️</span>
+        <span>Covers: <strong>Royal White House, Celebrity Garden, Gomti Grand Villa, The Velvet House, Green Forest, Pink Paradise, The Luxe Haven</strong></span>
+      </div>
+
+      <!-- Plumber -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-plumber">🔧</div>
+          <div class="vendor-info">
+            <h3>Plumber (नल व पाइपलाइन)</h3>
+            <div class="vendor-name">Shaheed Path Plumbing Desk</div>
+            <div class="vendor-meta">Motor pump, Geyser leak, Bathroom fittings</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918858034382" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918858034382?text=Plumber%20required%20at%20Shaheed%20Path%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Electrician -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-electrician">⚡</div>
+          <div class="vendor-info">
+            <h3>Electrician (बिजली व AC)</h3>
+            <div class="vendor-name">Sarvan / South City Electricals</div>
+            <div class="vendor-meta">AC capacitor, Power backup & Panel board</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918858034382" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918858034382?text=Electrical%20repair%20required%20at%20Shaheed%20Path%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Carpenter -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-carpenter">🪚</div>
+          <div class="vendor-info">
+            <h3>Carpenter (बढ़ई व फर्नीचर)</h3>
+            <div class="vendor-name">Babu Carpenter</div>
+            <div class="vendor-meta">Villa wooden fixtures, Bed repair & Locks</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+918858034382" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/918858034382?text=Carpenter%20work%20required%20at%20Shaheed%20Path%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+
+      <!-- Sofa & Deep Cleaning -->
+      <div class="vendor-card">
+        <div class="vendor-left">
+          <div class="vendor-icon icon-cleaning">🛋️</div>
+          <div class="vendor-info">
+            <h3>Sofa & Deep Cleaning</h3>
+            <div class="vendor-name">A1 Cleanify / Prime Steam Wash</div>
+            <div class="vendor-meta">Sofa extraction, Carpet & Lawn villa cleaning</div>
+          </div>
+        </div>
+        <div class="vendor-actions">
+          <a href="tel:+919194109911" class="action-btn btn-call">📞 Call</a>
+          <a href="https://wa.me/919194109911?text=Sofa%20cleaning%20required%20at%20Shaheed%20Path%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Copy WhatsApp Text Box -->
+    <div class="quick-copy-bar">
+      <button class="btn-copy-all" onclick="copyWhatsAppPinnedText()">
+        <span>📋</span> Copy WhatsApp Pinned Format (All Locations)
+      </button>
+      <div id="copyNotice" style="font-size:12px;color:#10B981;margin-top:8px;display:none;font-weight:700;">
+        ✅ Copied to clipboard! Ready to paste into WhatsApp group.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      The Unique Haven Homes Private Limited · Operational Maintenance Hub<br>
+      Operations Hotline: +91 9194109911 · Lucknow, Uttar Pradesh
+    </footer>
+
+  </div>
+
+  <script>
+    function switchLocation(clusterKey, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.location-cluster').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      const el = document.getElementById('cluster-' + clusterKey);
+      if (el) el.classList.add('active');
+    }
+
+    const PINNED_TEXT = `📌 *TUHH EMERGENCY MAINTENANCE & VENDOR DIRECTORY*
+Location-wise technicians for fast repairs & cleaning across all 20 stays.
+
+📍 *1. VIKALP KHAND & CHINHAT HUB*
+(Black Beauty, Dark Blue, Brown, Light Green, Nawabi, Unique, RedRose, Starlight Penthouse, Tehzeeb Nest, Sukoon Stay)
+🔧 Plumber: Mohd. Arif — 8467080284
+⚡ Electrician: Dinesh — 8957725081
+🪚 Carpenter: Aslam — 8467080284
+🛋️ Sofa Cleaning: A1 Cleanify / Kanchan — 9194109911
+
+🌿 *2. VISHESH KHAND HUB (GOMTI NAGAR)*
+(The Pink House, The Green House, The Yellow House)
+🔧 Plumber: Aniket Local Desk — 9214246820
+⚡ Electrician: Vishesh Khand Electricals — 9214246820
+🪚 Carpenter: Gomti Woodworks — 9214246820
+🛋️ Sofa Cleaning: A1 Cleanify Deep Scrub — 9194109911
+
+🛣️ *3. SHAHEED PATH & MADHAV KUNJ (LULU MALL ZONE)*
+(Royal White House, Celebrity Garden, Gomti Grand Villa, Velvet House, Green Forest, Pink Paradise, Luxe Haven)
+🔧 Plumber: Shaheed Path Plumbing — 8858034382
+⚡ Electrician: Sarvan / South City — 8858034382
+🪚 Carpenter: Babu Carpenter — 8858034382
+🛋️ Sofa Cleaning: A1 Cleanify Prime Wash — 9194109911
+
+🌐 *Live 1-Tap Directory Link:*
+https://airbnbmanager.github.io/vendors.html
+
+🚨 *Operations Escalation Head:*
+Praveen Singh: +91 9194109911`;
+
+    function copyWhatsAppPinnedText() {
+      navigator.clipboard.writeText(PINNED_TEXT).then(() => {
+        const notice = document.getElementById('copyNotice');
+        notice.style.display = 'block';
+        setTimeout(() => { notice.style.display = 'none'; }, 3000);
+      });
+    }
+  </script>
+
+</body>
+</html>
