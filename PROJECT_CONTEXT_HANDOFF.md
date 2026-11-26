@@ -56,6 +56,7 @@ airbnbmanager.github.io/
 │   └── full_property_pdf_map.json        # 20/20 property mapping (Room ID, Slug, Name, View & Download URLs)
 ├── WHATSAPP_BUSINESS_CATALOGUE_MASTER.md # Location-wise WhatsApp catalogue listings (copy-paste ready)
 ├── PROPERTY_GOOGLE_MAPS_DIRECTORY.md     # Google Maps check-in navigation cards (with & without caretaker)
+├── TOMORROW_ACTION_PLAN.md               # Action plan & prioritized execution checklist for tomorrow
 ├── vendors.html                          # Emergency vendor & maintenance portal (1-tap call/WA)
 ├── staff.html                            # Staff & Caretaker directory portal (1-tap call/WA)
 └── PROJECT_CONTEXT_HANDOFF.md            # THIS MASTER HANDOFF FILE
