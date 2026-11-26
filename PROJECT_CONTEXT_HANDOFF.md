@@ -2,11 +2,12 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v532` (`tuhh-live-v532` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v533` (`tuhh-live-v533` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Website URL**: `https://uniquehavenhomesstay.com` (also at `https://airbnbmanager.github.io/properties.html`)  
 > **WhatsApp Business Catalog**: `https://wa.me/c/919194109911`  
 > **Master Property PDFs Folder**: `https://drive.google.com/drive/folders/1DxckJITuNECeSN-SRSj4auwMsL_FOF_K?usp=sharing`  
+> **Primary Public Host / Owner**: **Mr. Shahanshah (+91 9450055554)**  
 > **Last Updated**: November 26, 2026 (100% Up-to-Date for Any PC / Cross-Device Resumption)
 
 ---
@@ -20,7 +21,7 @@ TUHH CRM is a high-performance, real-time property management software built for
   - Supabase Project URL: `https://vxxmigdzimnrbbmkjzoa.supabase.co`
   - Anon Key: `sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F`
 - **Automation Gateway**: Node.js + `@whiskeysockets/baileys` running on port `3000` (`http://localhost:3000`).
-- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v532`).
+- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v533`).
 
 ---
 
@@ -31,8 +32,10 @@ airbnbmanager.github.io/
 ├── admin.html                            # Main single-page application shell (all tab hashes & script tags)
 ├── index.html                            # Public website homepage (with WhatsApp catalog & PDF links)
 ├── properties.html                       # Public directory of all 20 homestays (with direct PDF buttons)
+├── vendors.html                          # Emergency vendor & maintenance portal (1-tap call/WA)
+├── staff.html                            # Staff & Caretaker directory portal (1-tap call/WA)
 ├── style.css                             # Core CSS design system, responsive styles, mobile media queries
-├── sw.js                                 # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v532')
+├── sw.js                                 # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v533')
 ├── config.js                             # Supabase URL & Public API Keys
 ├── css/
 │   └── homeyindia-crm-theme.css          # Modern theme and UI styling rules
@@ -54,12 +57,24 @@ airbnbmanager.github.io/
 │   ├── build_branded_property_pdfs.py    # Python engine using img2pdf & Pillow for luxury branded PDFs
 │   ├── drive_pdf_links.json              # Scraped exact Google Drive file IDs and URLs
 │   └── full_property_pdf_map.json        # 20/20 property mapping (Room ID, Slug, Name, View & Download URLs)
-├── WHATSAPP_BUSINESS_CATALOGUE_MASTER.md # Location-wise WhatsApp catalogue listings (copy-paste ready)
-├── PROPERTY_GOOGLE_MAPS_DIRECTORY.md     # Google Maps check-in navigation cards (with & without caretaker)
-├── TOMORROW_ACTION_PLAN.md               # Action plan & prioritized execution checklist for tomorrow
-├── vendors.html                          # Emergency vendor & maintenance portal (1-tap call/WA)
-├── staff.html                            # Staff & Caretaker directory portal (1-tap call/WA)
-└── PROJECT_CONTEXT_HANDOFF.md            # THIS MASTER HANDOFF FILE
+├── docs/                                 # Centralized Documentation Library
+│   ├── README.md                         # Documentation index & master table of contents
+│   ├── seo-and-ranking/                  # Google Maps & AI Search Domination
+│   │   └── GOOGLE_AND_AI_TOP_RANKING_PLAYBOOK.md # Blueprint for #1 ranking on Maps & AI
+│   ├── operations/
+│   │   ├── WHATSAPP_BUSINESS_CATALOGUE.md# Location-wise WhatsApp catalogue listings
+│   │   ├── GOOGLE_MAPS_DIRECTORY.md      # Forwardable Google Maps check-in cards
+│   │   └── NOTION_MASTER_DIRECTORY.md    # Notion master property directory
+│   ├── guides/
+│   │   ├── WINDOWS_WHATSAPP_SETUP.md     # Baileys Node.js Windows bot setup
+│   │   ├── ELEVENLABS_VOICE_AGENT_SETUP.md# Voice AI agent configuration
+│   │   └── TUHH_UPI_AUTO_SYNC_SETUP.md   # Real-time bank UPI auto-sync
+│   └── planning/
+│       ├── TOMORROW_ACTION_PLAN.md       # Prioritized execution checklist
+│       ├── INDUSTRY_STANDARD_ROADMAP.md  # Long-term hospitality tech roadmap
+│       └── NOTES_PENDING.md              # Historical operational notes
+├── README.md                             # Quick-start README
+└── PROJECT_CONTEXT_HANDOFF.md            # THIS MASTER HANDOFF FILE (Root)
 ```
 
 ---
@@ -82,7 +97,7 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
 
 ---
 
-## ⚡ 4. CRITICAL SUBSYSTEMS & RECENT DEVELOPMENTS (v528–v532)
+## ⚡ 4. CRITICAL SUBSYSTEMS & RECENT DEVELOPMENTS (v528–v533)
 
 ### A. All 20 Branded Property PDFs & Exact Drive Mapping
 1. **Lossless PDF Generation**:
@@ -107,19 +122,24 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
    - **`https://wa.me/c/919194109911`**
    - Integrated into `index.html` (navbar & footer), `properties.html` (navbar & top banner pill), and `js/properties.js` (toolbar button).
 3. **Master Catalogue Guide**:
-   - Located at [WHATSAPP_BUSINESS_CATALOGUE_MASTER.md](file:///Users/praveen/Developer/airbnbmanager.github.io/WHATSAPP_BUSINESS_CATALOGUE_MASTER.md).
+   - Located at [docs/operations/WHATSAPP_BUSINESS_CATALOGUE.md](docs/operations/WHATSAPP_BUSINESS_CATALOGUE.md).
    - Provides ready-to-copy listings for all 20 properties arranged location-wise.
 
 ### C. Google Maps Check-in Navigation Directory
-- Located at [PROPERTY_GOOGLE_MAPS_DIRECTORY.md](file:///Users/praveen/Developer/airbnbmanager.github.io/PROPERTY_GOOGLE_MAPS_DIRECTORY.md).
+- Located at [docs/operations/GOOGLE_MAPS_DIRECTORY.md](docs/operations/GOOGLE_MAPS_DIRECTORY.md).
 - **Section A**: Complete cards with on-arrival caretaker contact numbers (for confirmed arriving guests).
 - **Section B**: Minimal cards without caretaker details (for inquiries and pre-booking privacy).
 - Structured as individual messages ready to be posted in the staff WhatsApp group for **1-click forwarding** to guests.
 
-### D. Group DP Assets
-- Created in `/Users/praveen/Developer/Property PDFs/` and `assets/`:
-  * `WhatsApp_Group_DP_Official.png` (Official TUHH gold-crested corporate emblem)
-  * `WhatsApp_Group_DP_3D_Luxury.jpg` (3D architectural gold embossed render)
+### D. Google Maps 3-Pack & AI Search #1 Ranking Blueprint
+- Located at [docs/seo-and-ranking/GOOGLE_AND_AI_TOP_RANKING_PLAYBOOK.md](docs/seo-and-ranking/GOOGLE_AND_AI_TOP_RANKING_PLAYBOOK.md).
+- Reverses-engineers the ranking signals of top-ranking Lucknow listings:
+  * Keyword-optimized title: `The Unique Haven Homes — Luxury Homestays & Serviced Villas Lucknow`
+  * Primary Category: `Homestay`
+  * 15-second vertical walkthrough video uploads
+  * GMB Products carousel (20 listings with price anchoring)
+  * Review generation flywheel targeting 50+ reviews with keyword rich snippets (*"best homestay in lucknow"*, *"very clean 3bhk in gomti nagar"*)
+  * Generative Engine Optimization (GEO) for Gemini & ChatGPT
 
 ---
 
@@ -158,13 +178,11 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
 - Primary Working Branch: `feature/tuhh-app-modern-ui`
 - Production Branch: `main`
 - **Rule**: Every single commit made to `feature/tuhh-app-modern-ui` must be merged into `main` and pushed to `origin main` to keep both branches fast-forward synchronized.
-- Bump `CACHE_NAME` in `sw.js` (e.g. `tuhh-live-v532`) on every frontend release.
-
+- Bump `CACHE_NAME` in `sw.js` (currently `tuhh-live-v533`) on every frontend release.
 
 ### Rule 4: Mandatory Public Contact Name & Mobile Number (ONLY Shahanshah)
-- **STRICT MANDATE**: For all public Google Business Profile (GMB), Local SEO listings, Website, emergency escalations, and official contact displays, the primary name and mobile number must **ONLY be Shahanshah ()**.
-- No other employee/manager name or number should be set as the public owner/escalation face.
-
+- **STRICT MANDATE**: For all public Google Business Profile (GMB), Local SEO listings, Website, emergency escalations, and official contact displays, the primary name and mobile number must **ONLY be Shahanshah (+91 9450055554)**.
+- No other employee, partner, or manager number may be set as the public owner/host contact.
 
 ---
 
@@ -193,9 +211,10 @@ When moving between your Mac and any Windows PC:
    npm install
    node server.js
    ```
-4. **All Reference Files Available In Root**:
-   - `WHATSAPP_BUSINESS_CATALOGUE_MASTER.md` -> For copying catalogue listings.
-   - `PROPERTY_GOOGLE_MAPS_DIRECTORY.md` -> For copying guest navigation cards.
+4. **All Reference Files Available In Docs Library**:
+   - `docs/seo-and-ranking/GOOGLE_AND_AI_TOP_RANKING_PLAYBOOK.md` -> Master ranking blueprint.
+   - `docs/operations/WHATSAPP_BUSINESS_CATALOGUE.md` -> For copying catalogue listings.
+   - `docs/operations/GOOGLE_MAPS_DIRECTORY.md` -> For copying guest navigation cards.
    - `scripts/full_property_pdf_map.json` -> Complete mapping of all 20 properties with download & view URLs.
 
 ---
@@ -205,11 +224,8 @@ When moving between your Mac and any Windows PC:
 - **General Booking WhatsApp Group ID**: `120363425834560086@g.us`
 - **WhatsApp Business Catalog URL**: `https://wa.me/c/919194109911`
 - **Gateway Endpoint**: `http://localhost:3000`
-- **Supabase Cloud App Settings Keys**:
-  * `property_pdf_guides` -> Stored custom/default PDF URLs
-  * `whatsapp_hub_config` -> Master automation toggles
+- **Public Host Contact**: **Mr. Shahanshah (+91 9450055554)**
 - **Supported Properties Count**: 20 Homestay properties across Lucknow
-- **Primary Support Numbers**: `+91 9194109911` / `+91 9450055554`
 
 ---
-*End of Master Handoff Guide — Version v532 Verified*
+*End of Master Handoff Guide — Version v533 Verified*
