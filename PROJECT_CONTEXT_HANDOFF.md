@@ -2,7 +2,7 @@
 > **Project**: The Unique Haven Homes Private Limited (TUHH) Homestay CRM & PMS  
 > **Repository Path**: `/Users/praveen/Developer/airbnbmanager.github.io` (or Windows clone path)  
 > **Active Branch**: `feature/tuhh-app-modern-ui` (fast-forward synchronized with `main`)  
-> **Current Software Version**: `v531` (`tuhh-live-v531` in `sw.js` and `admin.html`)  
+> **Current Software Version**: `v532` (`tuhh-live-v532` in `sw.js` and `admin.html`)  
 > **Live Production URL**: `https://airbnbmanager.github.io/admin.html`  
 > **Website URL**: `https://uniquehavenhomesstay.com` (also at `https://airbnbmanager.github.io/properties.html`)  
 > **WhatsApp Business Catalog**: `https://wa.me/c/919194109911`  
@@ -20,7 +20,7 @@ TUHH CRM is a high-performance, real-time property management software built for
   - Supabase Project URL: `https://vxxmigdzimnrbbmkjzoa.supabase.co`
   - Anon Key: `sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F`
 - **Automation Gateway**: Node.js + `@whiskeysockets/baileys` running on port `3000` (`http://localhost:3000`).
-- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v531`).
+- **Service Worker / PWA**: Managed via `sw.js` (Cache identifier bumped on every release: currently `tuhh-live-v532`).
 
 ---
 
@@ -32,7 +32,7 @@ airbnbmanager.github.io/
 ├── index.html                            # Public website homepage (with WhatsApp catalog & PDF links)
 ├── properties.html                       # Public directory of all 20 homestays (with direct PDF buttons)
 ├── style.css                             # Core CSS design system, responsive styles, mobile media queries
-├── sw.js                                 # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v531')
+├── sw.js                                 # Service Worker caching and offline support (CACHE_NAME = 'tuhh-live-v532')
 ├── config.js                             # Supabase URL & Public API Keys
 ├── css/
 │   └── homeyindia-crm-theme.css          # Modern theme and UI styling rules
@@ -81,7 +81,7 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
 
 ---
 
-## ⚡ 4. CRITICAL SUBSYSTEMS & RECENT DEVELOPMENTS (v528–v531)
+## ⚡ 4. CRITICAL SUBSYSTEMS & RECENT DEVELOPMENTS (v528–v532)
 
 ### A. All 20 Branded Property PDFs & Exact Drive Mapping
 1. **Lossless PDF Generation**:
@@ -157,7 +157,13 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
 - Primary Working Branch: `feature/tuhh-app-modern-ui`
 - Production Branch: `main`
 - **Rule**: Every single commit made to `feature/tuhh-app-modern-ui` must be merged into `main` and pushed to `origin main` to keep both branches fast-forward synchronized.
-- Bump `CACHE_NAME` in `sw.js` (e.g. `tuhh-live-v531`) on every frontend release.
+- Bump `CACHE_NAME` in `sw.js` (e.g. `tuhh-live-v532`) on every frontend release.
+
+
+### Rule 4: Mandatory Public Contact Name & Mobile Number (ONLY Shahanshah)
+- **STRICT MANDATE**: For all public Google Business Profile (GMB), Local SEO listings, Website, emergency escalations, and official contact displays, the primary name and mobile number must **ONLY be Shahanshah ()**.
+- No other employee/manager name or number should be set as the public owner/escalation face.
+
 
 ---
 
@@ -205,4 +211,4 @@ When moving between your Mac and any Windows PC:
 - **Primary Support Numbers**: `+91 9194109911` / `+91 9450055554`
 
 ---
-*End of Master Handoff Guide — Version v531 Verified*
+*End of Master Handoff Guide — Version v532 Verified*
