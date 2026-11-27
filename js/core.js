@@ -1685,6 +1685,8 @@ function renderShell(content, activePage = 'dashboard') {
       pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-pay-report', 'cleaner-report', 'employee-ledger', 'advance', 'sop', 'company-advances', 'my-ledger', 'task-and-housekeeping', 'housekeeping'],
       tabs: [
         { id: 'employees', label: '👥 Staff Roster' },
+        { id: 'staff-portal', label: '📱 Staff Directory', externalUrl: 'staff.html' },
+        { id: 'vendor-portal', label: '🔧 Emergency Vendors', externalUrl: 'vendors.html' },
         { id: 'attendance', label: '📋 Attendance' },
         { id: 'tasks', label: '🧰 Tasks' },
         { id: 'employee-pay-report', label: '💰 Employee Pay Report' },
@@ -7090,6 +7092,24 @@ function renderAppMenu() {
       <div class="tuhh-menu-section">
         <div class="tuhh-section-header">TEAM &amp; FIELD OPERATIONS</div>
         <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="window.open('staff.html','_blank')">
+            <div class="tuhh-icon-box" style="background:#E0F2FE;color:#0284C7;"><i class="ti ti-users"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Staff &amp; Caretaker Directory 📱</div>
+              <div class="tuhh-row-sub">Location-wise on-ground roster &amp; 1-tap call/WA</div>
+            </div>
+            <i class="ti ti-external-link tuhh-chevron" style="font-size:15px;color:#0284C7;"></i>
+          </div>
+
+          <div class="tuhh-menu-row" onclick="window.open('vendors.html','_blank')">
+            <div class="tuhh-icon-box" style="background:#FEF3C7;color:#D97706;"><i class="ti ti-tools"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Emergency Vendors &amp; Maintenance 🔧</div>
+              <div class="tuhh-row-sub">Plumbers, electricians, carpenter, sofa cleaning</div>
+            </div>
+            <i class="ti ti-external-link tuhh-chevron" style="font-size:15px;color:#D97706;"></i>
+          </div>
+
           <div class="tuhh-menu-row" onclick="navigate('attendance')">
             <div class="tuhh-icon-box" style="background:#ECFDF5;color:#059669;"><i class="ti ti-clipboard-check"></i></div>
             <div class="tuhh-row-content">

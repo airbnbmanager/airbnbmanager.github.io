@@ -722,4 +722,16 @@
       <image:caption>1BHK Luxury Flat in Lucknow with AC, WiFi and modern amenities</image:caption>
     </image:image>
   </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/staff.html</loc>
+    <lastmod>2026-11-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://uniquehavenhomesstay.com/vendors.html</loc>
+    <lastmod>2026-11-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
 </urlset>

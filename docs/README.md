@@ -16,13 +16,15 @@ Dominate search results, Google Maps Local 3-Pack, and Generative AI engines (Ge
 ---
 
 ## 🏢 2. Operations & Directories (`docs/operations/`)
-Day-to-day guest communication, catalogues, and location resources:
+Day-to-day guest communication, catalogues, staff rosters, and location resources:
 
-| Document | Purpose |
-| :--- | :--- |
-| [**WhatsApp Business Catalogue**](operations/WHATSAPP_BUSINESS_CATALOGUE.md) | Copy-paste catalogue listings with individual Google Drive PDF links (Location-wise). |
-| [**Google Maps Directory**](operations/GOOGLE_MAPS_DIRECTORY.md) | 20 Forwardable WhatsApp check-in location cards (with & without caretaker). |
-| [**Notion Master Directory**](operations/NOTION_MASTER_DIRECTORY.md) | Notion database schemas and property attributes reference. |
+| Document | Purpose | Live Link |
+| :--- | :--- | :--- |
+| [**Staff & Caretaker Directory**](operations/STAFF_DIRECTORY.md) | Location-wise on-ground caretaker roster (Vikalp, Vishesh, Shaheed Path). | [📱 Open staff.html](https://airbnbmanager.github.io/staff.html) |
+| [**Emergency Maintenance Directory**](../../vendors.html) | Plumber, Electrician, Carpenter, Sofa Cleaning emergency contacts. | [🔧 Open vendors.html](https://airbnbmanager.github.io/vendors.html) |
+| [**WhatsApp Business Catalogue**](operations/WHATSAPP_BUSINESS_CATALOGUE.md) | Copy-paste catalogue listings with individual Google Drive PDF links. | [🛍️ Open Catalog](https://wa.me/c/919194109911) |
+| [**Google Maps Directory**](operations/GOOGLE_MAPS_DIRECTORY.md) | 20 Forwardable WhatsApp check-in location cards (with & without caretaker). | — |
+| [**Notion Master Directory**](operations/NOTION_MASTER_DIRECTORY.md) | Notion database schemas and property attributes reference. | — |
 
 ---
 
