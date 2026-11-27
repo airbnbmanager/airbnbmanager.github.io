@@ -63,6 +63,7 @@ airbnbmanager.github.io/
 │   │   └── GOOGLE_AND_AI_TOP_RANKING_PLAYBOOK.md # Blueprint for #1 ranking on Maps & AI
 │   ├── operations/
 │   │   ├── STAFF_DIRECTORY.md            # Location-wise staff & caretaker roster
+│   │   ├── VENDORS_DIRECTORY.md          # Location-wise emergency technicians & maintenance
 │   │   ├── WHATSAPP_BUSINESS_CATALOGUE.md# Location-wise WhatsApp catalogue listings
 │   │   ├── GOOGLE_MAPS_DIRECTORY.md      # Forwardable Google Maps check-in cards
 │   │   └── NOTION_MASTER_DIRECTORY.md    # Notion master property directory

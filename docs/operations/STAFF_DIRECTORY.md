@@ -1,14 +1,14 @@
 # 👥 STAFF & CARETAKER DIRECTORY
 **The Unique Haven Homes Private Limited**  
 *Official Location-Wise Staff, Property Caretakers & Operations Directory*  
-*Live Portal: [https://airbnbmanager.github.io/staff.html](https://airbnbmanager.github.io/staff.html)*  
+*Live Portal: [https://uniquehavenhomesstay.com/staff.html](https://uniquehavenhomesstay.com/staff.html)*  
 *Primary Escalation / Host: Shahanshah (+91 9450055554)*
 
 ---
 
 ## 🌐 1. Live Interactive Portal
 For mobile-friendly 1-tap calling and WhatsApp messaging:
-👉 **[Open Staff & Caretaker Portal (`staff.html`)](https://airbnbmanager.github.io/staff.html)**
+👉 **[Open Staff & Caretaker Portal (`staff.html`)](https://uniquehavenhomesstay.com/staff.html)**
 
 ---
 
@@ -81,6 +81,6 @@ Copy and paste this message into the internal staff WhatsApp group:
 • Shrwan (The Luxe Haven / Golf City): 8858034382
 
 🌐 Live Mobile Portal (1-Tap Call/WA):
-👉 https://airbnbmanager.github.io/staff.html
+👉 https://uniquehavenhomesstay.com/staff.html
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
