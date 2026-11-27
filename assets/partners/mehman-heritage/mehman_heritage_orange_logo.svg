@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant Royal Orange Gradient -->
+    <radialGradient id="orangeBg" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#FF6B2B" />
+      <stop offset="45%" stop-color="#EA580C" />
+      <stop offset="85%" stop-color="#C2410C" />
+      <stop offset="100%" stop-color="#9A3412" />
+    </radialGradient>
+
+    <!-- Polished Gold Gradient -->
+    <linearGradient id="richGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3C4" />
+      <stop offset="25%" stop-color="#FCD34D" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="75%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+
+    <!-- Chrome White / Silver Bevel Gradient -->
+    <linearGradient id="whiteBevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="70%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter for 3D Depth -->
+    <filter id="luxuryShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#431407" flood-opacity="0.6" />
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background in Vibrant Royal Orange -->
+  <rect width="1000" height="1000" rx="36" fill="url(#orangeBg)" />
+
+  <!-- Subtle Corner Ornaments -->
+  <g stroke="url(#richGold)" stroke-width="2" fill="none" opacity="0.4">
+    <!-- Top Left -->
+    <path d="M 40,80 L 40,40 L 80,40" />
+    <circle cx="40" cy="40" r="4" fill="url(#richGold)" />
+    <!-- Top Right -->
+    <path d="M 960,80 L 960,40 L 920,40" />
+    <circle cx="960" cy="40" r="4" fill="url(#richGold)" />
+    <!-- Bottom Left -->
+    <path d="M 40,920 L 40,960 L 80,960" />
+    <circle cx="40" cy="960" r="4" fill="url(#richGold)" />
+    <!-- Bottom Right -->
+    <path d="M 960,920 L 960,960 L 920,960" />
+    <circle cx="960" cy="960" r="4" fill="url(#richGold)" />
+  </g>
+
+  <!-- Central Crest / Heritage Emblem -->
+  <g transform="translate(500, 360)" filter="url(#luxuryShadow)">
+    
+    <!-- Top Finial / Royal Crest -->
+    <g transform="translate(0, -185)">
+      <path d="M 0,-30 C 8,-15 12,0 0,20 C -12,0 -8,-15 0,-30 Z" fill="url(#richGold)" />
+      <path d="M 12,-18 C 28,-10 32,5 15,18 C 6,10 8,-5 12,-18 Z" fill="url(#richGold)" />
+      <path d="M -12,-18 C -28,-10 -32,5 -15,18 C -6,10 -8,-5 -12,-18 Z" fill="url(#richGold)" />
+      <path d="M 22,-5 C 38,5 38,20 22,25 C 14,18 16,5 22,-5 Z" fill="url(#richGold)" />
+      <path d="M -22,-5 C -38,5 -38,20 -22,25 C -14,18 -16,5 -22,-5 Z" fill="url(#richGold)" />
+      <circle cx="0" cy="24" r="5" fill="#FFFFFF" />
+    </g>
+
+    <!-- Outer Architectural Heritage Arch Silhouette -->
+    <path d="M 0,-160 
+             C 40,-130 80,-90 120,-80 
+             C 175,-65 210,-20 210,50 
+             C 210,140 130,205 0,205 
+             C -130,205 -210,140 -210,50 
+             C -210,-20 -175,-65 -120,-80 
+             C -80,-90 -40,-130 0,-160 Z" 
+          fill="none" stroke="url(#richGold)" stroke-width="8" stroke-linecap="round" />
+
+    <!-- Secondary Inner Gold Ring -->
+    <path d="M 0,-140 
+             C 32,-115 65,-80 100,-70 
+             C 145,-55 175,-15 175,45 
+             C 175,120 108,175 0,175 
+             C -108,175 -175,120 -175,45 
+             C -175,-15 -145,-55 -100,-70 
+             C -65,-80 -32,-115 0,-140 Z" 
+          fill="none" stroke="url(#richGold)" stroke-width="2.5" opacity="0.7" />
+
+    <!-- Majestic Monogram 'M' with Arched Window -->
+    <!-- Left Stately Pillar of M -->
+    <path d="M -125,140 
+             C -125,40 -120,-30 -85,-80 
+             C -70,-100 -50,-115 -30,-100 
+             C -15,-90 -5,-65 0,-40 
+             C -10,-10 -25,40 -40,90 
+             C -55,140 -105,140 -125,140 Z" 
+          fill="url(#whiteBevel)" stroke="url(#richGold)" stroke-width="3" />
+
+    <!-- Right Stately Pillar of M -->
+    <path d="M 125,140 
+             C 125,40 120,-30 85,-80 
+             C 70,-100 50,-115 30,-100 
+             C 15,-90 5,-65 0,-40 
+             C 10,-10 25,40 40,90 
+             C 55,140 105,140 125,140 Z" 
+          fill="url(#whiteBevel)" stroke="url(#richGold)" stroke-width="3" />
+
+    <!-- Central Crossing Curves of M forming arched vault -->
+    <path d="M -60,140 
+             C -45,70 -20,10 0,-30 
+             C 20,10 45,70 60,140 
+             Z" 
+          fill="none" stroke="url(#richGold)" stroke-width="5" />
+
+    <!-- Glowing Arched Window (Jharokha) at Center Bottom -->
+    <g transform="translate(0, 85)">
+      <!-- Jharokha Outer Frame -->
+      <path d="M -30,45 L -30,0 C -30,-25 30,-25 30,0 L 30,45 Z" 
+            fill="#FEF08A" stroke="url(#richGold)" stroke-width="3" filter="url(#softGlow)" />
+      <!-- Window Panes -->
+      <line x1="0" y1="-18" x2="0" y2="45" stroke="#9A3412" stroke-width="2.5" />
+      <line x1="-30" y1="12" x2="30" y2="12" stroke="#9A3412" stroke-width="2.5" />
+    </g>
+
+    <!-- Bottom Emblem Pedestal -->
+    <path d="M -150,165 Q 0,185 150,165 Q 0,178 -150,165 Z" fill="url(#richGold)" />
+  </g>
+
+  <!-- Typography Section -->
+  <g transform="translate(500, 680)" filter="url(#luxuryShadow)">
+    
+    <!-- Main Brand Name: MEHMAN -->
+    <text x="0" y="0" 
+          text-anchor="middle" 
+          font-family="'Georgia', 'Times New Roman', serif" 
+          font-size="92" 
+          font-weight="bold" 
+          letter-spacing="14" 
+          fill="#FFFFFF"
+          stroke="#431407"
+          stroke-width="2"
+          stroke-linejoin="round">
+      MEHMAN
+    </text>
+
+    <!-- Subtitle: HERITAGE STAY & HOSPITALITY -->
+    <g transform="translate(0, 58)">
+      <!-- Left Filigree Wing -->
+      <path d="M -320,-8 Q -280,-14 -220,-8 Q -250,-2 -280,-8" fill="none" stroke="url(#richGold)" stroke-width="2" />
+      <circle cx="-215" cy="-8" r="3.5" fill="url(#richGold)" />
+      
+      <!-- Text -->
+      <text x="0" y="0" 
+            text-anchor="middle" 
+            font-family="'Arial', 'Helvetica', sans-serif" 
+            font-size="24" 
+            font-weight="bold" 
+            letter-spacing="9" 
+            fill="url(#richGold)">
+        HERITAGE STAY &amp; HOSPITALITY
+      </text>
+
+      <!-- Right Filigree Wing -->
+      <circle cx="215" cy="-8" r="3.5" fill="url(#richGold)" />
+      <path d="M 320,-8 Q 280,-14 220,-8 Q 250,-2 280,-8" fill="none" stroke="url(#richGold)" stroke-width="2" />
+    </g>
+
+    <!-- Tagline: Where guests become family -->
+    <g transform="translate(0, 125)">
+      <text x="0" y="0" 
+            text-anchor="middle" 
+            font-family="'Snell Roundhand', 'Brush Script MT', 'Bickham Script Pro', cursive, 'Georgia'" 
+            font-size="40" 
+            font-style="italic" 
+            letter-spacing="2" 
+            fill="#FFF7ED">
+        Where guests become family
+      </text>
+
+      <!-- Bottom Decorative Flourish -->
+      <path d="M -140,24 Q 0,42 140,24 Q 0,30 -140,24" fill="url(#richGold)" opacity="0.8" />
+    </g>
+  </g>
+</svg>
