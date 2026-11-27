@@ -581,6 +581,61 @@ https://uniquehavenhomesstay.com/staff.html
         setTimeout(() => { notice.style.display = 'none'; }, 3000);
       });
     }
+  
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Real-Time Cloud Sync: Automatically update staff cards if Praveen edited them in CRM
+    (async function syncLiveStaff() {
+      try {
+        const res = await fetch('https://vxxmigdzimnrbbmkjzoa.supabase.co/rest/v1/app_settings?key=eq.tuhh_staff_directory&select=value', {
+          headers: { 'apikey': 'sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F' }
+        });
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (!rows || !rows[0] || !rows[0].value) return;
+        const list = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+        if (!Array.isArray(list) || !list.length) return;
+
+        const clusters = {
+          central: { el: document.getElementById('staff-central'), icon: '⭐', banner: 'Executive Operations, Guest Escalations, High-Priority Bookings & Accounts' },
+          vikalp: { el: document.getElementById('staff-vikalp'), icon: '🏢', banner: 'Covers: <strong>Black Beauty, The Dark Blue, The Brown, The Light Green, The Nawabi Stay, The Unique, RedRose Palace, Starlight PentHouse, The Tehzeeb Nest, Sukoon Stay</strong>' },
+          vishesh: { el: document.getElementById('staff-vishesh'), icon: '🏡', banner: 'Covers: <strong>The Pink House (5 BHK), The Green House (3 BHK), The Yellow House (3 BHK)</strong>' },
+          shaheed: { el: document.getElementById('staff-shaheed'), icon: '🛣️', banner: 'Covers: <strong>Royal White House, Celebrity Garden, Gomti Grand Villa, Velvet House, Green Forest, Pink Paradise, The Luxe Haven</strong>' }
+        };
+
+        Object.keys(clusters).forEach(key => {
+          const cfg = clusters[key];
+          if (!cfg.el) return;
+          const items = list.filter(x => x.cluster === key);
+          if (!items.length) return;
+
+          let html = '<div class="cluster-banner"><span>' + cfg.icon + '</span><span>' + cfg.banner + '</span></div>';
+          html += items.map(x => `
+            <div class="staff-card">
+              <div class="staff-left">
+                <div class="staff-avatar ${x.roleClass || 'avatar-caretaker'}">${x.avatar || '👤'}</div>
+                <div class="staff-info">
+                  <h3>${escapeHtml(x.name)} <span class="role-badge ${x.roleClass || 'role-caretaker'}">${escapeHtml(x.roleBadge || 'Staff')}</span></h3>
+                  <div class="staff-responsibilities">${escapeHtml(x.responsibilities || '')}</div>
+                  <div class="staff-properties">${escapeHtml(x.properties || '')}</div>
+                </div>
+              </div>
+              <div class="staff-actions">
+                <a href="tel:${escapeHtml(x.phone)}" class="action-btn btn-call">📞 Call</a>
+                <a href="https://wa.me/${escapeHtml(x.whatsapp)}" target="_blank" class="action-btn btn-wa">💬 WA</a>
+              </div>
+            </div>
+          `).join('');
+          cfg.el.innerHTML = html;
+        });
+      } catch (err) {
+        console.warn('Using static staff fallback:', err);
+      }
+    })();
+
   </script>
 
 </body>

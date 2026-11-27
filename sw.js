@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tuhh-live-v534';
+const CACHE_NAME = 'tuhh-live-v535';
 const RUNTIME_CACHE = 'tuhh-runtime-v500';
 
 const CORE_ASSETS = [
@@ -41,6 +41,7 @@ const CORE_ASSETS = [
   '/js/ca-audit-pack.js',
   '/js/properties.js',
   '/js/employees.js',
+  '/js/directory-manager.js',
   '/js/expenses.js',
   '/js/store.js',
   '/js/maintenance.js',

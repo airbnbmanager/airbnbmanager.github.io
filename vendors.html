@@ -598,6 +598,60 @@ Shahanshah: +91 9450055554`;
         setTimeout(() => { notice.style.display = 'none'; }, 3000);
       });
     }
+  
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Real-Time Cloud Sync: Automatically update vendor cards if Praveen edited them in CRM
+    (async function syncLiveVendors() {
+      try {
+        const res = await fetch('https://vxxmigdzimnrbbmkjzoa.supabase.co/rest/v1/app_settings?key=eq.tuhh_vendors_directory&select=value', {
+          headers: { 'apikey': 'sb_publishable_ZgssvBczAg9TPv4ihN8IfQ_FPcEnq1F' }
+        });
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (!rows || !rows[0] || !rows[0].value) return;
+        const list = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+        if (!Array.isArray(list) || !list.length) return;
+
+        const clusters = {
+          vikalp: { el: document.getElementById('cluster-vikalp'), icon: '🏢', banner: 'Covers: <strong>Black Beauty, The Dark Blue, The Brown, The Light Green, The Nawabi Stay, The Unique, RedRose Palace, Starlight PentHouse, The Tehzeeb Nest, Sukoon Stay</strong>' },
+          vishesh: { el: document.getElementById('cluster-vishesh'), icon: '🏡', banner: 'Covers: <strong>The Pink House (5 BHK), The Green House (3 BHK), The Yellow House (3 BHK)</strong>' },
+          shaheed: { el: document.getElementById('cluster-shaheed'), icon: '🛣️', banner: 'Covers: <strong>Royal White House, Celebrity Garden, Gomti Grand Villa, Velvet House, Green Forest, Pink Paradise, The Luxe Haven</strong>' }
+        };
+
+        Object.keys(clusters).forEach(key => {
+          const cfg = clusters[key];
+          if (!cfg.el) return;
+          const items = list.filter(x => x.cluster === key);
+          if (!items.length) return;
+
+          let html = '<div class="cluster-banner"><span>' + cfg.icon + '</span><span>' + cfg.banner + '</span></div>';
+          html += items.map(x => `
+            <div class="vendor-card">
+              <div class="vendor-left">
+                <div class="vendor-icon ${x.iconClass || 'icon-plumber'}">${x.icon || '🔧'}</div>
+                <div class="vendor-info">
+                  <h3>${escapeHtml(x.category)}</h3>
+                  <div class="vendor-name">${escapeHtml(x.name)}</div>
+                  <div class="vendor-meta">${escapeHtml(x.meta || '')}</div>
+                </div>
+              </div>
+              <div class="vendor-actions">
+                <a href="tel:${escapeHtml(x.phone)}" class="action-btn btn-call">📞 Call</a>
+                <a href="https://wa.me/${escapeHtml(x.whatsapp)}?text=Urgent%20repair%20required%20at%20Homestay" target="_blank" class="action-btn btn-wa">💬 WA</a>
+              </div>
+            </div>
+          `).join('');
+          cfg.el.innerHTML = html;
+        });
+      } catch (err) {
+        console.warn('Using static vendors fallback:', err);
+      }
+    })();
+
   </script>
 
 </body>

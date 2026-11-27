@@ -1685,6 +1685,7 @@ function renderShell(content, activePage = 'dashboard') {
       pages: ['employees', 'attendance', 'att-summary', 'tasks', 'employee-pay-report', 'cleaner-report', 'employee-ledger', 'advance', 'sop', 'company-advances', 'my-ledger', 'task-and-housekeeping', 'housekeeping'],
       tabs: [
         { id: 'employees', label: '👥 Staff Roster' },
+        { id: 'directory-manager', label: '📱 Staff & Vendor CRUD' },
         { id: 'staff-portal', label: '📱 Staff Directory', externalUrl: 'staff.html' },
         { id: 'vendor-portal', label: '🔧 Emergency Vendors', externalUrl: 'vendors.html' },
         { id: 'attendance', label: '📋 Attendance' },
@@ -1769,6 +1770,9 @@ function renderShell(content, activePage = 'dashboard') {
     'company-advances': 'employees',
     'my-ledger': 'employees',
     'task-and-housekeeping': 'employees',
+    'directory-manager': 'employees',
+    'staff-directory': 'employees',
+    'vendor-directory': 'employees',
     housekeeping: 'employees',
 
     'whatsapp-hub': 'whatsapp-hub',
@@ -2802,6 +2806,9 @@ function navigate(page) {
     bookings: () => (window.renderSmartManageBookings || window.renderManageBookings || renderManageBookings)(),
     'guest-crm': () => navigate('bookings'),
     employees: () => (window.renderManageEmployees || renderManageEmployees)(),
+    'directory-manager': () => (window.renderDirectoryManager || (() => {}))(),
+    'staff-directory': () => (window.renderDirectoryManager || (() => {}))('staff'),
+    'vendor-directory': () => (window.renderDirectoryManager || (() => {}))('vendors'),
     tasks: () => {
       window._taskStatusFilter = 'ALL';
       window._taskStaffFilter = 'ALL';
@@ -7092,6 +7099,15 @@ function renderAppMenu() {
       <div class="tuhh-menu-section">
         <div class="tuhh-section-header">TEAM &amp; FIELD OPERATIONS</div>
         <div class="tuhh-menu-group">
+          <div class="tuhh-menu-row" onclick="navigate('directory-manager')">
+            <div class="tuhh-icon-box" style="background:#FEF3C7;color:#D97706;"><i class="ti ti-edit"></i></div>
+            <div class="tuhh-row-content">
+              <div class="tuhh-row-title">Directory Manager (Admin CRUD) 👑</div>
+              <div class="tuhh-row-sub">Add, edit &amp; delete caretakers &amp; vendors (Praveen Only)</div>
+            </div>
+            <i class="ti ti-chevron-right tuhh-chevron"></i>
+          </div>
+
           <div class="tuhh-menu-row" onclick="window.open('staff.html','_blank')">
             <div class="tuhh-icon-box" style="background:#E0F2FE;color:#0284C7;"><i class="ti ti-users"></i></div>
             <div class="tuhh-row-content">
