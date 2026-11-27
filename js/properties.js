@@ -42,68 +42,68 @@ window.DEFAULT_WHATSAPP_CATALOG_URL = 'https://wa.me/c/919194109911';
 
 window.DEFAULT_PROPERTY_PDF_GUIDES = {
   // The Luxe Haven - 1 BHK 2 Beds (Near Lulu Mall, Golf City).pdf
-  'LUL-101': 'https://drive.google.com/file/d/1vsX7vEVnwALvRFNUh2fnHYKH8KMVXv7v/view?usp=sharing',
-  'the-luxe-haven': 'https://drive.google.com/file/d/1vsX7vEVnwALvRFNUh2fnHYKH8KMVXv7v/view?usp=sharing',
+  'LUL-101': 'https://drive.google.com/file/d/1FR3OwpARVxBoNuIGWudUt9OnI4viTjEX/view?usp=sharing',
+  'the-luxe-haven': 'https://drive.google.com/file/d/1FR3OwpARVxBoNuIGWudUt9OnI4viTjEX/view?usp=sharing',
   // RedRose Palace - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-101': 'https://drive.google.com/file/d/16h2JOZqPgR4q_gkbiX5baFQZ8r1KmEQA/view?usp=sharing',
-  'redrose-palace': 'https://drive.google.com/file/d/16h2JOZqPgR4q_gkbiX5baFQZ8r1KmEQA/view?usp=sharing',
+  'GOM-101': 'https://drive.google.com/file/d/18y80ocUvwYD4EjnjwT29hKCOdVRUXdQ7/view?usp=sharing',
+  'redrose-palace': 'https://drive.google.com/file/d/18y80ocUvwYD4EjnjwT29hKCOdVRUXdQ7/view?usp=sharing',
   // Black Beauty - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-102': 'https://drive.google.com/file/d/1diEcEZH_bhtTfL-u0zvuR1PC9x1EXuVB/view?usp=sharing',
-  'black-beauty': 'https://drive.google.com/file/d/1diEcEZH_bhtTfL-u0zvuR1PC9x1EXuVB/view?usp=sharing',
+  'GOM-102': 'https://drive.google.com/file/d/1s9wL2jxWICKGUpvNEUW9R6KbCziWvB_X/view?usp=sharing',
+  'black-beauty': 'https://drive.google.com/file/d/1s9wL2jxWICKGUpvNEUW9R6KbCziWvB_X/view?usp=sharing',
   // The Dark Blue - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-201': 'https://drive.google.com/file/d/1P6FTgCRcu1lgKse5Ty2Adf3oPX_GET8N/view?usp=sharing',
-  'the-dark-blue': 'https://drive.google.com/file/d/1P6FTgCRcu1lgKse5Ty2Adf3oPX_GET8N/view?usp=sharing',
+  'GOM-201': 'https://drive.google.com/file/d/10Cgf0uD0A1cVgysEueZps4zB5REia9Zy/view?usp=sharing',
+  'the-dark-blue': 'https://drive.google.com/file/d/10Cgf0uD0A1cVgysEueZps4zB5REia9Zy/view?usp=sharing',
   // The Brown - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-202': 'https://drive.google.com/file/d/1h_1u-vulvBuoqLQ9tzmuQf275zSTCH2M/view?usp=sharing',
-  'the-brown': 'https://drive.google.com/file/d/1h_1u-vulvBuoqLQ9tzmuQf275zSTCH2M/view?usp=sharing',
+  'GOM-202': 'https://drive.google.com/file/d/1xNsia66e0PXpOWf9FHsfcso6agP5INVB/view?usp=sharing',
+  'the-brown': 'https://drive.google.com/file/d/1xNsia66e0PXpOWf9FHsfcso6agP5INVB/view?usp=sharing',
   // The Light Green - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-301': 'https://drive.google.com/file/d/1CeJKT07Qxmak_cNG7GlliJKKM6FSazFv/view?usp=sharing',
-  'the-light-green': 'https://drive.google.com/file/d/1CeJKT07Qxmak_cNG7GlliJKKM6FSazFv/view?usp=sharing',
+  'GOM-301': 'https://drive.google.com/file/d/1yWQkni7JrhqmoPcJXxpxBWUY_YYdJa0t/view?usp=sharing',
+  'the-light-green': 'https://drive.google.com/file/d/1yWQkni7JrhqmoPcJXxpxBWUY_YYdJa0t/view?usp=sharing',
   // The Nawabi Stay - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-401': 'https://drive.google.com/file/d/138TIhdiBnTD_WGWwq5ozpUiQ-Mr727g7/view?usp=sharing',
-  'the-nawabi-stay': 'https://drive.google.com/file/d/138TIhdiBnTD_WGWwq5ozpUiQ-Mr727g7/view?usp=sharing',
+  'GOM-401': 'https://drive.google.com/file/d/1aWuGnc4E9mzJlWCy55QdzPO1mRZRyHG9/view?usp=sharing',
+  'the-nawabi-stay': 'https://drive.google.com/file/d/1aWuGnc4E9mzJlWCy55QdzPO1mRZRyHG9/view?usp=sharing',
   // The Tehzeeb Nest - 3 BHK 4 Beds (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf
-  'GOM-402': 'https://drive.google.com/file/d/1B6Ccf3drjDxLGGW_kCUXyDe4F2w1Pfxm/view?usp=sharing',
-  'the-tehzeeb-nest': 'https://drive.google.com/file/d/1B6Ccf3drjDxLGGW_kCUXyDe4F2w1Pfxm/view?usp=sharing',
+  'GOM-402': 'https://drive.google.com/file/d/1rPkAPifJOQy0FCFE1wrvi92AeYHIJksH/view?usp=sharing',
+  'the-tehzeeb-nest': 'https://drive.google.com/file/d/1rPkAPifJOQy0FCFE1wrvi92AeYHIJksH/view?usp=sharing',
   // Sukoon Stay - 3 BHK 4 Beds (Blossom Skyline, Vikalp Khand, Gomti Nagar).pdf
-  'GOM-502': 'https://drive.google.com/file/d/1szszCUWBR9VFZQ3hX7Lo9T421iiJbFrr/view?usp=sharing',
-  'sukoon-stay': 'https://drive.google.com/file/d/1szszCUWBR9VFZQ3hX7Lo9T421iiJbFrr/view?usp=sharing',
+  'GOM-502': 'https://drive.google.com/file/d/1qOyOphUHLqlhUOc9THclpT92RJHImVT3/view?usp=sharing',
+  'sukoon-stay': 'https://drive.google.com/file/d/1qOyOphUHLqlhUOc9THclpT92RJHImVT3/view?usp=sharing',
   // Starlight Blue PentHouse - Luxury Penthouse 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-501': 'https://drive.google.com/file/d/1_2vSSlT4cNgTbXxHusLFJmnOLXPva3Zj/view?usp=sharing',
-  'starlight-blue-penthouse': 'https://drive.google.com/file/d/1_2vSSlT4cNgTbXxHusLFJmnOLXPva3Zj/view?usp=sharing',
+  'GOM-501': 'https://drive.google.com/file/d/1hudab7b7hzxyHbY8orrFQxMCHe1qeqyg/view?usp=sharing',
+  'starlight-blue-penthouse': 'https://drive.google.com/file/d/1hudab7b7hzxyHbY8orrFQxMCHe1qeqyg/view?usp=sharing',
   // The Unique - 3 BHK 4 Beds (Vikalp Khand, Chinhat, Gomti Nagar).pdf
-  'GOM-302': 'https://drive.google.com/file/d/1G0Zkm_n4W4zHu58AeLEnyREZWO2GhQUQ/view?usp=sharing',
-  'the-unique': 'https://drive.google.com/file/d/1G0Zkm_n4W4zHu58AeLEnyREZWO2GhQUQ/view?usp=sharing',
+  'GOM-302': 'https://drive.google.com/file/d/1sECif9yvRQIJTF-ZiMyhstO3IpegN_NV/view?usp=sharing',
+  'the-unique': 'https://drive.google.com/file/d/1sECif9yvRQIJTF-ZiMyhstO3IpegN_NV/view?usp=sharing',
   // The Green House - 3 BHK 4 Beds (Vishesh Khand 3, Gomti Nagar).pdf
-  'VIL-104': 'https://drive.google.com/file/d/1zt6Ko4fNkcXkUZgd06W3ckd5ngdWr0P6/view?usp=sharing',
-  'the-green-house': 'https://drive.google.com/file/d/1zt6Ko4fNkcXkUZgd06W3ckd5ngdWr0P6/view?usp=sharing',
+  'VIL-104': 'https://drive.google.com/file/d/1wuUBKch1gqNyP3hRGaUg0liZNfSzaEwe/view?usp=sharing',
+  'the-green-house': 'https://drive.google.com/file/d/1wuUBKch1gqNyP3hRGaUg0liZNfSzaEwe/view?usp=sharing',
   // The Pink House - 5 BHK 6 Beds (Vishesh Khand 3, Gomti Nagar).pdf
-  'VIL-103': 'https://drive.google.com/file/d/1HjNX280JzQI9Dt5RxXJXQJ9yD-TxL-bN/view?usp=sharing',
-  'the-pink-house': 'https://drive.google.com/file/d/1HjNX280JzQI9Dt5RxXJXQJ9yD-TxL-bN/view?usp=sharing',
+  'VIL-103': 'https://drive.google.com/file/d/1XypQRjfAcV4iPT1QrkF_KWVOpULGBNSr/view?usp=sharing',
+  'the-pink-house': 'https://drive.google.com/file/d/1XypQRjfAcV4iPT1QrkF_KWVOpULGBNSr/view?usp=sharing',
   // The Yellow House - 3 BHK 4 Beds (Vishesh Khand 3, Gomti Nagar).pdf
-  'VIL-105': 'https://drive.google.com/file/d/125MiJdgnmJOKbdMfJ2RXvyDbPDOEnpjW/view?usp=sharing',
-  'the-yellow-house': 'https://drive.google.com/file/d/125MiJdgnmJOKbdMfJ2RXvyDbPDOEnpjW/view?usp=sharing',
+  'VIL-105': 'https://drive.google.com/file/d/1l3YWpcQWxAk9Ic-HZtYdiMguzq8Jxlfl/view?usp=sharing',
+  'the-yellow-house': 'https://drive.google.com/file/d/1l3YWpcQWxAk9Ic-HZtYdiMguzq8Jxlfl/view?usp=sharing',
   // Green Forest - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf
-  'VIL-106': 'https://drive.google.com/file/d/1L-JmAlSkPhomeRtU5A8q3O12s34Oxylx/view?usp=sharing',
-  'green-forest': 'https://drive.google.com/file/d/1L-JmAlSkPhomeRtU5A8q3O12s34Oxylx/view?usp=sharing',
+  'VIL-106': 'https://drive.google.com/file/d/19KjoiGE2_SuZWr2Mr9ZTzYJCZLB8ecOT/view?usp=sharing',
+  'green-forest': 'https://drive.google.com/file/d/19KjoiGE2_SuZWr2Mr9ZTzYJCZLB8ecOT/view?usp=sharing',
   // Pink Paradise - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf
-  'VIL-108': 'https://drive.google.com/file/d/1Hn57OqX_928CNqLgPg4SbnPLBN9LdVw5/view?usp=sharing',
-  'pink-paradise': 'https://drive.google.com/file/d/1Hn57OqX_928CNqLgPg4SbnPLBN9LdVw5/view?usp=sharing',
+  'VIL-108': 'https://drive.google.com/file/d/17dtplPeWXq5CBqnDClWGGTVRBJWxXk4e/view?usp=sharing',
+  'pink-paradise': 'https://drive.google.com/file/d/17dtplPeWXq5CBqnDClWGGTVRBJWxXk4e/view?usp=sharing',
   // Celebrity Garden - 4 BHK 5 Beds with Lawn (Near Lulu Mall, Shaheed Path).pdf
-  'LUL-402': 'https://drive.google.com/file/d/1PXEyYb0r234GiCbs6-As796Bv2P5Htxq/view?usp=sharing',
-  'celebrity-garden': 'https://drive.google.com/file/d/1PXEyYb0r234GiCbs6-As796Bv2P5Htxq/view?usp=sharing',
+  'LUL-402': 'https://drive.google.com/file/d/1ejDjLoz11N5bJD2sp2cl-GOIJCpkijkI/view?usp=sharing',
+  'celebrity-garden': 'https://drive.google.com/file/d/1ejDjLoz11N5bJD2sp2cl-GOIJCpkijkI/view?usp=sharing',
   // Gomti Grand Villa - 4 BHK 5 Beds Villa (Near Lulu & Palassio Mall).pdf
-  'VIL-101': 'https://drive.google.com/file/d/1-LJzyczoG2NfLTwiGmskBYDfdev3t2pO/view?usp=sharing',
-  'gomti-grand-villa': 'https://drive.google.com/file/d/1-LJzyczoG2NfLTwiGmskBYDfdev3t2pO/view?usp=sharing',
+  'VIL-101': 'https://drive.google.com/file/d/110mWQGNVT1tmhF5MceUqJYIrRVkPPdS4/view?usp=sharing',
+  'gomti-grand-villa': 'https://drive.google.com/file/d/110mWQGNVT1tmhF5MceUqJYIrRVkPPdS4/view?usp=sharing',
   // Royal White House - 6 BHK Royal Villa (Shaheed Path, Near Lulu Mall).pdf
-  'VIL-102': 'https://drive.google.com/file/d/1335oU4pNMp8bxTe1vvGpTNr6LxU-BvUk/view?usp=sharing',
-  'royal-white-house': 'https://drive.google.com/file/d/1335oU4pNMp8bxTe1vvGpTNr6LxU-BvUk/view?usp=sharing',
+  'VIL-102': 'https://drive.google.com/file/d/1uEKlW7vg6qpR9c9u57-QJqyBNwBewJWf/view?usp=sharing',
+  'royal-white-house': 'https://drive.google.com/file/d/1uEKlW7vg6qpR9c9u57-QJqyBNwBewJWf/view?usp=sharing',
   // The Velvet House - 3 BHK 3 Beds Villa (Madhav Kunj, Near Lulu Mall).pdf
-  'VIL-107': 'https://drive.google.com/file/d/17Xt3T_4YCjHXoA9xfeaOH7dfm7cIB3K3/view?usp=sharing',
-  'the-velvet-house': 'https://drive.google.com/file/d/17Xt3T_4YCjHXoA9xfeaOH7dfm7cIB3K3/view?usp=sharing',
+  'VIL-107': 'https://drive.google.com/file/d/1lnebAsuCu3eJ90oJHUQavOEAVqxk2_9C/view?usp=sharing',
+  'the-velvet-house': 'https://drive.google.com/file/d/1lnebAsuCu3eJ90oJHUQavOEAVqxk2_9C/view?usp=sharing',
   // Aliases for Flat numbers
-  'Flat 402': 'https://drive.google.com/file/d/1B6Ccf3drjDxLGGW_kCUXyDe4F2w1Pfxm/view?usp=sharing',
-  'Flat 502': 'https://drive.google.com/file/d/1szszCUWBR9VFZQ3hX7Lo9T421iiJbFrr/view?usp=sharing'
+  'Flat 402': 'https://drive.google.com/file/d/1rPkAPifJOQy0FCFE1wrvi92AeYHIJksH/view?usp=sharing',
+  'Flat 502': 'https://drive.google.com/file/d/1qOyOphUHLqlhUOc9THclpT92RJHImVT3/view?usp=sharing'
 };
 
 // Gets the active PDF guide URL for any room (custom > property default > master folder)
