@@ -1,432 +1,286 @@
-# Property Google Maps & Check-in Navigation Directory
-**The Unique Haven Homes Private Limited**
+# 📍 Property Google Maps & Cluster Navigation Directory
+**The Unique Haven Homes Private Limited**  
+*Official Location-Cluster Navigation Cards for 1-Click WhatsApp Forwarding*  
+*Total Properties: 20 Luxury Homestays across 6 Strategic Clusters*  
+*Owner & Host Escalation: Shahanshah (+91 9450055554)*
 
 ---
 
-# SECTION A: COMPLETE CARDS (WITH CARETAKER CONTACT)
-Use these when a guest is arriving or for confirmed check-in assistance.
+## 📌 OVERVIEW: 6 LOCATION CLUSTERS SUMMARY
 
-### Royal White House
+Instead of sending 20 separate individual property links, guest check-in navigation is organized by **6 Strategic Location Hubs**.  
+Each card lists all properties at that location and contains the verified Google Maps pin:
+
+| # | Cluster / Location | Total Properties | Verified Google Maps Navigation Link |
+| :-: | :--- | :-: | :--- |
+| **1** | **Vikalp Khand Chinhat** | **10 Properties** | [https://maps.app.goo.gl/7ULuctS1cwQSUFdW7](https://maps.app.goo.gl/7ULuctS1cwQSUFdW7) |
+| **2** | **Vishesh Khand** | **3 Properties** | [https://maps.app.goo.gl/hCYdm2zNrfsK7yN78](https://maps.app.goo.gl/hCYdm2zNrfsK7yN78) |
+| **3** | **Madhav Kunj** | **4 Properties** | [https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9](https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9) |
+| **4** | **Celebrity Garden** | **1 Property** | [https://maps.app.goo.gl/Sev89di4cKGBuR289](https://maps.app.goo.gl/Sev89di4cKGBuR289) |
+| **5** | **Khargapur** | **1 Property** | [https://maps.app.goo.gl/aX1bimVPmSDapdk67](https://maps.app.goo.gl/aX1bimVPmSDapdk67) |
+| **6** | **White House** | **1 Property** | [https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47](https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47) |
+
+---
+
+# 📲 SECTION A: 1-CLICK FORWARDABLE WHATSAPP CLUSTER CARDS (WITH CARETAKER)
+*Copy and forward any of these 6 messages directly to guests arriving at that cluster.*
+
+---
+
+### 1️⃣ Cluster 1: Vikalp Khand Chinhat (10 Properties)
 ```text
-📍 *Royal White House · 6 BHK Royal Villa*
-Prime Shaheed Path, Near Lulu Mall, Lucknow
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Vikalp Khand, Chinhat (Gomti Nagar)*.
 
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+📍 *Address:* Blossom Skyline, Vikalp Khand, Chinhat, Gomti Nagar, Lucknow - 226010
+📍 *Landmark:* Near Chinhat Tiraha / Malhaur Road
 
-📞 *On-Arrival Caretaker Support:*
-Kanchan / Concierge: +91 9194109911
-```
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/7ULuctS1cwQSUFdW7
 
-### Celebrity Garden
-```text
-📍 *Celebrity Garden · 4 BHK 5 Beds with Lawn*
-Shaheed Path, Near Lulu Mall, Lucknow
+🏠 *10 Properties at this Location:*
+• Black Beauty (3 BHK 4 Beds | GOM-102)
+• The Dark Blue (3 BHK 4 Beds | GOM-201)
+• The Brown (3 BHK 4 Beds | GOM-202)
+• The Light Green (3 BHK 4 Beds | GOM-301)
+• The Nawabi Stay (3 BHK 4 Beds | GOM-401)
+• The Unique (3 BHK 4 Beds | GOM-302)
+• RedRose Palace (3 BHK 4 Beds | GOM-101)
+• Starlight Blue PentHouse (4 Beds Penthouse | GOM-501)
+• The Tehzeeb Nest (3 BHK 4 Beds | GOM-402)
+• Sukoon Stay (3 BHK 4 Beds | GOM-502)
 
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
-
-📞 *On-Arrival Caretaker Support:*
-Sarvan: +91 8858034382
-```
-
-### Gomti Grand Villa
-```text
-📍 *Gomti Grand Villa · 4 BHK 5 Beds Villa*
-Prime Gomti Nagar (Near Lulu & Palassio Mall), Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/qQRbCANwvez7mnD3A
-
-📞 *On-Arrival Caretaker Support:*
-Host Concierge: +91 9194109911 / +91 9450055554
-```
-
-### The Pink House
-```text
-📍 *The Pink House · 5 BHK 6 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
-
-📞 *On-Arrival Caretaker Support:*
-Aniket: +91 9214246820
-```
-
-### The Green House
-```text
-📍 *The Green House · 3 BHK 4 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
-
-📞 *On-Arrival Caretaker Support:*
-Aniket: +91 9214246820
-```
-
-### The Yellow House
-```text
-📍 *The Yellow House · 3 BHK 4 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
-
-📞 *On-Arrival Caretaker Support:*
-Aniket: +91 9214246820
-```
-
-### The Velvet House
-```text
-📍 *The Velvet House · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
-
-📞 *On-Arrival Caretaker Support:*
-Sarvan: +91 8858034382
-```
-
-### Green Forest
-```text
-📍 *Green Forest · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
-
-📞 *On-Arrival Caretaker Support:*
-Sarvan: +91 8858034382
-```
-
-### Pink Paradise
-```text
-📍 *Pink Paradise · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
-
-📞 *On-Arrival Caretaker Support:*
-Sarvan: +91 8858034382
-```
-
-### Black Beauty
-```text
-📍 *Black Beauty · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Dark Blue
-```text
-📍 *The Dark Blue · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Brown
-```text
-📍 *The Brown · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Light Green
-```text
-📍 *The Light Green · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Nawabi Stay
-```text
-📍 *The Nawabi Stay · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Unique
-```text
-📍 *The Unique · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### RedRose Palace
-```text
-📍 *RedRose Palace · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### Starlight Blue PentHouse
-```text
-📍 *Starlight Blue PentHouse · 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Tehzeeb Nest
-```text
-📍 *The Tehzeeb Nest · 3 BHK 4 Beds*
-Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### Sukoon Stay
-```text
-📍 *Sukoon Stay · 3 BHK 4 Beds*
-Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-
-📞 *On-Arrival Caretaker Support:*
-Arman: +91 8467080284 / Shuaib: +91 8957725081
-```
-
-### The Luxe Haven
-```text
-📍 *The Luxe Haven · 1 BHK 2 Beds*
-Golf City, Shaheed Path, Near Lulu Mall, Lucknow
-
-🗺️ *Google Maps Navigation:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
-
-📞 *On-Arrival Caretaker Support:*
-Shrwan: +91 8858034382
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretakers:* Arman (+91 8467080284) & Shuaib (+91 8957725081)
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
 ---
 
-# SECTION B: MINIMAL LOCATION CARDS (WITHOUT CARETAKER)
-Use these clean, private cards for inquiries, pre-booking chats, or general location sharing.
-
-### Royal White House
+### 2️⃣ Cluster 2: Vishesh Khand (3 Properties)
 ```text
-📍 *Royal White House · 6 BHK Royal Villa*
-Prime Shaheed Path, Near Lulu Mall, Lucknow
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Vishesh Khand 3 (Gomti Nagar)*.
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+📍 *Address:* Vishesh Khand 3, Gomti Nagar, Lucknow, Uttar Pradesh - 226010
+📍 *Landmark:* Near Manoj Pandey Chauraha & Gomti Nagar Police Station
+
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/hCYdm2zNrfsK7yN78
+
+🏡 *3 Luxury Stays at this Location:*
+• The Pink House (5 BHK 6 Beds Luxury Stay | VIL-103)
+• The Green House (3 BHK 4 Beds Homestay | VIL-104)
+• The Yellow House (3 BHK 4 Beds Homestay | VIL-105)
+
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretaker:* Aniket (+91 9214246820)
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
-### Celebrity Garden
-```text
-📍 *Celebrity Garden · 4 BHK 5 Beds with Lawn*
-Shaheed Path, Near Lulu Mall, Lucknow
+---
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+### 3️⃣ Cluster 3: Madhav Kunj (4 Properties)
+```text
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Madhav Kunj (Near Lulu Mall)*.
+
+📍 *Address:* Madhav Kunj, Near Lulu Mall & Shaheed Path, Lucknow - 226002
+📍 *Landmark:* Near Medanta Hospital / Lulu Mall Service Road
+
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9
+
+🌴 *4 Luxury Properties at this Location:*
+• The Velvet House (3 BHK 3 Beds Private Villa | VIL-107)
+• Green Forest (3 BHK 3 Beds Private Villa | VIL-106)
+• Pink Paradise (3 BHK 3 Beds Private Villa | VIL-108)
+• The Luxe Haven (1 BHK 2 Beds Boutique Suite | LUL-101)
+
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretaker:* Sarvan (+91 8858034382)
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
-### Gomti Grand Villa
-```text
-📍 *Gomti Grand Villa · 4 BHK 5 Beds Villa*
-Prime Gomti Nagar (Near Lulu & Palassio Mall), Lucknow
+---
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/qQRbCANwvez7mnD3A
+### 4️⃣ Cluster 4: Celebrity Garden (1 Property)
+```text
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Celebrity Garden*.
+
+📍 *Address:* Celebrity Garden, Sushant Golf City, Shaheed Path, Lucknow - 226030
+📍 *Landmark:* Next to Medanta Hospital & Lulu Mall, Shaheed Path
+
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/Sev89di4cKGBuR289
+
+👑 *Property Details:*
+• Celebrity Garden (4 BHK 5 Beds Luxury Villa with Private Lawn | LUL-402)
+
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretaker:* Sarvan (+91 8858034382)
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
-### The Pink House
-```text
-📍 *The Pink House · 5 BHK 6 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
+---
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
+### 5️⃣ Cluster 5: Khargapur (1 Property - Gomti Grand Villa)
+```text
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Gomti Grand Villa (Khargapur)*.
+
+📍 *Address:* Gomti Grand Villa, Khargapur, Gomti Nagar Bypass, Lucknow - 226010
+📍 *Landmark:* Near Shaheed Path & Ekana Cricket Stadium / Palassio Mall
+
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/aX1bimVPmSDapdk67
+
+👑 *Property Details:*
+• Gomti Grand Villa (4 BHK 5 Beds Luxury Villa with Courtyard | VIL-101)
+
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretaker & Host Desk:* +91 9450055554
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
-### The Green House
-```text
-📍 *The Green House · 3 BHK 4 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
+---
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
+### 6️⃣ Cluster 6: White House (1 Property - Royal White House)
+```text
+🏨 *THE UNIQUE HAVEN HOMES — LOCATION & NAVIGATION*
+Namaste! Here are your check-in location details for *Royal White House*.
+
+📍 *Address:* Royal White House, Prime Shaheed Path (Near Lulu Mall), Lucknow - 226030
+📍 *Landmark:* Main Shaheed Path, 2 Minutes from Lulu Mall & Medanta
+
+🗺️ *Exact Google Maps Navigation:*
+👉 https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47
+
+👑 *Property Details:*
+• Royal White House (6 BHK Royal Flagship Villa with Grand Lawn | VIL-102)
+
+🔑 *WiFi Password:* Airbnb.in1
+🛡️ *On-Arrival Caretaker & Concierge:* +91 9450055554
+👑 *Host & Escalations:* Mr. Shahanshah (+91 9450055554)
+🌐 https://uniquehavenhomesstay.com
 ```
 
-### The Yellow House
-```text
-📍 *The Yellow House · 3 BHK 4 Beds*
-Vishesh Khand 3, Gomti Nagar, Lucknow
+---
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/pCGigAPQGHjcfadQ8
+# 🔒 SECTION B: MINIMAL CARDS (FOR INQUIRIES & PRE-BOOKING)
+*Use these when quoting to prospective guests before booking confirmation (no caretaker numbers).*
+
+### Cluster 1: Vikalp Khand Chinhat (10 Properties)
+```text
+📍 *The Unique Haven Homes · Vikalp Khand Chinhat Cluster*
+(10 Luxury 3BHK Homestays & Penthouse in Gomti Nagar)
+
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/7ULuctS1cwQSUFdW7
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### The Velvet House
+### Cluster 2: Vishesh Khand (3 Properties)
 ```text
-📍 *The Velvet House · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
+📍 *The Unique Haven Homes · Vishesh Khand Cluster*
+(3 Luxury Stays: Pink House 5BHK, Green House 3BHK, Yellow House 3BHK)
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/hCYdm2zNrfsK7yN78
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### Green Forest
+### Cluster 3: Madhav Kunj (4 Properties)
 ```text
-📍 *Green Forest · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
+📍 *The Unique Haven Homes · Madhav Kunj Cluster*
+(4 Luxury Stays: Velvet House, Green Forest, Pink Paradise, The Luxe Haven)
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### Pink Paradise
+### Cluster 4: Celebrity Garden (1 Property)
 ```text
-📍 *Pink Paradise · 3 BHK 3 Beds Villa*
-Madhav Kunj, Near Lulu Mall, Lucknow
+📍 *Celebrity Garden · 4 BHK 5 Beds Villa with Private Lawn*
+Shaheed Path (Next to Medanta & Lulu Mall), Lucknow
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/Sev89di4cKGBuR289
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### Black Beauty
+### Cluster 5: Khargapur (1 Property - Gomti Grand Villa)
 ```text
-📍 *Black Beauty · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
+📍 *Gomti Grand Villa · 4 BHK 5 Beds Luxury Courtyard Villa*
+Khargapur, Gomti Nagar Bypass (Near Ekana Stadium & Lulu Mall), Lucknow
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/aX1bimVPmSDapdk67
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### The Dark Blue
+### Cluster 6: White House (1 Property - Royal White House)
 ```text
-📍 *The Dark Blue · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
+📍 *Royal White House · 6 BHK Royal Flagship Villa with Lawn*
+Prime Shaheed Path (Near Lulu Mall), Lucknow
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
+🗺️ *Google Maps Navigation:*
+https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47
+
+📞 *Direct Owner Concierge:* Shahanshah (+91 9450055554)
 ```
 
-### The Brown
+---
+
+# 📋 SECTION C: MASTER WHATSAPP BROADCAST (ALL 6 CLUSTERS PIN)
+*Pin this message in your staff WhatsApp group for 1-second reference:*
+
 ```text
-📍 *The Brown · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
+📌 *THE UNIQUE HAVEN HOMES — MASTER LOCATION CLUSTER MAPS* 📌
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 *1. VIKALP KHAND CHINHAT (10 FLATS)*
+(Black Beauty, Dark Blue, Brown, Light Green, Nawabi, Unique, RedRose, Starlight PentHouse, Tehzeeb Nest, Sukoon Stay)
+🗺️ https://maps.app.goo.gl/7ULuctS1cwQSUFdW7
+Caretakers: Arman (8467080284) & Shuaib (8957725081)
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
+🌿 *2. VISHESH KHAND GOMTI NAGAR (3 VILLAS)*
+(The Pink House 5BHK, The Green House 3BHK, The Yellow House 3BHK)
+🗺️ https://maps.app.goo.gl/hCYdm2zNrfsK7yN78
+Caretaker: Aniket (9214246820)
 
-### The Light Green
-```text
-📍 *The Light Green · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
+🌴 *3. MADHAV KUNJ (4 PROPERTIES)*
+(The Velvet House, Green Forest, Pink Paradise, The Luxe Haven)
+🗺️ https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9
+Caretaker: Sarvan (8858034382)
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
+🌸 *4. CELEBRITY GARDEN (1 VILLA)*
+(4 BHK 5 Beds Villa with Private Lawn)
+🗺️ https://maps.app.goo.gl/Sev89di4cKGBuR289
+Caretaker: Sarvan (8858034382)
 
-### The Nawabi Stay
-```text
-📍 *The Nawabi Stay · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
+🏛️ *5. KHARGAPUR (1 VILLA)*
+(Gomti Grand Villa — 4 BHK 5 Beds Courtyard Villa)
+🗺️ https://maps.app.goo.gl/aX1bimVPmSDapdk67
+Host Desk: 9450055554
 
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
+👑 *6. WHITE HOUSE (1 VILLA)*
+(Royal White House — 6 BHK Flagship Villa with Grand Lawn)
+🗺️ https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47
+Host Desk: 9450055554
 
-### The Unique
-```text
-📍 *The Unique · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
-
-### RedRose Palace
-```text
-📍 *RedRose Palace · 3 BHK 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
-
-### Starlight Blue PentHouse
-```text
-📍 *Starlight Blue PentHouse · 4 Beds*
-Vikalp Khand, Chinhat, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
-
-### The Tehzeeb Nest
-```text
-📍 *The Tehzeeb Nest · 3 BHK 4 Beds*
-Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
-
-### Sukoon Stay
-```text
-📍 *Sukoon Stay · 3 BHK 4 Beds*
-Blossom Skyline, Vikalp Khand, Gomti Nagar, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA
-```
-
-### The Luxe Haven
-```text
-📍 *The Luxe Haven · 1 BHK 2 Beds*
-Golf City, Shaheed Path, Near Lulu Mall, Lucknow
-
-🗺️ *Google Maps Location:*
-https://maps.app.goo.gl/b8YjBduoQxa98QhT6
+🚨 Direct Owner Escalations: Shahanshah (+91 9450055554)
+🌐 Web: https://uniquehavenhomesstay.com
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

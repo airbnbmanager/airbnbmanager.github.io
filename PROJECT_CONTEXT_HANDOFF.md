@@ -128,11 +128,16 @@ The CRM uses hash-based client-side routing. Navigating to `#<module>` triggers 
    - Located at [docs/operations/WHATSAPP_BUSINESS_CATALOGUE.md](docs/operations/WHATSAPP_BUSINESS_CATALOGUE.md).
    - Provides ready-to-copy listings for all 20 properties arranged location-wise.
 
-### C. Google Maps Check-in Navigation Directory
+### C. Google Maps Cluster Check-in Navigation Directory
 - Located at [docs/operations/GOOGLE_MAPS_DIRECTORY.md](docs/operations/GOOGLE_MAPS_DIRECTORY.md).
-- **Section A**: Complete cards with on-arrival caretaker contact numbers (for confirmed arriving guests).
-- **Section B**: Minimal cards without caretaker details (for inquiries and pre-booking privacy).
-- Structured as individual messages ready to be posted in the staff WhatsApp group for **1-click forwarding** to guests.
+- **Organized into 6 Strategic Location Clusters** (Total 20 Properties: 10 + 3 + 4 + 1 + 1 + 1):
+  1. **Vikalp Khand Chinhat** (10 Properties): `https://maps.app.goo.gl/7ULuctS1cwQSUFdW7`
+  2. **Vishesh Khand** (3 Properties): `https://maps.app.goo.gl/hCYdm2zNrfsK7yN78`
+  3. **Madhav Kunj** (4 Properties): `https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9`
+  4. **Celebrity Garden** (1 Property): `https://maps.app.goo.gl/Sev89di4cKGBuR289`
+  5. **Khargapur** (1 Property - Gomti Grand Villa): `https://maps.app.goo.gl/aX1bimVPmSDapdk67`
+  6. **White House** (1 Property - Royal White House): `https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47`
+- Fully synced across Supabase `rooms` table, `showcase-data.js`, `whatsapp.js`, `whatsapp-hub.js`, and all individual property pages.
 
 ### E. Staff & Emergency Vendor Directory Management (Praveen Only CRUD)
 - **Script**: `js/directory-manager.js` (Route: `#directory-manager`, also `#staff-directory` & `#vendor-directory`).

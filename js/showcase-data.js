@@ -37,7 +37,7 @@
       airbnb_price: 3127,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1798067011361845302/original/230e0bec-09da-4aa3-bdeb-952ffaf16a95.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Lulu+Mall+Golf+City+Lucknow',
+      map_link: 'https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9',
       map_embed: 'https://www.google.com/maps?q=Lulu+Mall+Golf+City+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -139,7 +139,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1655969170448425308/original/3a24b7e0-b326-4061-8762-5b19ca4aa009.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // customizable
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -283,7 +283,7 @@
       airbnb_price: 7434,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679190202218939181/original/e7e05026-ef33-4d97-bc0c-67d6511ec019.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -441,7 +441,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1676840617430941240/original/326ef6d2-fcf2-4f91-816a-324b20f17c90.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -559,7 +559,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1654261872286835347/original/01091d14-4426-434f-813d-879e7644601a.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -723,7 +723,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1660898784168880636/original/607ac848-e36e-467b-b476-36d273fff7a3.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -891,7 +891,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1679155811558485410/original/449695a8-7535-445c-8d6d-c2d521b559cb.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1050,7 +1050,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1723434530455939144/original/8dfc31d8-eaf8-4e6f-b904-479c7470e41b.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1142,7 +1142,7 @@
       airbnb_price: 8142,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718385679817913835/original/8b8fa9c5-732e-464f-8542-b4f122bae158.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vikalp+Khand+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1274,7 +1274,7 @@
     'VIL-105': {
       id: 'VIL-105',
       slug: 'the-yellow-house',
-      name: 'The Yellow House (Ground Floor)',
+      name: 'The Yellow House',
       type: '3BHK Luxury Villa · Ground Floor',
       category: 'villa',
       area: 'vishesh',
@@ -1290,7 +1290,7 @@
       airbnb_price: 7434,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729918855637425/original/f9826cd1-b559-468f-bc68-754a745af7a2.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/hCYdm2zNrfsK7yN78',
       map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1458,7 +1458,7 @@
     'VIL-104': {
       id: 'VIL-104',
       slug: 'the-green-house',
-      name: 'The Green House (1st Floor)',
+      name: 'The Green House',
       type: '3BHK Luxury Villa · 1st Floor',
       category: 'villa',
       area: 'vishesh',
@@ -1474,7 +1474,7 @@
       airbnb_price: 7434,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1593461780265937816/original/8c02a328-fdc2-487f-bba7-2acc4abb3a76.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/hCYdm2zNrfsK7yN78',
       map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1640,7 +1640,7 @@
     'VIL-103': {
       id: 'VIL-103',
       slug: 'the-pink-house',
-      name: 'The Pink House (2nd & 3rd Floor)',
+      name: 'The Pink House',
       type: '5BR Luxury Villa (2nd & 3rd Floor)',
       category: 'villa',
       area: 'vishesh',
@@ -1656,7 +1656,7 @@
       airbnb_price: 12213,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1592729438969718723/original/d23c4f29-1df9-4eac-adbe-c5b2c4b293b2.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow',
+      map_link: 'https://maps.app.goo.gl/hCYdm2zNrfsK7yN78',
       map_embed: 'https://www.google.com/maps?q=Vishesh+Khand+3+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -1912,7 +1912,7 @@
       airbnb_price: 10856,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1721732716374002170/original/0439ab5c-25e2-4ae8-aa07-a48dd516d41f.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A',
+      map_link: 'https://maps.app.goo.gl/aX1bimVPmSDapdk67',
       map_embed: 'https://www.google.com/maps?q=26.83711,81.01734&output=embed',
       photos: {
         bedrooms: [
@@ -2112,7 +2112,7 @@
       airbnb_price: 16284,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1718315215180636685/original/337e80df-7720-48c6-8066-95390e6dcabd.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Shaheed+Path+Lucknow',
+      map_link: 'https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47',
       map_embed: 'https://www.google.com/maps?q=Shaheed+Path+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -2384,7 +2384,7 @@
       airbnb_price: 13570,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1606514664948608755/original/2af43354-2ddd-4517-bc22-eabe3918c757.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Sushant+Golf+City+Lucknow',
+      map_link: 'https://maps.app.goo.gl/Sev89di4cKGBuR289',
       map_embed: 'https://www.google.com/maps?q=Sushant+Golf+City+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -2578,7 +2578,7 @@
     'VIL-107': {
       id: 'VIL-107',
       slug: 'the-velvet-house',
-      name: 'The Velvet House (1st Floor)',
+      name: 'The Velvet House',
       type: '3BHK Luxury Villa · 1st Floor',
       category: 'villa',
       area: 'shaheed',
@@ -2594,7 +2594,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1727830063287100082/original/5b61ab54-ed1d-4610-90b7-91a9ae4390a3.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Medanta+Hospital+Lucknow',
+      map_link: 'https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9',
       map_embed: 'https://www.google.com/maps?q=Medanta+Hospital+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -2732,7 +2732,7 @@
     'VIL-106': {
       id: 'VIL-106',
       slug: 'green-forest',
-      name: 'Green Forest (2nd Floor)',
+      name: 'Green Forest',
       type: '3BHK Luxury Villa · 2nd Floor',
       category: 'villa',
       area: 'lulu',
@@ -2748,7 +2748,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1739254108962193705/original/835271f3-f1dc-45e9-a9d7-c6f725fdaa0d.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Ansal+Golf+City+Lulu+Mall+Lucknow',
+      map_link: 'https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9',
       map_embed: 'https://www.google.com/maps?q=Ansal+Golf+City+Lulu+Mall+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -2892,7 +2892,7 @@
     'VIL-108': {
       id: 'VIL-108',
       slug: 'pink-paradise',
-      name: 'Pink Paradise (3rd Floor)',
+      name: 'Pink Paradise',
       type: '3BHK Luxury Villa · 3rd Floor',
       category: 'villa',
       area: 'lulu',
@@ -2908,7 +2908,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1756799939825259443/original/cf33ca9f-2804-443e-a37c-9518c596c502.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.google.com/?q=Medanta+Hospital+Lulu+Mall+Lucknow',
+      map_link: 'https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9',
       map_embed: 'https://www.google.com/maps?q=Medanta+Hospital+Lulu+Mall+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -3048,7 +3048,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1814548211970648885/original/58465c71-9bc8-49a9-8ab9-51c98f663392.png?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [
@@ -3166,7 +3166,7 @@
       airbnb_price: 6136,
       cover_image: 'https://a0.muscache.com/im/pictures/hosting/Hosting-1753628051023751271/original/faa49950-297e-4f8f-a0bb-77d588076736.jpeg?im_w=720&width=720&quality=70&auto=webp',
       video_url: '',
-      map_link: 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA',
+      map_link: 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7',
       map_embed: 'https://www.google.com/maps?q=Vikalp+Khand+Gomti+Nagar+Lucknow&output=embed',
       photos: {
         bedrooms: [

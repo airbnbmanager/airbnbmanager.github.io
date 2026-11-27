@@ -841,14 +841,18 @@ The Unique Haven Homes Property Management`;
       }
       if (!mapLink) {
         const rid = ((b.room_id || '') + ' ' + (b.room_name || '') + ' ' + (b.rooms?.nickname || '')).toUpperCase();
-        if (rid.includes('VIL-103') || rid.includes('PINK HOUSE') || rid.includes('VIL-104') || rid.includes('GREEN HOUSE') || rid.includes('VIL-105') || rid.includes('YELLOW HOUSE')) {
-          mapLink = 'https://maps.app.goo.gl/pCGigAPQGHjcfadQ8';
-        } else if (rid.includes('VIL-101') || rid.includes('GRAND VILLA')) {
-          mapLink = 'https://maps.app.goo.gl/qQRbCANwvez7mnD3A';
-        } else if (rid.includes('LUL') || rid.includes('LUXE') || rid.includes('VELVET') || rid.includes('PINK PARADISE') || rid.includes('GREEN FOREST') || rid.includes('CELEBRITY') || rid.includes('ROYAL WHITE')) {
-          mapLink = 'https://maps.app.goo.gl/b8YjBduoQxa98QhT6';
+        if (rid.includes('VIL-102') || rid.includes('WHITE HOUSE') || rid.includes('ROYAL WHITE')) {
+          mapLink = 'https://maps.app.goo.gl/oHSaUjbBXr5Qaxc47';
+        } else if (rid.includes('VIL-101') || rid.includes('GRAND VILLA') || rid.includes('KHARGAPUR')) {
+          mapLink = 'https://maps.app.goo.gl/aX1bimVPmSDapdk67';
+        } else if (rid.includes('LUL-402') || rid.includes('CELEBRITY')) {
+          mapLink = 'https://maps.app.goo.gl/Sev89di4cKGBuR289';
+        } else if (rid.includes('VIL-106') || rid.includes('VIL-107') || rid.includes('VIL-108') || rid.includes('LUL-101') || rid.includes('MADHAV') || rid.includes('VELVET') || rid.includes('GREEN FOREST') || rid.includes('PINK PARADISE') || rid.includes('LUXE')) {
+          mapLink = 'https://maps.app.goo.gl/Fd3KmnT9PLYrRtTX9';
+        } else if (rid.includes('VIL-103') || rid.includes('VIL-104') || rid.includes('VIL-105') || rid.includes('VISHESH') || rid.includes('PINK HOUSE') || rid.includes('GREEN HOUSE') || rid.includes('YELLOW HOUSE')) {
+          mapLink = 'https://maps.app.goo.gl/hCYdm2zNrfsK7yN78';
         } else {
-          mapLink = 'https://maps.app.goo.gl/HvqjAfKwSC3Q6CJQA';
+          mapLink = 'https://maps.app.goo.gl/7ULuctS1cwQSUFdW7';
         }
       }
 
