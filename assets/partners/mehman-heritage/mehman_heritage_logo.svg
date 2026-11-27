@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <defs>
+    <!-- Royal Gold Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9E79F" />
+      <stop offset="25%" stop-color="#D4AF37" />
+      <stop offset="50%" stop-color="#F3E5AB" />
+      <stop offset="75%" stop-color="#AA771C" />
+      <stop offset="100%" stop-color="#E5C158" />
+    </linearGradient>
+
+    <!-- Deep Luxury Vignette Background -->
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="60%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#080D1A" />
+    </radialGradient>
+
+    <!-- Glow Filter -->
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="800" rx="32" fill="url(#bgGrad)" />
+
+  <!-- Outer Fine Border -->
+  <rect x="24" y="24" width="752" height="752" rx="20" fill="none" stroke="url(#goldGrad)" stroke-width="2" opacity="0.3" />
+  <rect x="36" y="36" width="728" height="728" rx="14" fill="none" stroke="url(#goldGrad)" stroke-width="1" opacity="0.15" />
+
+  <!-- Inner Heritage Emblem Group -->
+  <g transform="translate(400, 260)">
+    
+    <!-- Outer Heritage Arch Silhouette -->
+    <path d="M 0,-140 
+             C 25,-120 55,-95 80,-85 
+             C 120,-70 145,-30 145,25 
+             C 145,95 85,145 0,145 
+             C -85,145 -145,95 -145,25 
+             C -145,-30 -120,-70 -80,-85 
+             C -55,-95 -25,-120 0,-140 Z" 
+          fill="none" stroke="url(#goldGrad)" stroke-width="6" />
+
+    <!-- Delicate Inner Arch Inset -->
+    <path d="M 0,-126 
+             C 20,-108 48,-85 70,-76 
+             C 105,-63 128,-26 128,22 
+             C 128,82 75,128 0,128 
+             C -75,128 -128,82 -128,22 
+             C -128,-26 -105,-63 -70,-76 
+             C -48,-85 -20,-108 0,-126 Z" 
+          fill="none" stroke="url(#goldGrad)" stroke-width="1.8" opacity="0.6" />
+
+    <!-- Top Mughal Finial / Kalash Motif -->
+    <g transform="translate(0, -145)">
+      <path d="M 0,-32 C 4,-20 8,-12 0,0 C -8,-12 -4,-20 0,-32 Z" fill="url(#goldGrad)" />
+      <path d="M -16,-22 C -8,-14 -3,-8 0,0 C -3,-8 -8,-14 -16,-22 Z" fill="url(#goldGrad)" opacity="0.85" />
+      <path d="M 16,-22 C 8,-14 3,-8 0,0 C 3,-8 8,-14 16,-22 Z" fill="url(#goldGrad)" opacity="0.85" />
+      <circle cx="0" cy="-35" r="3.5" fill="url(#goldGrad)" />
+    </g>
+
+    <!-- Regal Monogram Letter 'M' -->
+    <path d="M -85,95 L -85,-35 Q -85,-65 -65,-65 Q -50,-65 -40,-40 L 0,25 L 40,-40 Q 50,-65 65,-65 Q 85,-65 85,-35 L 85,95 L 62,95 L 62,-25 L 20,45 L -20,45 L -62,-25 L -62,95 Z" 
+          fill="url(#goldGrad)" filter="url(#goldGlow)" />
+
+    <!-- Heritage Gateway Arch & 4-Pane Window Inside 'M' -->
+    <!-- Window Arch Outline -->
+    <path d="M -30,95 L -30,42 C -30,20 -15,10 0,6 C 15,10 30,20 30,42 L 30,95 Z" 
+          fill="#0F172A" stroke="url(#goldGrad)" stroke-width="3" />
+    
+    <!-- 4 Glowing Window Panes -->
+    <rect x="-22" y="32" width="18" height="24" rx="2" fill="url(#goldGrad)" opacity="0.9" />
+    <rect x="4" y="32" width="18" height="24" rx="2" fill="url(#goldGrad)" opacity="0.9" />
+    <rect x="-22" y="62" width="18" height="25" rx="2" fill="url(#goldGrad)" opacity="0.8" />
+    <rect x="4" y="62" width="18" height="25" rx="2" fill="url(#goldGrad)" opacity="0.8" />
+  </g>
+
+  <!-- Typography Group -->
+  <!-- Brand Name: MEHMAN -->
+  <text x="400" y="475" 
+        font-family="'Playfair Display', 'Cinzel', 'Georgia', serif" 
+        font-size="64" 
+        font-weight="800" 
+        letter-spacing="14" 
+        text-anchor="middle" 
+        fill="url(#goldGrad)">
+    MEHMAN
+  </text>
+
+  <!-- Brand Subtitle: HERITAGE STAY & HOSPITALITY -->
+  <text x="400" y="525" 
+        font-family="'Plus Jakarta Sans', 'Montserrat', sans-serif" 
+        font-size="16" 
+        font-weight="700" 
+        letter-spacing="8" 
+        text-anchor="middle" 
+        fill="#F1F5F9" 
+        opacity="0.95">
+    HERITAGE STAY &amp; HOSPITALITY
+  </text>
+
+  <!-- Ornamental Divider with Fleurons -->
+  <g transform="translate(400, 560)">
+    <line x1="-180" y1="0" x2="-25" y2="0" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.6" />
+    <!-- Center Lotus Fleuron -->
+    <circle cx="0" cy="0" r="4" fill="url(#goldGrad)" />
+    <path d="M -12,-3 C -6,-1 0,0 0,0 C 0,0 -6,1 -12,3 Z" fill="url(#goldGrad)" />
+    <path d="M 12,-3 C 6,-1 0,0 0,0 C 0,0 6,1 12,3 Z" fill="url(#goldGrad)" />
+    <line x1="25" y1="0" x2="180" y2="0" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.6" />
+  </g>
+
+  <!-- Tagline: Where guests become family -->
+  <text x="400" y="610" 
+        font-family="'Playfair Display', 'Brush Script MT', 'Great Vibes', 'Georgia', italic, serif" 
+        font-style="italic" 
+        font-size="28" 
+        font-weight="500" 
+        letter-spacing="2" 
+        text-anchor="middle" 
+        fill="url(#goldGrad)">
+    Where guests become family
+  </text>
+
+  <!-- Contact Details & Owners at Bottom -->
+  <g transform="translate(400, 685)">
+    <rect x="-240" y="-20" width="480" height="42" rx="21" fill="rgba(212,175,55,0.08)" stroke="url(#goldGrad)" stroke-width="1" opacity="0.7" />
+    <text x="0" y="6" 
+          font-family="'Plus Jakarta Sans', sans-serif" 
+          font-size="13" 
+          font-weight="700" 
+          letter-spacing="1" 
+          text-anchor="middle" 
+          fill="#E2E8F0">
+      Ahmed Shadab: +91 80901 40423  •  Ahmed Shahzad: +91 70073 00213
+    </text>
+  </g>
+
+</svg>
