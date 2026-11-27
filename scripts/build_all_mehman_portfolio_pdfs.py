@@ -23,6 +23,15 @@ os.makedirs(CACHE_ROOT, exist_ok=True)
 
 PROPERTIES = [
     {
+        'slug': 'spacious_2bhk_modern',
+        'room_id': '1788393609735825212',
+        'display_name': 'SPACIOUS 2 BHK MODERN HOME',
+        'type': '2 BHK Modern Luxury Homestay · 3 Beds · 2 Luxury Baths',
+        'location': 'Prime Central Location, Lucknow, Uttar Pradesh',
+        'specs': '⭐ 5.0 Rating    🛏️ 3 Beds (2 King + Sofa Bed)    🚿 2 Baths    👥 Up to 6 Guests    ❄️ 100% AC',
+        'filename': 'Spacious 2BHK - Modern Home in Lucknow (Mehman Heritage).pdf'
+    },
+    {
         'slug': 'mehman_heritage_4bhk',
         'room_id': '1722367158892891201',
         'display_name': 'THE MEHMAN HERITAGE | 4 BHK',
