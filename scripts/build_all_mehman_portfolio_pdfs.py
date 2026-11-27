@@ -23,6 +23,15 @@ os.makedirs(CACHE_ROOT, exist_ok=True)
 
 PROPERTIES = [
     {
+        'slug': 'lucknow_central_1bhk_charbagh',
+        'room_id': '1675836659693641696',
+        'display_name': 'LUCKNOW CENTRAL | 1 BHK CHARBAGH',
+        'type': '1 BHK Executive Suite · 1 King Bed · Fully Air-Conditioned',
+        'location': 'Near Charbagh Railway Station, Lucknow, Uttar Pradesh',
+        'specs': '⭐ 4.78 Rating    🛏️ 1 King Bed    🚿 1 Bath    👥 Up to 2-3 Guests    📶 Wi-Fi    ❄️ 100% AC',
+        'filename': 'Lucknow Central - 1 BHK Near Charbagh (Mehman Heritage).pdf'
+    },
+    {
         'slug': 'spacious_2bhk_modern',
         'room_id': '1788393609735825212',
         'display_name': 'SPACIOUS 2 BHK MODERN HOME',
